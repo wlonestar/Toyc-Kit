@@ -1,6 +1,10 @@
 add_executable(toyc
   main.cpp
   Lexer.cpp
+  Parser.cpp
+  AST.cpp
+  ASTPrint.cpp
+  Interpreter.cpp
 )
 target_compile_definitions(toyc PRIVATE
   $<$<CONFIG:Debug>:DEBUG>

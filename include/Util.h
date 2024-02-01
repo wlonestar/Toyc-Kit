@@ -4,6 +4,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <iostream>
 
 namespace toyc {
 

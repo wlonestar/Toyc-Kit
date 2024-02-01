@@ -21,17 +21,8 @@ private:
   std::string message;
 
 public:
-  LexerError(size_t _line, size_t _col, std::string &_message)
-      : line(_line), col(_col),
-        message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
-                        "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                        _line, _col, _message)) {}
-
-  LexerError(size_t _line, size_t _col, std::string &&_message)
-      : line(_line), col(_col),
-        message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
-                        "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                        _line, _col, _message)) {}
+  LexerError(size_t _line, size_t _col, std::string &_message);
+  LexerError(size_t _line, size_t _col, std::string &&_message);
 
   const char *what() const noexcept override { return message.c_str(); }
 };
@@ -91,6 +82,10 @@ private:
     current += steps;
     col += steps;
   }
+  void backward(size_t steps) {
+    current -= steps;
+    col -= steps;
+  }
 
   char advance() {
     col++;
@@ -117,10 +112,11 @@ private:
 
 private:
   Token makeToken(TokenType type) {
-    return Token(type, input.substr(start, current - start), line, col);
+    return Token(type, input.substr(start, current - start), line,
+                 col - (current - start - 1));
   }
   Token makeToken(TokenType type, std::string &&value) {
-    return Token(type, std::move(value), line, col);
+    return Token(type, std::move(value), line, col - (current - start - 1));
   }
 
 private:

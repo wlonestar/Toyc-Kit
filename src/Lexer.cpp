@@ -61,6 +61,7 @@ void Lexer::skipMutliComment() {
   advance();
 }
 
+/// TODO: support (u8|u|U|L) prefix
 Token Lexer::scanString() {
   while (peek() != '"' && !isEnd()) {
     if (peek() == '\n') {
@@ -141,6 +142,12 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), int2);
     if (iter != end) {
       forward(iter->str().size() - 1);
+      /// !!! trivial
+      if (peek() == '.') {
+        backward(iter->str().size() - 1);
+        goto DIGIT;
+      }
+      /// !!!
       if (isA(peek())) {
         forward(1);
         throwLexerError(LexerErrorTable[INVALID_INTEGER_SUFFIX]);
@@ -148,6 +155,8 @@ Token Lexer::scanNumber() {
       return makeToken(INTEGER);
     }
   } else if (isD(previous())) { // {D}
+  DIGIT:
+    debug("_str:{}", _str);
     iter = std::sregex_iterator(_str.begin(), _str.end(), float2);
     if (iter != end) {
       forward(iter->str().size() - 1);
@@ -155,7 +164,7 @@ Token Lexer::scanNumber() {
         forward(1);
         throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
       }
-      return makeToken(INTEGER);
+      return makeToken(FLOATING);
     }
 
     iter = std::sregex_iterator(_str.begin(), _str.end(), float3);
@@ -165,7 +174,7 @@ Token Lexer::scanNumber() {
         forward(1);
         throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
       }
-      return makeToken(INTEGER);
+      return makeToken(FLOATING);
     }
 
     iter = std::sregex_iterator(_str.begin(), _str.end(), float1);
@@ -175,7 +184,7 @@ Token Lexer::scanNumber() {
         forward(1);
         throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
       }
-      return makeToken(INTEGER);
+      return makeToken(FLOATING);
     }
 
     if (previous() == '0') { // "0"
@@ -197,7 +206,7 @@ Token Lexer::scanNumber() {
         forward(1);
         throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
       }
-      return makeToken(INTEGER);
+      return makeToken(FLOATING);
     }
   } else if (isCP(previous())) { // {CP}
     iter = std::sregex_iterator(_str.begin(), _str.end(), int4);
@@ -368,5 +377,21 @@ Token Lexer::scanToken() {
   throwLexerError("unexpected character.");
   return Token(ERROR, "");
 }
+
+/**
+ * Constructor of Lexer Error object
+ */
+
+LexerError::LexerError(size_t _line, size_t _col, std::string &_message)
+    : line(_line), col(_col),
+      message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
+                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                      _line, _col, _message)) {}
+
+LexerError::LexerError(size_t _line, size_t _col, std::string &&_message)
+    : line(_line), col(_col),
+      message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
+                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                      _line, _col, _message)) {}
 
 } // namespace toyc

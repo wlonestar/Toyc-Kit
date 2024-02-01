@@ -115,6 +115,7 @@ enum TokenType {
   OR,           // |
   QUE,          // ?
 
+  EMPTY,
   ERROR, // error
   _EOF,  // end of file
 };
@@ -284,13 +285,14 @@ public:
   std::string value;
   size_t line, col;
 
-  Token() = default;
+  Token() : type(EMPTY), value(""), line(0), col(0) {}
   Token(TokenType _type, std::string &&_value, size_t _line = 1,
         size_t _col = 1)
       : type(_type), value(std::move(_value)), line(_line), col(_col) {}
 
   std::string toString() const {
-    return fmt_str("type={}, value='{}'", TokenTypeTable[type], value);
+    return fmt_str("Token({}:{} {} -> '{}')", line, col, TokenTypeTable[type],
+                   value);
   }
 };
 
