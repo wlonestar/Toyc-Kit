@@ -23,7 +23,7 @@ WS  [ \t\v\n\f]
 
 %{
 #include <stdio.h>
-#include "y.tab.h"
+#include "syntax.tab.h"
 
 extern void yyerror(const char *);  /* prints grammar violation message */
 
@@ -36,8 +36,8 @@ static int check_type(void);
 %}
 
 %%
-"/*"     { comment(); }
-"//".*   { /* consume //-comment */ }
+"/*"             { comment(); }
+"//".*           { /* consume //-comment */ }
 
 "auto"					 { return(AUTO); }
 "break"				   { return(BREAK); }
@@ -153,39 +153,34 @@ static int check_type(void);
 
 %%
 
-int yywrap(void)        /* called at end of input */
-{
-    return 1;           /* terminate now */
+int yywrap(void) {    /* called at end of input */
+  return 1;           /* terminate now */
 }
 
-static void comment(void)
-{
-    int c;
-
-    while ((c = input()) != 0)
-        if (c == '*')
-        {
-            while ((c = input()) == '*')
-                ;
-
-            if (c == '/')
-                return;
-
-            if (c == 0)
-                break;
-        }
-    yyerror("unterminated comment");
-}
-
-static int check_type(void)
-{
-    switch (sym_type(yytext))
-    {
-    case TYPEDEF_NAME:                /* previously defined */
-        return TYPEDEF_NAME;
-    case ENUMERATION_CONSTANT:        /* previously defined */
-        return ENUMERATION_CONSTANT;
-    default:                          /* includes undefined */
-        return IDENTIFIER;
+static void comment(void) {
+  int c;
+  while ((c = input()) != 0) {
+    if (c == '*') {
+      while ((c = input()) == '*')
+        ;
+      if (c == '/') { 
+        return;
+      }
+      if (c == 0) {
+        break;
+      }
     }
+  }
+  yyerror("unterminated comment");
+}
+
+static int check_type(void) {
+  switch (sym_type(yytext)) {
+  case TYPEDEF_NAME:                /* previously defined */
+    return TYPEDEF_NAME;
+  case ENUMERATION_CONSTANT:        /* previously defined */
+    return ENUMERATION_CONSTANT;
+  default:                          /* includes undefined */
+    return IDENTIFIER;
+  }
 }

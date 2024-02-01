@@ -7,8 +7,6 @@
 
 #include <Util.h>
 
-#include <cstddef>
-#include <functional>
 #include <map>
 #include <string>
 
@@ -110,14 +108,15 @@ enum TokenType {
   ADD,          // +
   MUL,          // *
   DIV,          // /
-  PER,          // %
+  MOD,          // %
   LA,           // <
   RA,           // >
-  POW,          // ^
+  XOR,          // ^
   OR,           // |
   QUE,          // ?
 
-  _EOF, // end of file
+  ERROR, // error
+  _EOF,  // end of file
 };
 
 #define _stringify_(name) #name
@@ -220,14 +219,63 @@ static std::map<TokenType, std::string> TokenTypeTable = {
     _map_(ADD),          // +
     _map_(MUL),          // *
     _map_(DIV),          // /
-    _map_(PER),          // %
+    _map_(MOD),          // %
     _map_(LA),           // <
     _map_(RA),           // >
-    _map_(POW),          // ^
+    _map_(XOR),          // ^
     _map_(OR),           // |
     _map_(QUE),          // ?
 
-    _map_(_EOF), // end of file
+    _map_(ERROR), // error
+    _map_(_EOF),  // end of file
+};
+
+static std::map<std::string, TokenType> KeywordTable = {
+    {"auto", AUTO},                    // auto
+    {"break", BREAK},                  // break
+    {"case", CASE},                    // case
+    {"char", CHAR},                    // char
+    {"const", CONST},                  // const
+    {"continue", CONTINUE},            // continue
+    {"default", DEFAULT},              // default
+    {"do", DO},                        // do
+    {"double", DOUBLE},                // double
+    {"else", ELSE},                    // else
+    {"enum", ENUM},                    // enum
+    {"extern", EXTERN},                // extern
+    {"float", FLOAT},                  // float
+    {"for", FOR},                      // for
+    {"goto", GOTO},                    // goto
+    {"if", IF},                        // if
+    {"inline", INLINE},                // inline
+    {"int", INT},                      // int
+    {"long", LONG},                    // long
+    {"register", REGISTER},            // register
+    {"restrict", RESTRICT},            // restrict
+    {"return", RETURN},                // return
+    {"short", SHORT},                  // short
+    {"signed", SIGNED},                // signed
+    {"sizeof", SIZEOF},                // sizeof
+    {"static", STATIC},                // static
+    {"struct", STRUCT},                // struct
+    {"switch", SWITCH},                // switch
+    {"typedef", TYPEDEF},              // typedef
+    {"union", UNION},                  // union
+    {"unsigned", UNSIGNED},            // unsigned
+    {"void", VOID},                    // void
+    {"volatile", VOLATILE},            // volatile
+    {"while", WHILE},                  // while
+    {"_Alignas", ALIGNAS},             // _Alignas
+    {"_Alignod", ALIGNOF},             // _Alignof
+    {"_Atomic", ATOMIC},               // _Atomic
+    {"_Bool", BOOL},                   // _Bool
+    {"_Complex", COMPLEX},             // _Complex
+    {"_Generic", GENERIC},             // _Generic
+    {"_Imaginary", IMAGINARY},         // _Imaginary
+    {"_Noreturn", NORETURN},           // _Noreturn
+    {"_Static_assert", STATIC_ASSERT}, // _Static_assert
+    {"_Thread_local", THREAD_LOCAL},   // _Thread_local
+    {"__func__", FUNC_NAME},           // __func__
 };
 
 class Token {
@@ -242,7 +290,7 @@ public:
       : type(_type), value(std::move(_value)), line(_line), col(_col) {}
 
   std::string toString() const {
-    return string_format("type={}, value='{}'", TokenTypeTable[type], value);
+    return fmt_str("type={}, value='{}'", TokenTypeTable[type], value);
   }
 };
 
