@@ -84,22 +84,32 @@ Token Lexer::scanNumber() {
   std::regex float6(R"(0[xX][a-fA-F0-9]+\.([pP][+-]?[0-9]+)(f|F|l|L)?)");
   std::regex float4(R"(0[xX][a-fA-F0-9]+([pP][+-]?[0-9]+)(f|F|l|L)?)");
   std::regex int1(
-      R"(0[xX][a-fA-F0-9]+(((u|U)(l|L|ll|LL)?)|((l|L|ll|LL)(u|U)?))?)");
+      R"(0[xX][a-fA-F0-9]+(((u|U)(ll|LL|l|L)?)|((ll|LL|l|L)(u|U)?))?)");
   std::regex float5(
       R"(0[xX][a-fA-F0-9]*\.[a-fA-F0-9]+([pP][+-]?[0-9]+)(f|F|l|L)?)");
-  std::regex int2(R"([1-9][0-9]*(((u|U)(l|L|ll|LL)?)|((l|L|ll|LL)(u|U)?))?)");
-  std::regex int3(R"(0[0-7]*(((u|U)(l|L|ll|LL)?)|((l|L|ll|LL)(u|U)?))?)");
+  std::regex int2(R"([1-9][0-9]*(((u|U)(ll|LL|l|L)?)|((ll|LL|l|L)(u|U)?))?)");
+  std::regex int3(R"(0[0-7]*(((u|U)(ll|LL|l|L)?)|((ll|LL|l|L)(u|U)?))?)");
   std::regex float2(R"([0-9]+\.[0-9]+([eE][+-]?[0-9]+)?(f|F|l|L)?)");
   std::regex float3(R"([0-9]+\.([eE][+-]?[0-9]+)?(f|F|l|L)?)");
   std::regex float1(R"([0-9]+([eE][+-]?[0-9]+)(f|F|l|L)?)");
   std::regex float22(R"(\.[0-9]+([eE][+-]?[0-9]+)?(f|F|l|L)?)");
   std::regex int4(
-      R"((u|U|L)\'([^'\\\n]|(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+)))+\')");
+      R"((u|U|L)?\'([^'\\\n]|(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+)))+\')");
   std::regex int44(
       R"(\'([^'\\\n]|(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+)))+\')");
 
   if (isHP(previous(), peek())) { // {HP}
     iter = std::sregex_iterator(_str.begin(), _str.end(), float6);
+    if (iter != end) {
+      forward(iter->str().size() - 1);
+      if (isA(peek())) {
+        forward(1);
+        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+      }
+      return makeToken(FLOATING);
+    }
+
+    iter = std::sregex_iterator(_str.begin(), _str.end(), float5);
     if (iter != end) {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
@@ -128,16 +138,6 @@ Token Lexer::scanNumber() {
       }
       return makeToken(INTEGER);
     }
-
-    iter = std::sregex_iterator(_str.begin(), _str.end(), float5);
-    if (iter != end) {
-      forward(iter->str().size() - 1);
-      if (isA(peek())) {
-        forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
-      }
-      return makeToken(FLOATING);
-    }
   } else if (isNZ(previous())) { // {NZ}
     iter = std::sregex_iterator(_str.begin(), _str.end(), int2);
     if (iter != end) {
@@ -156,7 +156,6 @@ Token Lexer::scanNumber() {
     }
   } else if (isD(previous())) { // {D}
   DIGIT:
-    debug("_str:{}", _str);
     iter = std::sregex_iterator(_str.begin(), _str.end(), float2);
     if (iter != end) {
       forward(iter->str().size() - 1);
@@ -208,7 +207,7 @@ Token Lexer::scanNumber() {
       }
       return makeToken(FLOATING);
     }
-  } else if (isCP(previous())) { // {CP}
+  } else if (isCP(previous())) { // {CP} TODO: fix bug for CharacterLiteral
     iter = std::sregex_iterator(_str.begin(), _str.end(), int4);
     if (iter != end) {
       forward(iter->str().size() - 1);

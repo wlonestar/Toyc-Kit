@@ -14,6 +14,7 @@
 #include <exception>
 #include <initializer_list>
 #include <memory>
+#include <tuple>
 
 namespace toyc {
 
@@ -102,8 +103,37 @@ private:
   }
 
 private:
+  bool checkHexadecimal(std::string &value) {
+    if (value.starts_with("0x") || value.starts_with("0X")) {
+      return true;
+    }
+    return false;
+  }
+  bool checkOctal(std::string &value) {
+    if (value.starts_with("0") && value.size() != 1) {
+      return true;
+    }
+    return false;
+  }
+
+  std::tuple<std::string, integer_t> parseIntegerSuffix(std::string &value,
+                                                        int base);
+  std::tuple<std::string, floating_t> parseFloatingSuffix(std::string &value,
+                                                          int base);
+
+private:
+  std::unique_ptr<Expr> parseIntegerLiteral();
+  std::unique_ptr<Expr> parseFloatingLiteral();
+
   std::unique_ptr<Expr> parsePrimaryExpression();
 
+  std::unique_ptr<Expr> parseUnaryExpression();
+  std::unique_ptr<Expr> parseMultiplicativeExpression();
+  std::unique_ptr<Expr> parseAdditiveExpression();
+  std::unique_ptr<Expr> parseRelationalExpression();
+  std::unique_ptr<Expr> parseEqualityExpression();
+  std::unique_ptr<Expr> parseLogicalAndExpression();
+  std::unique_ptr<Expr> parseLogicalOrExpression();
   std::unique_ptr<Expr> parseExpression();
 
 public:

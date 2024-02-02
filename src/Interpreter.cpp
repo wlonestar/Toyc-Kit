@@ -3,6 +3,8 @@
 #include <Interpreter.h>
 #include <Parser.h>
 
+#include <exception>
+
 namespace toyc {
 
 void Interpreter::compile(std::string &input) {
@@ -29,6 +31,9 @@ void Interpreter::compile(std::string &input) {
     return;
   } catch (ParserError e) {
     std::cerr << e.what() << "\n";
+    return;
+  } catch (...) {
+    std::cerr << "there is something wrong in compiler inner\n";
     return;
   }
 }
