@@ -30,7 +30,6 @@ void run_file(const char *filename) {
 void run_prompt() {
   string input;
   LineEditor editor(PROMPT);
-  Interpreter interpreter;
   while (true) {
     string line = editor.readLine(); // line buffer
     trim(line);
@@ -54,6 +53,7 @@ void run_prompt() {
         input += line;
 
         /// TODO: support incremental parser and interpreter
+        Interpreter interpreter;
         interpreter.compile(input);
 
         input = ""; // clear buffer

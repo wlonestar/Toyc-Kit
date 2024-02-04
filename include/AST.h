@@ -7,6 +7,8 @@
 
 #include <Token.h>
 
+#include <llvm/IR/Value.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -25,6 +27,7 @@ public:
   virtual ~Expr() = default;
 
   virtual std::string getType() const = 0;
+  virtual llvm::Value *codegen() = 0;
   virtual void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") = 0;
 };
 
@@ -42,8 +45,9 @@ public:
   IntegerLiteral(integer_t _value, std::string &&_type)
       : value(_value), type(std::move(_type)) {}
 
-  std::string getType() const;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
 using floating_t = std::variant<float, double, long double>;
@@ -57,8 +61,9 @@ public:
   FloatingLiteral(floating_t _value, std::string &&_type)
       : value(_value), type(std::move(_type)) {}
 
-  std::string getType() const;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
 class CharacterLiteral : public Literal {
@@ -68,8 +73,9 @@ private:
 public:
   CharacterLiteral(int _value) : value(_value) {}
 
-  std::string getType() const;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
 class StringLiteral : public Literal {
@@ -81,8 +87,9 @@ public:
   StringLiteral(std::string &&_value, std::string &&_type)
       : value(std::move(_value)), type(std::move(_type)) {}
 
-  std::string getType() const;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
 class ParenExpr : public Expr {
@@ -92,8 +99,9 @@ private:
 public:
   ParenExpr(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
 
-  std::string getType() const;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
 class UnaryOperator : public Expr {
@@ -105,8 +113,9 @@ public:
   UnaryOperator(Token _op, std::unique_ptr<Expr> _right)
       : op(_op), right(std::move(_right)) {}
 
-  std::string getType() const;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
 class BinaryOperator : public Expr {
@@ -114,14 +123,17 @@ private:
   Token op;
   std::unique_ptr<Expr> left;
   std::unique_ptr<Expr> right;
+  std::string type;
 
 public:
   BinaryOperator(Token _op, std::unique_ptr<Expr> _left,
-                 std::unique_ptr<Expr> _right)
-      : op(_op), left(std::move(_left)), right(std::move(_right)) {}
+                 std::unique_ptr<Expr> _right, std::string &&_type)
+      : op(_op), left(std::move(_left)), right(std::move(_right)),
+        type(std::move(_type)) {}
 
-  std::string getType() const;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
 } // namespace toyc

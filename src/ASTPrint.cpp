@@ -57,8 +57,8 @@ void StringLiteral::dump(size_t _d, Side _s, std::string _p) {
   std::cout << (_d == 0 ? AST_LEADER("`")
                         : (_s == LEAF ? _p + AST_LEADER("`") : _p))
             << AST_LEADER("-") << AST_SYNTAX("StringLiteral") << " "
-            << AST_TYPE("'{}'", getType()) << " " << AST_LITERAL("\"{}\"", value)
-            << "\n";
+            << AST_TYPE("'{}'", getType()) << " "
+            << AST_LITERAL("\"{}\"", value) << "\n";
 }
 
 void ParenExpr::dump(size_t _d, Side _s, std::string _p) {
@@ -80,7 +80,8 @@ void BinaryOperator::dump(size_t _d, Side _s, std::string _p) {
   std::cout << (_d == 0 ? AST_LEADER("`")
                         : (_s == LEAF ? _p + AST_LEADER("`") : _p))
             << AST_LEADER("-") << AST_SYNTAX("BinaryOperator") << " "
-            << fstr("'{}'", op.value) << "\n";
+            << AST_TYPE("{}", getType()) << " " << fstr("'{}'", op.value)
+            << "\n";
   left->dump(_d + 1, INTERNAL, _p + "  |");
   right->dump(_d + 1, LEAF, _p + "  ");
 }

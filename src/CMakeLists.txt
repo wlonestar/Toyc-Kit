@@ -4,6 +4,7 @@ add_executable(toyc
   Parser.cpp
   AST.cpp
   ASTPrint.cpp
+  CodeGen.cpp
   Interpreter.cpp
 )
 target_compile_definitions(toyc PRIVATE
@@ -12,4 +13,5 @@ target_compile_definitions(toyc PRIVATE
 target_link_libraries(toyc
   fmt
   readline
+  ${LLVM_LIBS}
 )

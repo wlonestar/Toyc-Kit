@@ -16,6 +16,6 @@ std::string ParenExpr::getType() const { return ""; }
 
 std::string UnaryOperator::getType() const { return ""; }
 
-std::string BinaryOperator::getType() const { return ""; }
+std::string BinaryOperator::getType() const { return type; }
 
 } // namespace toyc

@@ -122,6 +122,20 @@ private:
                                                           int base);
 
 private:
+  std::string checkBinaryOperatorType(TokenType type, Expr *left, Expr *right) {
+    if (type == AND_OP || type == OR_OP) {
+      return "int";
+    }
+    if (left->getType() == right->getType()) {
+      return left->getType();
+    }
+    if (left->getType() == "double" || right->getType() == "double") {
+      return "double";
+    }
+    return "int";
+  }
+
+private:
   std::unique_ptr<Expr> parseIntegerLiteral();
   std::unique_ptr<Expr> parseFloatingLiteral();
 

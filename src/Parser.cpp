@@ -133,8 +133,9 @@ std::unique_ptr<Expr> Parser::parseMultiplicativeExpression() {
   while (match({MUL, DIV})) {
     auto op = previous();
     auto right = parseUnaryExpression();
-    expr =
-        std::make_unique<BinaryOperator>(op, std::move(expr), std::move(right));
+    auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
+    expr = std::make_unique<BinaryOperator>(op, std::move(expr),
+                                            std::move(right), std::move(type));
   }
   return expr;
 }
@@ -144,8 +145,9 @@ std::unique_ptr<Expr> Parser::parseAdditiveExpression() {
   while (match({ADD, SUB})) {
     auto op = previous();
     auto right = parseMultiplicativeExpression();
-    expr =
-        std::make_unique<BinaryOperator>(op, std::move(expr), std::move(right));
+    auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
+    expr = std::make_unique<BinaryOperator>(op, std::move(expr),
+                                            std::move(right), std::move(type));
   }
   return expr;
 }
@@ -155,8 +157,10 @@ std::unique_ptr<Expr> Parser::parseRelationalExpression() {
   while (match({LE_OP, GE_OP, LA, RA})) {
     auto op = previous();
     auto right = parseAdditiveExpression();
-    expr =
-        std::make_unique<BinaryOperator>(op, std::move(expr), std::move(right));
+
+    auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
+    expr = std::make_unique<BinaryOperator>(op, std::move(expr),
+                                            std::move(right), std::move(type));
   }
   return expr;
 }
@@ -166,8 +170,9 @@ std::unique_ptr<Expr> Parser::parseEqualityExpression() {
   while (match({EQ_OP, NE_OP})) {
     auto op = previous();
     auto right = parseRelationalExpression();
-    expr =
-        std::make_unique<BinaryOperator>(op, std::move(expr), std::move(right));
+    auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
+    expr = std::make_unique<BinaryOperator>(op, std::move(expr),
+                                            std::move(right), std::move(type));
   }
   return expr;
 }
@@ -177,8 +182,9 @@ std::unique_ptr<Expr> Parser::parseLogicalAndExpression() {
   while (match(AND_OP)) {
     auto op = previous();
     auto right = parseEqualityExpression();
-    expr =
-        std::make_unique<BinaryOperator>(op, std::move(expr), std::move(right));
+    auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
+    expr = std::make_unique<BinaryOperator>(op, std::move(expr),
+                                            std::move(right), std::move(type));
   }
   return expr;
 }
@@ -188,8 +194,9 @@ std::unique_ptr<Expr> Parser::parseLogicalOrExpression() {
   while (match(OR_OP)) {
     auto op = previous();
     auto right = parseLogicalAndExpression();
-    expr =
-        std::make_unique<BinaryOperator>(op, std::move(expr), std::move(right));
+    auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
+    expr = std::make_unique<BinaryOperator>(op, std::move(expr),
+                                            std::move(right), std::move(type));
   }
   return expr;
 }

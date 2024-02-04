@@ -1,7 +1,7 @@
 SHELL = bash
 
-CLANG = /usr/bin/clang
-CLANG++ = /usr/bin/clang++
+CLANG = /usr/bin/clang-16
+CLANG++ = /usr/bin/clang++-16
 
 BUILD_DIR = build
 EXEC = toyc

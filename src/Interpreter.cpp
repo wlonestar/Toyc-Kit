@@ -1,5 +1,6 @@
 //! Interpreter implementation
 
+#include <CodeGen.h>
 #include <Interpreter.h>
 #include <Parser.h>
 
@@ -22,10 +23,14 @@ void Interpreter::compile(std::string &input) {
   //   }
   // }
 
+  initializeModule();
+
   Parser parser(input);
   try {
     auto expr = parser.parse();
     expr->dump();
+    auto ret = expr->codegen();
+    ret->dump();
   } catch (LexerError e) {
     std::cerr << e.what() << "\n";
     return;
@@ -36,6 +41,8 @@ void Interpreter::compile(std::string &input) {
     std::cerr << "there is something wrong in compiler inner\n";
     return;
   }
+
+  // TheModule->print(llvm::errs(), nullptr);
 }
 
 } // namespace toyc
