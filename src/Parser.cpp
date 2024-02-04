@@ -73,6 +73,15 @@ std::unique_ptr<Expr> Parser::parseIntegerLiteral() {
     auto tuple = parseIntegerSuffix(value_str, 8);
     type = std::get<0>(tuple);
     value = std::get<1>(tuple);
+  } else if (value_str.starts_with("'")) {
+    /// TODO: not support escape sequence yet
+    value_str.erase(0, 1); // remove leading '
+    value_str.pop_back();  // remove suffix '
+    int value = value_str[0];
+    // std::stringstream ss(value_str);
+    // int value = 0;
+    // ss >> value;
+    return std::make_unique<CharacterLiteral>(value);
   } else {
     auto tuple = parseIntegerSuffix(value_str, 10);
     type = std::get<0>(tuple);
@@ -95,7 +104,10 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
     return parseFloatingLiteral();
   }
   if (match(STRING)) {
-    return std::make_unique<StringLiteral>(previous().value, "char*");
+    auto value = previous().value;
+    /// add a terminator '\0' size
+    auto type = fstr("char[{}]", value.size() + 1);
+    return std::make_unique<StringLiteral>(std::move(value), std::move(type));
   }
   if (match(LP)) {
     auto expr = parseExpression();
@@ -186,20 +198,27 @@ std::unique_ptr<Expr> Parser::parseExpression() {
   return parseLogicalOrExpression();
 }
 
+std::unique_ptr<Expr> Parser::parse() {
+  advance();
+  auto expr = parseExpression();
+  consume(_EOF, "expect end of expression");
+  return expr;
+}
+
 /**
  * Constructor of Parser Error object
  */
 
 ParserError::ParserError(size_t _line, size_t _col, std::string &_message)
     : line(_line), col(_col),
-      message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
-                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                      _line, _col, _message)) {}
+      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                   _line, _col, _message)) {}
 
 ParserError::ParserError(size_t _line, size_t _col, std::string &&_message)
     : line(_line), col(_col),
-      message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
-                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                      _line, _col, _message)) {}
+      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                   _line, _col, _message)) {}
 
 } // namespace toyc

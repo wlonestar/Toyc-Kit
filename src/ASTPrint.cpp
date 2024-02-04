@@ -45,11 +45,19 @@ void FloatingLiteral::dump(size_t _d, Side _s, std::string _p) {
   }
 }
 
+void CharacterLiteral::dump(size_t _d, Side _s, std::string _p) {
+  std::cout << (_d == 0 ? AST_LEADER("`")
+                        : (_s == LEAF ? _p + AST_LEADER("`") : _p))
+            << AST_LEADER("-") << AST_SYNTAX("CharacterLiteral") << " "
+            << AST_TYPE("'{}'", getType()) << " " << AST_LITERAL("{}", value)
+            << "\n";
+}
+
 void StringLiteral::dump(size_t _d, Side _s, std::string _p) {
   std::cout << (_d == 0 ? AST_LEADER("`")
                         : (_s == LEAF ? _p + AST_LEADER("`") : _p))
             << AST_LEADER("-") << AST_SYNTAX("StringLiteral") << " "
-            << AST_TYPE("'char *'") << " " << AST_LITERAL("\"{}\"", value)
+            << AST_TYPE("'{}'", getType()) << " " << AST_LITERAL("\"{}\"", value)
             << "\n";
 }
 
@@ -64,7 +72,7 @@ void UnaryOperator::dump(size_t _d, Side _s, std::string _p) {
   std::cout << (_d == 0 ? AST_LEADER("`")
                         : (_s == LEAF ? _p + AST_LEADER("`") : _p))
             << AST_LEADER("-") << AST_SYNTAX("UnaryOperator") << " "
-            << fmt_str("'{}'", op.value) << "\n";
+            << fstr("'{}'", op.value) << "\n";
   right->dump(_d + 1, LEAF, _p + "  ");
 }
 
@@ -72,7 +80,7 @@ void BinaryOperator::dump(size_t _d, Side _s, std::string _p) {
   std::cout << (_d == 0 ? AST_LEADER("`")
                         : (_s == LEAF ? _p + AST_LEADER("`") : _p))
             << AST_LEADER("-") << AST_SYNTAX("BinaryOperator") << " "
-            << fmt_str("'{}'", op.value) << "\n";
+            << fstr("'{}'", op.value) << "\n";
   left->dump(_d + 1, INTERNAL, _p + "  |");
   right->dump(_d + 1, LEAF, _p + "  ");
 }

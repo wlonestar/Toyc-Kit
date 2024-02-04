@@ -14,11 +14,6 @@
 using namespace toyc;
 using namespace std;
 
-void execute(std::string &input) {
-  Interpreter interpreter;
-  interpreter.compile(input);
-}
-
 void run_file(const char *filename) {
   ifstream file(filename);
   if (!file.is_open()) {
@@ -28,12 +23,14 @@ void run_file(const char *filename) {
   string input((std::istreambuf_iterator<char>(file)),
                std::istreambuf_iterator<char>());
   file.close();
-  execute(input);
+  Interpreter interpreter;
+  interpreter.compile(input);
 }
 
 void run_prompt() {
   string input;
   LineEditor editor(PROMPT);
+  Interpreter interpreter;
   while (true) {
     string line = editor.readLine(); // line buffer
     trim(line);
@@ -56,7 +53,8 @@ void run_prompt() {
         editor.setPrompt(PROMPT);
         input += line;
 
-        execute(input);
+        /// TODO: support incremental parser and interpreter
+        interpreter.compile(input);
 
         input = ""; // clear buffer
       }

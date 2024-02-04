@@ -94,7 +94,7 @@ Token Lexer::scanNumber() {
   std::regex float1(R"([0-9]+([eE][+-]?[0-9]+)(f|F|l|L)?)");
   std::regex float22(R"(\.[0-9]+([eE][+-]?[0-9]+)?(f|F|l|L)?)");
   std::regex int4(
-      R"((u|U|L)?\'([^'\\\n]|(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+)))+\')");
+      "'([^'\\\\]|\\\\['\"?\\\\abfnrtv]|\\\\[0-7]{1,3}|\\\\x[0-9a-fA-F]+)'");
   std::regex int44(
       R"(\'([^'\\\n]|(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+)))+\')");
 
@@ -142,12 +142,12 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), int2);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      /// !!! trivial
+      ///---------- !!! trivial !!! ----------///
       if (peek() == '.') {
         backward(iter->str().size() - 1);
         goto DIGIT;
       }
-      /// !!!
+      ///---------- !!! trivial !!! ----------///
       if (isA(peek())) {
         forward(1);
         throwLexerError(LexerErrorTable[INVALID_INTEGER_SUFFIX]);
@@ -207,7 +207,8 @@ Token Lexer::scanNumber() {
       }
       return makeToken(FLOATING);
     }
-  } else if (isCP(previous())) { // {CP} TODO: fix bug for CharacterLiteral
+  } else if (isCP(previous())) {
+    /// TODO: failed to support all C11-style CharacterLiteral
     iter = std::sregex_iterator(_str.begin(), _str.end(), int4);
     if (iter != end) {
       forward(iter->str().size() - 1);
@@ -383,14 +384,14 @@ Token Lexer::scanToken() {
 
 LexerError::LexerError(size_t _line, size_t _col, std::string &_message)
     : line(_line), col(_col),
-      message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
-                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                      _line, _col, _message)) {}
+      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                   _line, _col, _message)) {}
 
 LexerError::LexerError(size_t _line, size_t _col, std::string &&_message)
     : line(_line), col(_col),
-      message(fmt_str("\033[1;37mline:{}:col:{}:\033[0m "
-                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                      _line, _col, _message)) {}
+      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                   _line, _col, _message)) {}
 
 } // namespace toyc

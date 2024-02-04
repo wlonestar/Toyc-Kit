@@ -8,6 +8,8 @@ std::string IntegerLiteral::getType() const { return type; }
 
 std::string FloatingLiteral::getType() const { return type; }
 
+std::string CharacterLiteral::getType() const { return "int"; }
+
 std::string StringLiteral::getType() const { return type; }
 
 std::string ParenExpr::getType() const { return ""; }

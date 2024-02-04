@@ -139,11 +139,7 @@ private:
 public:
   Parser(std::string &input) : lexer(input) {}
 
-  std::unique_ptr<Expr> parse() {
-    advance();
-    return parseExpression();
-    // consume(_EOF, "expect end of expression");
-  }
+  std::unique_ptr<Expr> parse();
 };
 
 } // namespace toyc

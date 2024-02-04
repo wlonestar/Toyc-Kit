@@ -291,8 +291,8 @@ public:
       : type(_type), value(std::move(_value)), line(_line), col(_col) {}
 
   std::string toString() const {
-    return fmt_str("Token({}:{} {} -> '{}')", line, col, TokenTypeTable[type],
-                   value);
+    return fstr("Token({}:{} {} -> '{}')", line, col, TokenTypeTable[type],
+                value);
   }
 };
 

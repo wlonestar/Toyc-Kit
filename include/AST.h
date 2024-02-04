@@ -61,6 +61,17 @@ public:
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
 };
 
+class CharacterLiteral : public Literal {
+private:
+  int value;
+
+public:
+  CharacterLiteral(int _value) : value(_value) {}
+
+  std::string getType() const;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
+};
+
 class StringLiteral : public Literal {
 private:
   std::string value;
