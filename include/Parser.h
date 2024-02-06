@@ -18,6 +18,8 @@
 
 namespace toyc {
 
+extern std::map<std::string, llvm::Value *> VariableTable;
+
 class ParserError : public std::exception {
 private:
   size_t line;
@@ -148,12 +150,16 @@ private:
   std::unique_ptr<Expr> parseEqualityExpression();
   std::unique_ptr<Expr> parseLogicalAndExpression();
   std::unique_ptr<Expr> parseLogicalOrExpression();
+  std::unique_ptr<Expr> parseAssignmentExpression();
   std::unique_ptr<Expr> parseExpression();
+
+private:
+  std::unique_ptr<Decl> parseDeclaration();
 
 public:
   Parser(std::string &input) : lexer(input) {}
 
-  std::unique_ptr<Expr> parse();
+  std::unique_ptr<Decl> parse();
 };
 
 } // namespace toyc

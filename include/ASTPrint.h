@@ -32,9 +32,10 @@ namespace toyc {
 #define _BOLD_WHITE "\033[1;37m"
 
 #define AST_LEADER(__fmt__, ...) fstr(_BLUE __fmt__ _RST, ##__VA_ARGS__)
-#define AST_SYNTAX(__fmt__, ...) fstr(_BOLD_MAGENTA __fmt__ _RST, ##__VA_ARGS__)
+#define AST_STMT(__fmt__, ...) fstr(_BOLD_MAGENTA __fmt__ _RST, ##__VA_ARGS__)
 #define AST_TYPE(__fmt__, ...) fstr(_GREEN __fmt__ _RST, ##__VA_ARGS__)
 #define AST_LITERAL(__fmt__, ...) fstr(_BOLD_CYAN __fmt__ _RST, ##__VA_ARGS__)
+#define AST_DECL(__fmt__, ...) fstr(_BOLD_GREEN __fmt__ _RST, ##__VA_ARGS__)
 
 } // namespace toyc
 

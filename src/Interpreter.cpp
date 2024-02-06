@@ -27,10 +27,16 @@ void Interpreter::compile(std::string &input) {
 
   Parser parser(input);
   try {
-    auto expr = parser.parse();
-    expr->dump();
-    auto ret = expr->codegen();
-    ret->dump();
+    auto decl = parser.parse();
+    if (decl != nullptr) {
+      debug("parse result");
+      decl->dump();
+    }
+    auto ret = decl->codegen();
+    if (ret != nullptr) {
+      debug("codegen result");
+      ret->dump();
+    }
   } catch (LexerError e) {
     std::cerr << e.what() << "\n";
     return;

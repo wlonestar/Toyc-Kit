@@ -4,6 +4,8 @@
 #include <Parser.h>
 #include <Token.h>
 
+#include <llvm/IR/Value.h>
+
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -11,6 +13,8 @@
 #include <tuple>
 
 namespace toyc {
+
+std::map<std::string, llvm::Value *> VariableTable;
 
 std::tuple<std::string, integer_t>
 Parser::parseIntegerSuffix(std::string &value, int base) {
@@ -109,6 +113,11 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
     auto type = fstr("char[{}]", value.size() + 1);
     return std::make_unique<StringLiteral>(std::move(value), std::move(type));
   }
+  if (match(IDENTIFIER)) {
+    auto token = previous();
+    /// TODO: find from variable table
+    return std::make_unique<DeclRefExpr>("int", std::move(token.value));
+  }
   if (match(LP)) {
     auto expr = parseExpression();
     consume(RP, "expected ')'");
@@ -201,15 +210,44 @@ std::unique_ptr<Expr> Parser::parseLogicalOrExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseExpression() {
+std::unique_ptr<Expr> Parser::parseAssignmentExpression() {
+  if (match(IDENTIFIER)) {
+    auto token = previous();
+    auto declRef = std::make_unique<DeclRefExpr>("int", std::move(token.value));
+    auto op = consume(EQUAL, "expect '=' after identifier");
+    auto expr = parseAssignmentExpression();
+    return std::make_unique<BinaryOperator>(op, std::move(declRef),
+                                            std::move(expr), "int");
+  }
   return parseLogicalOrExpression();
 }
 
-std::unique_ptr<Expr> Parser::parse() {
+std::unique_ptr<Expr> Parser::parseExpression() {
+  return parseAssignmentExpression();
+}
+
+/**
+ * parse Decl
+ */
+
+std::unique_ptr<Decl> Parser::parseDeclaration() {
+  auto type = consume(INT, "expected typedef");
+  auto id = consume(IDENTIFIER, "expected identifier");
+  auto decl =
+      std::make_unique<VarDecl>(std::move(type.value), std::move(id.value));
+  if (match(EQUAL)) {
+    auto init = parseExpression();
+    decl->setInit(std::move(init));
+  }
+  consume(SEMI, "expected ';' after declaration");
+  return decl;
+}
+
+std::unique_ptr<Decl> Parser::parse() {
   advance();
-  auto expr = parseExpression();
+  auto decl = parseDeclaration();
   consume(_EOF, "expect end of expression");
-  return expr;
+  return decl;
 }
 
 /**
