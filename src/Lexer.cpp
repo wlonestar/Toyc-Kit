@@ -22,8 +22,9 @@ void Lexer::skipWhitespace() {
       break;
     case '\n':
       line++;
-      col = 1;
       advance();
+      /// reset column cursor
+      col = 0;
       break;
     case '/':
       if (peekNext() == '/') {

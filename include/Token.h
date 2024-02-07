@@ -285,9 +285,9 @@ public:
   std::string value;
   size_t line, col;
 
-  Token() : type(EMPTY), value(""), line(0), col(0) {}
+  Token() : type(EMPTY), value(""), line(1), col(0) {}
   Token(TokenType _type, std::string &&_value, size_t _line = 1,
-        size_t _col = 1)
+        size_t _col = 0)
       : type(_type), value(std::move(_value)), line(_line), col(_col) {}
 
   std::string toString() const {

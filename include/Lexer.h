@@ -97,12 +97,16 @@ private:
     }
     return input.at(current);
   }
+
+public:
   char peekNext() {
     if (current + 1 >= input.size()) {
       return '\0';
     }
     return input.at(current + 1);
   }
+
+private:
   char previous() {
     if (current - 1 < 0) {
       return '\0';
@@ -112,11 +116,10 @@ private:
 
 private:
   Token makeToken(TokenType type) {
-    return Token(type, input.substr(start, current - start), line,
-                 col - (current - start - 1));
+    return Token(type, input.substr(start, current - start), line, col);
   }
   Token makeToken(TokenType type, std::string &&value) {
-    return Token(type, std::move(value), line, col - (current - start - 1));
+    return Token(type, std::move(value), line, col);
   }
 
 private:
@@ -128,8 +131,21 @@ private:
   Token scanIdentifier();
 
 public:
-  Lexer(std::string &_input)
-      : input(_input), start(0), current(0), line(1), col(0) {}
+  Lexer() : input(""), start(0), current(0), line(1), col(0) {}
+
+  void addInput(std::string &_input) {
+    if (input.size() == 0) {
+      input = _input;
+    } else {
+      input = input + '\n' + _input;
+      /// reset column cursor
+      current++;
+      line++;
+      col = 0;
+    }
+  }
+
+  std::string getInput() { return input; }
 
   Token scanToken();
 };

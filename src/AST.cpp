@@ -30,4 +30,10 @@ std::string BinaryOperator::getType() const { return type; }
 
 std::string VarDecl::getType() const { return type; }
 
+/**
+ * TranslationUnitDecl
+ */
+
+std::string TranslationUnitDecl::getType() const { return ""; }
+
 } // namespace toyc

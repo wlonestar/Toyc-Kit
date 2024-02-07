@@ -1,17 +1,23 @@
-// ! interpreter
+//! interpreter
 
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
 #pragma once
 
+#include <CodeGen.h>
+#include <Parser.h>
+
 #include <string>
 
 namespace toyc {
 
 class Interpreter {
+private:
+  Parser parser;
+
 public:
-  Interpreter() = default;
+  Interpreter() : parser() { initializeModule(); }
 
   void compile(std::string &input);
 };

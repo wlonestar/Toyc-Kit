@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <vector>
 
 namespace toyc {
 
@@ -243,11 +244,18 @@ std::unique_ptr<Decl> Parser::parseDeclaration() {
   return decl;
 }
 
-std::unique_ptr<Decl> Parser::parse() {
+std::unique_ptr<TranslationUnitDecl> Parser::parse() {
+  std::vector<std::unique_ptr<Decl>> decls;
   advance();
-  auto decl = parseDeclaration();
-  consume(_EOF, "expect end of expression");
-  return decl;
+  while (true) {
+    auto decl = parseDeclaration();
+    decls.push_back(std::move(decl));
+    if (current.type == _EOF) {
+      break;
+    }
+  }
+  // consume(_EOF, "expected end of expression");
+  return std::make_unique<TranslationUnitDecl>(std::move(decls));
 }
 
 /**

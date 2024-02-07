@@ -24,10 +24,10 @@ std::unique_ptr<llvm::Module> TheModule;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
 
 void initializeModule() {
-  // Open a new context and module.
+  /// Open a new context and module.
   TheContext = std::make_unique<llvm::LLVMContext>();
   TheModule = std::make_unique<llvm::Module>("toyc jit", *TheContext);
-  // Create a new builder for the module.
+  /// Create a new builder for the module.
   Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
 }
 
@@ -84,21 +84,25 @@ llvm::Value *BinaryOperator::codegen() {
 
 llvm::Value *VarDecl::codegen() {
   llvm::Type *intType = llvm::Type::getInt32Ty(*TheContext);
-
   auto initializer = (llvm::Constant *)init->codegen();
 
   llvm::GlobalVariable *globalVar = new llvm::GlobalVariable(
       *TheModule, intType, false, llvm::GlobalValue::ExternalLinkage,
       initializer, name);
 
-  // llvm::Value *value = variableTable[name];
   VariableTable.insert({name, initializer});
-  // if (!value) {
-  //   /// TODO: code generation error handling
-  //   return nullptr;
-  // }
-  // return value;
   return globalVar;
+}
+
+/**
+ * TranslationUnitDecl
+ */
+
+llvm::Value *TranslationUnitDecl::codegen() {
+  for (auto &decl : decls) {
+    decl->codegen();
+  }
+  return nullptr;
 }
 
 } // namespace toyc

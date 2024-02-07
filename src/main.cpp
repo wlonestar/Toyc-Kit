@@ -29,34 +29,38 @@ void run_file(const char *filename) {
 
 void run_prompt() {
   string input;
+  Interpreter interpreter;
   LineEditor editor(PROMPT);
   while (true) {
-    string line = editor.readLine(); // line buffer
+    /// line buffer
+    string line = editor.readLine();
     trim(line);
 
-    // non-empty string
+    /// only compile non-empty string
     if (line.size() > 0) {
       editor.addHistory(line);
-      // deal with options (now only support quit)
-      if (line == R"(.quit)") { // quit
+      /// deal with options (now only support quit)
+      if (line == R"(.quit)") {
+        /// quit
         cout << "bye~" << endl;
         break;
       }
-      // normal statements
-      if (line.ends_with("\\")) { // multiple input
+      /// normal statements
+      if (line.ends_with("\\")) {
+        /// multiple input
         line.pop_back();
         input += line;
         editor.setPrompt(MULTI_PROMPT);
         continue;
-      } else { // single input
+      } else {
+        /// single input
         editor.setPrompt(PROMPT);
         input += line;
 
-        /// TODO: support incremental parser and interpreter
-        Interpreter interpreter;
         interpreter.compile(input);
 
-        input = ""; // clear buffer
+        /// clear buffer
+        input = "";
       }
     }
   }

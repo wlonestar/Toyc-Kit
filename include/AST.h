@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace toyc {
 
@@ -184,6 +185,23 @@ public:
   }
 
   void setInit(std::unique_ptr<Expr> _init) { init = std::move(_init); }
+
+  std::string getType() const override;
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+};
+
+/**
+ * TranslationUnitDecl
+ */
+
+class TranslationUnitDecl : public Decl {
+private:
+  std::vector<std::unique_ptr<Decl>> decls;
+
+public:
+  TranslationUnitDecl(std::vector<std::unique_ptr<Decl>> _decls)
+      : decls(std::move(_decls)) {}
 
   std::string getType() const override;
   llvm::Value *codegen() override;

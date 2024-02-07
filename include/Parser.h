@@ -15,6 +15,7 @@
 #include <initializer_list>
 #include <memory>
 #include <tuple>
+#include <vector>
 
 namespace toyc {
 
@@ -157,9 +158,12 @@ private:
   std::unique_ptr<Decl> parseDeclaration();
 
 public:
-  Parser(std::string &input) : lexer(input) {}
+  Parser() : lexer(), current(), prev() {}
 
-  std::unique_ptr<Decl> parse();
+  void addInput(std::string &_input) { lexer.addInput(_input); }
+  std::string getInput() { return lexer.getInput(); }
+
+  std::unique_ptr<TranslationUnitDecl> parse();
 };
 
 } // namespace toyc
