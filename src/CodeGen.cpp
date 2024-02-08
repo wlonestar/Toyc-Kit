@@ -4,6 +4,7 @@
 #include <CodeGen.h>
 #include <Parser.h>
 #include <Token.h>
+#include <Util.h>
 
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>
@@ -36,14 +37,11 @@ void initializeModule() {
  */
 
 llvm::Value *IntegerLiteral::codegen() {
-  /// TODO: support more int type
-  return llvm::ConstantInt::get(*TheContext,
-                                llvm::APInt(64, std::get<0>(value)));
+  return llvm::ConstantInt::get(*TheContext, llvm::APInt(64, value));
 }
 
 llvm::Value *FloatingLiteral::codegen() {
-  /// TODO: support float, double and long double
-  return llvm::ConstantFP::get(*TheContext, llvm::APFloat(std::get<0>(value)));
+  return llvm::ConstantFP::get(*TheContext, llvm::APFloat(value));
 }
 
 llvm::Value *CharacterLiteral::codegen() { return nullptr; }
@@ -61,7 +59,25 @@ llvm::Value *DeclRefExpr::codegen() {
 
 llvm::Value *ParenExpr::codegen() { return expr->codegen(); }
 
-llvm::Value *UnaryOperator::codegen() { return nullptr; }
+llvm::Value *UnaryOperator::codegen() {
+  auto *r = right->codegen();
+  if (!r) {
+    return nullptr;
+  }
+  switch (op.type) {
+  case NOT:
+    return Builder->CreateNot(r);
+  case SUB:
+    if (getType() == "i64") {
+      return Builder->CreateNeg(r);
+    } else {
+      return Builder->CreateFNeg(r);
+    }
+  default:
+    break;
+  }
+  return nullptr;
+}
 
 llvm::Value *BinaryOperator::codegen() {
   auto *l = left->codegen();
@@ -69,11 +85,44 @@ llvm::Value *BinaryOperator::codegen() {
   if (!l || !r) {
     return nullptr;
   }
-  switch (op.type) {
-  case ADD:
-    return Builder->CreateAdd(l, r);
-  default:
-    break;
+  if (getType() == "i64") {
+    switch (op.type) {
+    case ADD:
+      return Builder->CreateAdd(l, r);
+    case SUB:
+      return Builder->CreateSub(l, r);
+    case MUL:
+      return Builder->CreateMul(l, r);
+    case DIV:
+      return Builder->CreateSDiv(l, r);
+    case MOD:
+      return Builder->CreateSRem(l, r);
+    case AND_OP:
+      return Builder->CreateAnd(l, r);
+    case OR_OP:
+      return Builder->CreateOr(l, r);
+    default:
+      break;
+    }
+  } else {
+    switch (op.type) {
+    case ADD:
+      return Builder->CreateFAdd(l, r);
+    case SUB:
+      return Builder->CreateFSub(l, r);
+    case MUL:
+      return Builder->CreateFMul(l, r);
+    case DIV:
+      return Builder->CreateFDiv(l, r);
+    case MOD:
+      return Builder->CreateFRem(l, r);
+    case AND_OP:
+      return Builder->CreateAnd(l, r);
+    case OR_OP:
+      return Builder->CreateOr(l, r);
+    default:
+      break;
+    }
   }
   return nullptr;
 }
@@ -83,11 +132,20 @@ llvm::Value *BinaryOperator::codegen() {
  */
 
 llvm::Value *VarDecl::codegen() {
-  llvm::Type *intType = llvm::Type::getInt32Ty(*TheContext);
-  auto initializer = (llvm::Constant *)init->codegen();
+  llvm::Type *varType;
+  if (type == "i64") {
+    varType = llvm::Type::getInt64Ty(*TheContext);
+  } else {
+    varType = llvm::Type::getDoubleTy(*TheContext);
+  }
+
+  llvm::Constant *initializer = nullptr;
+  if (init != nullptr) {
+    initializer = (llvm::Constant *)init->codegen();
+  }
 
   llvm::GlobalVariable *globalVar = new llvm::GlobalVariable(
-      *TheModule, intType, false, llvm::GlobalValue::ExternalLinkage,
+      *TheModule, varType, false, llvm::GlobalValue::ExternalLinkage,
       initializer, name);
 
   VariableTable.insert({name, initializer});
@@ -102,6 +160,7 @@ llvm::Value *TranslationUnitDecl::codegen() {
   for (auto &decl : decls) {
     decl->codegen();
   }
+  /// TODO: for a beter return type
   return nullptr;
 }
 

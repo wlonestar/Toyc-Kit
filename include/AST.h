@@ -13,7 +13,6 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <variant>
 #include <vector>
 
 namespace toyc {
@@ -38,16 +37,13 @@ public:
 
 class Literal : public Expr {};
 
-using integer_t = std::variant<int, unsigned int, long, unsigned long,
-                               long long, unsigned long long>;
-
 class IntegerLiteral : public Literal {
 private:
-  integer_t value;
+  int64_t value;
   std::string type;
 
 public:
-  IntegerLiteral(integer_t _value, std::string &&_type)
+  IntegerLiteral(int64_t _value, std::string &&_type)
       : value(_value), type(std::move(_type)) {}
 
   std::string getType() const override;
@@ -55,15 +51,13 @@ public:
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
-using floating_t = std::variant<float, double, long double>;
-
 class FloatingLiteral : public Literal {
 private:
-  floating_t value;
+  double value;
   std::string type;
 
 public:
-  FloatingLiteral(floating_t _value, std::string &&_type)
+  FloatingLiteral(double _value, std::string &&_type)
       : value(_value), type(std::move(_type)) {}
 
   std::string getType() const override;
@@ -127,10 +121,11 @@ class UnaryOperator : public Expr {
 private:
   Token op;
   std::unique_ptr<Expr> right;
+  std::string type;
 
 public:
-  UnaryOperator(Token _op, std::unique_ptr<Expr> _right)
-      : op(_op), right(std::move(_right)) {}
+  UnaryOperator(Token _op, std::unique_ptr<Expr> _right, std::string &&_type)
+      : op(_op), right(std::move(_right)), type(std::move(_type)) {}
 
   std::string getType() const override;
   llvm::Value *codegen() override;
@@ -195,17 +190,17 @@ public:
  * TranslationUnitDecl
  */
 
-class TranslationUnitDecl : public Decl {
+class TranslationUnitDecl {
 private:
   std::vector<std::unique_ptr<Decl>> decls;
 
 public:
-  TranslationUnitDecl(std::vector<std::unique_ptr<Decl>> _decls)
+  TranslationUnitDecl(std::vector<std::unique_ptr<Decl>> _decls =
+                          std::vector<std::unique_ptr<Decl>>{})
       : decls(std::move(_decls)) {}
 
-  std::string getType() const override;
-  llvm::Value *codegen() override;
-  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+  llvm::Value *codegen();
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
 };
 
 } // namespace toyc

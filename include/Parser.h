@@ -119,23 +119,28 @@ private:
     return false;
   }
 
-  std::tuple<std::string, integer_t> parseIntegerSuffix(std::string &value,
-                                                        int base);
-  std::tuple<std::string, floating_t> parseFloatingSuffix(std::string &value,
-                                                          int base);
+  int64_t parseIntegerSuffix(std::string &value, int base);
+  double parseFloatingSuffix(std::string &value, int base);
 
 private:
+  std::string checkUnaryOperatorType(TokenType type, Expr *right) {
+    if (type == NOT) {
+      return "i64";
+    }
+    return right->getType();
+  }
+
   std::string checkBinaryOperatorType(TokenType type, Expr *left, Expr *right) {
     if (type == AND_OP || type == OR_OP) {
-      return "int";
+      return "i64";
     }
     if (left->getType() == right->getType()) {
       return left->getType();
     }
-    if (left->getType() == "double" || right->getType() == "double") {
-      return "double";
+    if (left->getType() == "f64" || right->getType() == "f64") {
+      return "f64";
     }
-    return "int";
+    return "i64";
   }
 
 private:

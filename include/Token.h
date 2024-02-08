@@ -26,9 +26,11 @@ enum TokenType {
   ELSE,          // else
   ENUM,          // enum
   EXTERN,        // extern
+  F64,           // f64 - replacement for double precision floating point number
   FLOAT,         // float
   FOR,           // for
   GOTO,          // goto
+  I64,           // i64 - replacement for 64 bit integer
   IF,            // if
   INLINE,        // inline
   INT,           // int
@@ -138,9 +140,11 @@ static std::map<TokenType, std::string> TokenTypeTable = {
     _map_(ELSE),          // else
     _map_(ENUM),          // enum
     _map_(EXTERN),        // extern
+    _map_(F64),           // f64
     _map_(FLOAT),         // float
     _map_(FOR),           // for
     _map_(GOTO),          // goto
+    _map_(I64),           // i64
     _map_(IF),            // if
     _map_(INLINE),        // inline
     _map_(INT),           // int
@@ -244,9 +248,11 @@ static std::map<std::string, TokenType> KeywordTable = {
     {"else", ELSE},                    // else
     {"enum", ENUM},                    // enum
     {"extern", EXTERN},                // extern
+    {"f64", F64},                      // f64
     {"float", FLOAT},                  // float
     {"for", FOR},                      // for
     {"goto", GOTO},                    // goto
+    {"i64", I64},                      // i64
     {"if", IF},                        // if
     {"inline", INLINE},                // inline
     {"int", INT},                      // int

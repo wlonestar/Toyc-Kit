@@ -17,88 +17,74 @@ namespace toyc {
 
 std::map<std::string, llvm::Value *> VariableTable;
 
-std::tuple<std::string, integer_t>
-Parser::parseIntegerSuffix(std::string &value, int base) {
+int64_t Parser::parseIntegerSuffix(std::string &value, int base) {
   try {
     if (value.ends_with("llu") || value.ends_with("llU") ||
         value.ends_with("LLu") || value.ends_with("LLU") ||
         value.ends_with("ull") || value.ends_with("uLL") ||
         value.ends_with("Ull") || value.ends_with("ULL")) {
-      return std::make_tuple("unsigned long long",
-                             stoull(value, nullptr, base));
+      return stoull(value, nullptr, base);
     } else if (value.ends_with("ul") || value.ends_with("uL") ||
                value.ends_with("Ul") || value.ends_with("UL") ||
                value.ends_with("lu") || value.ends_with("lU") ||
                value.ends_with("Lu") || value.ends_with("LU")) {
-      return std::make_tuple("unsigned long", stoul(value, nullptr, base));
+      return stoul(value, nullptr, base);
     } else if (value.ends_with("ll") || value.ends_with("LL")) {
-      return std::make_tuple("long long", stoll(value, nullptr, base));
+      return stoll(value, nullptr, base);
     } else if (value.ends_with("l") || value.ends_with("L")) {
-      return std::make_tuple("long", stol(value, nullptr, base));
+      return stol(value, nullptr, base);
     } else if (value.ends_with("u") || value.ends_with("U")) {
-      return std::make_tuple("unsigned int", static_cast<unsigned int>(
-                                                 stoul(value, nullptr, base)));
+      return static_cast<unsigned int>(stoul(value, nullptr, base));
     } else {
-      return std::make_tuple("int", stoi(value, nullptr, base));
+      return stoi(value, nullptr, base);
     }
   } catch (std::out_of_range e) {
     throwParserError(
         "integer literal is too large to be represented in integer type");
-    return std::make_tuple("int", -1);
+    return -1;
   }
 }
 
-std::tuple<std::string, floating_t>
-Parser::parseFloatingSuffix(std::string &value, int base) {
+double Parser::parseFloatingSuffix(std::string &value, int base) {
   try {
     if (value.ends_with("f") || value.ends_with("F")) {
-      return std::make_tuple("float", std::stof(value, nullptr));
+      return std::stof(value, nullptr);
     } else if (value.ends_with("l") || value.ends_with("L")) {
-      return std::make_tuple("long double", stold(value, nullptr));
+      return stold(value, nullptr);
     } else {
-      return std::make_tuple("double", stod(value, nullptr));
+      return stod(value, nullptr);
     }
   } catch (std::out_of_range e) {
     throwParserError("magnitude of floating-point constant too large");
-    return std::make_tuple("double", 0.1);
+    return -0;
   }
 }
 
 std::unique_ptr<Expr> Parser::parseIntegerLiteral() {
   auto value_str = previous().value;
-  std::string type;
-  integer_t value;
+  int64_t value;
   if (checkHexadecimal(value_str)) {
     value_str.erase(0, 2);
-    auto tuple = parseIntegerSuffix(value_str, 16);
-    type = std::get<0>(tuple);
-    value = std::get<1>(tuple);
+    value = parseIntegerSuffix(value_str, 16);
   } else if (checkOctal(value_str)) {
     value_str.erase(0, 1);
-    auto tuple = parseIntegerSuffix(value_str, 8);
-    type = std::get<0>(tuple);
-    value = std::get<1>(tuple);
+    value = parseIntegerSuffix(value_str, 8);
   } else if (value_str.starts_with("'")) {
     /// TODO: not support escape sequence yet
     value_str.erase(0, 1); // remove leading '
     value_str.pop_back();  // remove suffix '
     int value = value_str[0];
-    // std::stringstream ss(value_str);
-    // int value = 0;
-    // ss >> value;
     return std::make_unique<CharacterLiteral>(value);
   } else {
-    auto tuple = parseIntegerSuffix(value_str, 10);
-    type = std::get<0>(tuple);
-    value = std::get<1>(tuple);
+    value = parseIntegerSuffix(value_str, 10);
   }
-  return std::make_unique<IntegerLiteral>(value, std::move(type));
+  return std::make_unique<IntegerLiteral>(value, "i64");
 }
 
 std::unique_ptr<Expr> Parser::parseFloatingLiteral() {
   auto value_str = previous().value;
-  auto [type, value] = parseFloatingSuffix(value_str, 10);
-  return std::make_unique<FloatingLiteral>(value, std::move(type));
+  auto value = parseFloatingSuffix(value_str, 10);
+  return std::make_unique<FloatingLiteral>(value, "f64");
 }
 
 std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
@@ -133,14 +119,16 @@ std::unique_ptr<Expr> Parser::parseUnaryExpression() {
   if (match({ADD, NOT, SUB})) {
     auto op = previous();
     auto right = parseUnaryExpression();
-    return std::make_unique<UnaryOperator>(op, std::move(right));
+    auto type = checkUnaryOperatorType(op.type, right.get());
+    return std::make_unique<UnaryOperator>(op, std::move(right),
+                                           std::move(type));
   }
   return parsePrimaryExpression();
 }
 
 std::unique_ptr<Expr> Parser::parseMultiplicativeExpression() {
   auto expr = parseUnaryExpression();
-  while (match({MUL, DIV})) {
+  while (match({MUL, DIV, MOD})) {
     auto op = previous();
     auto right = parseUnaryExpression();
     auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
@@ -212,15 +200,14 @@ std::unique_ptr<Expr> Parser::parseLogicalOrExpression() {
 }
 
 std::unique_ptr<Expr> Parser::parseAssignmentExpression() {
-  if (match(IDENTIFIER)) {
+  auto expr = parseLogicalOrExpression();
+  if (match(EQUAL)) {
     auto token = previous();
-    auto declRef = std::make_unique<DeclRefExpr>("int", std::move(token.value));
-    auto op = consume(EQUAL, "expect '=' after identifier");
-    auto expr = parseAssignmentExpression();
-    return std::make_unique<BinaryOperator>(op, std::move(declRef),
-                                            std::move(expr), "int");
+    auto right = parseAssignmentExpression();
+    return std::make_unique<BinaryOperator>(token, std::move(expr),
+                                            std::move(right), right->getType());
   }
-  return parseLogicalOrExpression();
+  return expr;
 }
 
 std::unique_ptr<Expr> Parser::parseExpression() {
@@ -232,16 +219,23 @@ std::unique_ptr<Expr> Parser::parseExpression() {
  */
 
 std::unique_ptr<Decl> Parser::parseDeclaration() {
-  auto type = consume(INT, "expected typedef");
-  auto id = consume(IDENTIFIER, "expected identifier");
-  auto decl =
-      std::make_unique<VarDecl>(std::move(type.value), std::move(id.value));
-  if (match(EQUAL)) {
-    auto init = parseExpression();
-    decl->setInit(std::move(init));
+  /// typedef
+  if (match({I64, F64})) {
+    auto type = previous();
+    auto id = consume(IDENTIFIER, "expected identifier");
+    auto decl =
+        std::make_unique<VarDecl>(std::move(type.value), std::move(id.value));
+    if (match(EQUAL)) {
+      auto init = parseAssignmentExpression();
+      decl->setInit(std::move(init));
+    }
+    consume(SEMI, "expected ';' after declaration");
+    return decl;
+  } else {
+    /// TODO: parse for Stmt
+    throwParserError("not implemented");
   }
-  consume(SEMI, "expected ';' after declaration");
-  return decl;
+  return nullptr;
 }
 
 std::unique_ptr<TranslationUnitDecl> Parser::parse() {

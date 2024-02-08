@@ -16,6 +16,9 @@ class Interpreter {
 private:
   Parser parser;
 
+private:
+  void writeByteCode(std::string &filename);
+
 public:
   Interpreter() : parser() { initializeModule(); }
 

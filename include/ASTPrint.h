@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <AST.h>
 #include <Util.h>
 
 #include <string>
@@ -39,6 +40,8 @@ namespace toyc {
   fmt::format(_BOLD_CYAN __fmt__ _RST, ##__VA_ARGS__)
 #define AST_DECL(__fmt__, ...)                                                 \
   fmt::format(_BOLD_GREEN __fmt__ _RST, ##__VA_ARGS__)
+
+void printASTLeader(size_t _d, Side _s, std::string _p);
 
 } // namespace toyc
 
