@@ -137,9 +137,10 @@ public:
     if (input.size() == 0) {
       input = _input;
     } else {
+      size_t before = input.size();
       input = input + '\n' + _input;
       /// reset column cursor
-      current++;
+      current = before + 1;
       line++;
       col = 0;
     }

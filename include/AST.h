@@ -22,6 +22,11 @@ enum Side {
   LEAF = 0,
 };
 
+class TranslationUnitDecl;
+class Decl;
+class Stmt;
+class Expr;
+
 /**
  * Expr
  */
@@ -97,8 +102,8 @@ private:
   std::string name;
 
 public:
-  DeclRefExpr(std::string &&_type, std::string &&_name)
-      : type(std::move(_type)), name(std::move(_name)) {}
+  DeclRefExpr(std::string &_type, std::string &_name)
+      : type(_type), name(_name) {}
 
   std::string getType() const override;
   llvm::Value *codegen() override;
@@ -154,6 +159,48 @@ public:
  * Stmt
  */
 
+class Stmt {
+public:
+  virtual ~Stmt() = default;
+
+  virtual llvm::Value *codegen() = 0;
+  virtual void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") = 0;
+};
+
+class CompoundStmt : public Stmt {
+private:
+  std::vector<std::unique_ptr<Stmt>> stmts;
+
+public:
+  CompoundStmt(std::vector<std::unique_ptr<Stmt>> &&_stmts)
+      : stmts(std::move(_stmts)) {}
+
+  // llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+};
+
+class ExprStmt : public Stmt {
+private:
+  std::unique_ptr<Expr> expr;
+
+public:
+  ExprStmt(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
+
+  llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+};
+
+class DeclStmt : public Stmt {
+private:
+  std::unique_ptr<Decl> decl;
+
+public:
+  DeclStmt(std::unique_ptr<Decl> _decl) : decl(std::move(_decl)) {}
+
+  // llvm::Value *codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+};
+
 /**
  * Decl
  */
@@ -178,8 +225,6 @@ public:
           std::unique_ptr<Expr> _init = nullptr)
       : type(std::move(_type)), name(std::move(_name)), init(std::move(_init)) {
   }
-
-  void setInit(std::unique_ptr<Expr> _init) { init = std::move(_init); }
 
   std::string getType() const override;
   llvm::Value *codegen() override;

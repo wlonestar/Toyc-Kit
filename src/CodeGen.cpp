@@ -17,6 +17,7 @@
 #include <llvm/IR/Value.h>
 
 #include <memory>
+#include <utility>
 
 namespace toyc {
 
@@ -49,12 +50,13 @@ llvm::Value *CharacterLiteral::codegen() { return nullptr; }
 llvm::Value *StringLiteral::codegen() { return nullptr; }
 
 llvm::Value *DeclRefExpr::codegen() {
-  llvm::Value *value = VariableTable[name];
-  if (!value) {
-    /// TODO: code generation error handling
-    return nullptr;
-  }
-  return value;
+  // if (auto search = VariableTable.find(name); search != VariableTable.end())
+  // {
+  //   return search->second.second;
+  // } else {
+  //   return nullptr;
+  // }
+  return VariableTable[name].second;
 }
 
 llvm::Value *ParenExpr::codegen() { return expr->codegen(); }
@@ -85,6 +87,18 @@ llvm::Value *BinaryOperator::codegen() {
   if (!l || !r) {
     return nullptr;
   }
+  /// assignment
+  if (op.type == EQUAL) {
+    debug("binary operator =");
+    return Builder->CreateStore(l, r);
+  }
+  if (op.type == AND_OP) {
+    return Builder->CreateAnd(l, r);
+  }
+  if (op.type == OR_OP) {
+    return Builder->CreateOr(l, r);
+  }
+
   if (getType() == "i64") {
     switch (op.type) {
     case ADD:
@@ -97,10 +111,6 @@ llvm::Value *BinaryOperator::codegen() {
       return Builder->CreateSDiv(l, r);
     case MOD:
       return Builder->CreateSRem(l, r);
-    case AND_OP:
-      return Builder->CreateAnd(l, r);
-    case OR_OP:
-      return Builder->CreateOr(l, r);
     default:
       break;
     }
@@ -116,10 +126,6 @@ llvm::Value *BinaryOperator::codegen() {
       return Builder->CreateFDiv(l, r);
     case MOD:
       return Builder->CreateFRem(l, r);
-    case AND_OP:
-      return Builder->CreateAnd(l, r);
-    case OR_OP:
-      return Builder->CreateOr(l, r);
     default:
       break;
     }
@@ -128,28 +134,28 @@ llvm::Value *BinaryOperator::codegen() {
 }
 
 /**
+ * ExprStmt
+ */
+
+llvm::Value *ExprStmt::codegen() { return expr->codegen(); }
+
+/**
  * Decl
  */
 
 llvm::Value *VarDecl::codegen() {
-  llvm::Type *varType;
-  if (type == "i64") {
-    varType = llvm::Type::getInt64Ty(*TheContext);
-  } else {
-    varType = llvm::Type::getDoubleTy(*TheContext);
-  }
+  llvm::Type *varType = (type == "i64" ? llvm::Type::getInt64Ty(*TheContext)
+                                       : llvm::Type::getDoubleTy(*TheContext));
 
-  llvm::Constant *initializer = nullptr;
-  if (init != nullptr) {
-    initializer = (llvm::Constant *)init->codegen();
-  }
+  llvm::Constant *initializer =
+      (init != nullptr ? (llvm::Constant *)init->codegen() : nullptr);
 
-  llvm::GlobalVariable *globalVar = new llvm::GlobalVariable(
+  llvm::GlobalVariable *var = new llvm::GlobalVariable(
       *TheModule, varType, false, llvm::GlobalValue::ExternalLinkage,
       initializer, name);
 
-  VariableTable.insert({name, initializer});
-  return globalVar;
+  VariableTable[name] = std::make_pair(type, initializer);
+  return var;
 }
 
 /**

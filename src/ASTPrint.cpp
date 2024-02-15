@@ -20,37 +20,38 @@ void printASTLeader(size_t _d, Side _s, std::string _p) {
 
 void IntegerLiteral::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
-  std::cout << fstr("{} '{}' {}\n", AST_STMT("IntegerLiteral"),
-                    AST_TYPE("{}", type), AST_LITERAL("{}", value));
+  std::cout << fstr("{} {} {}\n", AST_STMT("IntegerLiteral"),
+                    AST_TYPE("'{}'", type), AST_LITERAL("{}", value));
 }
 
 void FloatingLiteral::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
-  std::cout << fstr("{} '{}' {}\n", AST_STMT("FloatingLiteral"),
-                    AST_TYPE("{}", type), AST_LITERAL("{}", value));
+  std::cout << fstr("{} {} {}\n", AST_STMT("FloatingLiteral"),
+                    AST_TYPE("'{}'", type), AST_LITERAL("{}", value));
 }
 
 void CharacterLiteral::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
-  std::cout << fstr("{} '{}' {}\n", AST_STMT("CharacterLiteral"),
-                    AST_TYPE("{}", getType()), AST_LITERAL("{}", value));
+  std::cout << fstr("{} {} {}\n", AST_STMT("CharacterLiteral"),
+                    AST_TYPE("'{}'", getType()), AST_LITERAL("{}", value));
 }
 
 void StringLiteral::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
-  std::cout << fstr("{} '{}' \"{}\"\n", AST_STMT("StringLiteral"),
-                    AST_TYPE("{}", getType()), AST_LITERAL("{}", value));
+  std::cout << fstr("{} {} {}\n", AST_STMT("StringLiteral"),
+                    AST_TYPE("'{}'", getType()), AST_LITERAL("\"{}\"", value));
 }
 
 void DeclRefExpr::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
-  std::cout << fstr("{} '{}' '{}'\n", AST_STMT("DeclRefExpr"),
-                    AST_TYPE("{}", getType()), AST_LITERAL("'{}'", name));
+  std::cout << fstr("{} {} {}\n", AST_STMT("DeclRefExpr"),
+                    AST_TYPE("'{}'", getType()), AST_LITERAL("'{}'", name));
 }
 
 void ParenExpr::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
-  std::cout << fstr("{} '{}'\n", AST_STMT("ParenExpr"), getType());
+  std::cout << fstr("{} {}\n", AST_STMT("ParenExpr"),
+                    AST_TYPE("'{}'", getType()));
   expr->dump(_d + 1, LEAF, _p + "  ");
 }
 
@@ -66,6 +67,28 @@ void BinaryOperator::dump(size_t _d, Side _s, std::string _p) {
                     AST_TYPE("'{}'", getType()), op.value);
   left->dump(_d + 1, INTERNAL, _p + "  |");
   right->dump(_d + 1, LEAF, _p + "  ");
+}
+
+/**
+ * Stmt
+ */
+
+void CompoundStmt::dump(size_t _d, Side _s, std::string _p) {
+  printASTLeader(_d, _s, _p);
+  std::cout << fstr("{}\n", AST_STMT("CompoundStmt"));
+  /// TODO: print children
+}
+
+void ExprStmt::dump(size_t _d, Side _s, std::string _p) {
+  printASTLeader(_d, _s, _p);
+  std::cout << fstr("{}\n", AST_STMT("ExprStmt"));
+  expr->dump(_d + 1, LEAF, _p + "  ");
+}
+
+void DeclStmt::dump(size_t _d, Side _s, std::string _p) {
+  printASTLeader(_d, _s, _p);
+  std::cout << fstr("{}\n", AST_STMT("DeclStmt"));
+  decl->dump(_d + 1, LEAF, _p + "  ");
 }
 
 /**

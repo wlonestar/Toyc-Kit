@@ -19,7 +19,10 @@
 
 namespace toyc {
 
-extern std::map<std::string, llvm::Value *> VariableTable;
+extern std::map<std::string, std::pair<std::string, llvm::Value *>>
+    VariableTable;
+
+void printVariableTable();
 
 class ParserError : public std::exception {
 private:
@@ -160,6 +163,12 @@ private:
   std::unique_ptr<Expr> parseExpression();
 
 private:
+  std::unique_ptr<Stmt> parseExpressionStatement();
+  std::unique_ptr<Stmt> parseStatement();
+
+private:
+  std::unique_ptr<Decl> parseVariableDeclaration();
+  std::unique_ptr<Decl> parseFunctionDeclaration();
   std::unique_ptr<Decl> parseDeclaration();
 
 public:

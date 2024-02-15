@@ -12,8 +12,8 @@
 
 namespace toyc {
 
+/// Open the file for writing
 void Interpreter::writeByteCode(std::string &filename) {
-  /// Open the file for writing
   int fd;
   std::error_code ec = llvm::sys::fs::openFileForWrite(
       filename, fd, llvm::sys::fs::CD_CreateAlways, llvm::sys::fs::OF_None);
@@ -39,6 +39,7 @@ void Interpreter::compile(std::string &input) {
       decl->dump();
       decl->codegen();
     }
+    printVariableTable();
   } catch (LexerError e) {
     std::cerr << e.what() << "\n";
     return;

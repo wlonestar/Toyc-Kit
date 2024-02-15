@@ -1,10 +1,14 @@
 //! Parser implementation
 
 #include <AST.h>
+#include <CodeGen.h>
 #include <Parser.h>
 #include <Token.h>
+#include <Util.h>
 
+#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <iostream>
 #include <memory>
@@ -15,7 +19,23 @@
 
 namespace toyc {
 
-std::map<std::string, llvm::Value *> VariableTable;
+std::map<std::string, std::pair<std::string, llvm::Value *>> VariableTable;
+
+void printVariableTable() {
+  std::cout << fstr("\033[1;32mVariableTable({}):\033[0m\n",
+                    VariableTable.size());
+  for (auto &[first, val] : VariableTable) {
+    std::string value_str;
+    llvm::raw_string_ostream ros(value_str);
+    if (val.second != nullptr) {
+      val.second->print(ros);
+    } else {
+      ros << "null";
+    }
+    std::cout << fstr("\033[1;32m  <var> <{}> '{}': {}\033[0m\n", val.first,
+                      first, value_str);
+  }
+}
 
 int64_t Parser::parseIntegerSuffix(std::string &value, int base) {
   try {
@@ -60,6 +80,10 @@ double Parser::parseFloatingSuffix(std::string &value, int base) {
   }
 }
 
+/**
+ * parse Expr
+ */
+
 std::unique_ptr<Expr> Parser::parseIntegerLiteral() {
   auto value_str = previous().value;
   int64_t value;
@@ -101,9 +125,10 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
     return std::make_unique<StringLiteral>(std::move(value), std::move(type));
   }
   if (match(IDENTIFIER)) {
-    auto token = previous();
-    /// TODO: find from variable table
-    return std::make_unique<DeclRefExpr>("int", std::move(token.value));
+    Token token = previous();
+    std::string name = token.value;
+    std::string type = VariableTable[name].first;
+    return std::make_unique<DeclRefExpr>(type, name);
   }
   if (match(LP)) {
     auto expr = parseExpression();
@@ -215,27 +240,50 @@ std::unique_ptr<Expr> Parser::parseExpression() {
 }
 
 /**
+ * parse Stmt
+ */
+
+std::unique_ptr<Stmt> Parser::parseExpressionStatement() {
+  auto expr = parseExpression();
+  consume(SEMI, "expected ';' after expression");
+  return std::make_unique<ExprStmt>(std::move(expr));
+}
+
+std::unique_ptr<Stmt> Parser::parseStatement() {
+  return parseExpressionStatement();
+}
+
+/**
  * parse Decl
  */
+
+std::unique_ptr<Decl> Parser::parseVariableDeclaration() {
+  auto type = previous();
+  auto id = consume(IDENTIFIER, "expected identifier").value;
+  if (VariableTable.find(id) != VariableTable.end()) {
+    throwParserError(fstr("redefinition of '{}'", id));
+  }
+  VariableTable[id].first = type.value;
+  std::unique_ptr<Expr> init =
+      (match(EQUAL) ? parseAssignmentExpression() : nullptr);
+  auto decl = std::make_unique<VarDecl>(std::move(type.value), std::move(id),
+                                        std::move(init));
+  consume(SEMI, "expected ';' after declaration");
+  return decl;
+}
+
+std::unique_ptr<Decl> Parser::parseFunctionDeclaration() { return nullptr; }
 
 std::unique_ptr<Decl> Parser::parseDeclaration() {
   /// typedef
   if (match({I64, F64})) {
-    auto type = previous();
-    auto id = consume(IDENTIFIER, "expected identifier");
-    auto decl =
-        std::make_unique<VarDecl>(std::move(type.value), std::move(id.value));
-    if (match(EQUAL)) {
-      auto init = parseAssignmentExpression();
-      decl->setInit(std::move(init));
-    }
-    consume(SEMI, "expected ';' after declaration");
-    return decl;
+    return parseVariableDeclaration();
   } else {
     /// TODO: parse for Stmt
-    throwParserError("not implemented");
+    // throwParserError("not implemented");
+    return parseFunctionDeclaration();
   }
-  return nullptr;
+  // return nullptr;
 }
 
 std::unique_ptr<TranslationUnitDecl> Parser::parse() {
