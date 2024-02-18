@@ -12,6 +12,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 set(CMAKE_BUILD_TYPE Debug) # for debugging
 
+# Detects memory errors 
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")
+endif ()
+
 # Boost.Test
 find_package(Boost COMPONENTS system filesystem unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})

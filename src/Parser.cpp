@@ -20,6 +20,9 @@
 namespace toyc {
 
 std::map<std::string, std::pair<std::string, llvm::Value *>> VariableTable;
+std::map<std::string, std::pair<std::string, llvm::Value *>> LocalVariableTable;
+
+void clearLocalVarTable() { LocalVariableTable.clear(); }
 
 void printVariableTable() {
   std::cout << fstr("\033[1;32mVariableTable({}):\033[0m\n",
@@ -32,8 +35,22 @@ void printVariableTable() {
     } else {
       ros << "null";
     }
-    std::cout << fstr("\033[1;32m  <var> <{}> '{}': {}\033[0m\n", val.first,
-                      first, value_str);
+    std::cout << fstr("\033[1;32m  <var> '{}': {}\033[0m\n", first, value_str);
+  }
+}
+
+void printLocalVariableTable() {
+  std::cout << fstr("\033[1;32mLocalVariableTable({}):\033[0m\n",
+                    VariableTable.size());
+  for (auto &[first, val] : VariableTable) {
+    std::string value_str;
+    llvm::raw_string_ostream ros(value_str);
+    if (val.second != nullptr) {
+      val.second->print(ros);
+    } else {
+      ros << "null";
+    }
+    std::cout << fstr("\033[1;32m  <var> '{}': {}\033[0m\n", first, value_str);
   }
 }
 
@@ -127,7 +144,7 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
   if (match(IDENTIFIER)) {
     Token token = previous();
     std::string name = token.value;
-    std::string type = VariableTable[name].first;
+    std::string type = LocalVariableTable[name].first;
     return std::make_unique<DeclRefExpr>(type, name);
   }
   if (match(LP)) {
@@ -180,7 +197,6 @@ std::unique_ptr<Expr> Parser::parseRelationalExpression() {
   while (match({LE_OP, GE_OP, LA, RA})) {
     auto op = previous();
     auto right = parseAdditiveExpression();
-
     auto type = checkBinaryOperatorType(op.type, expr.get(), right.get());
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
@@ -249,54 +265,124 @@ std::unique_ptr<Stmt> Parser::parseExpressionStatement() {
   return std::make_unique<ExprStmt>(std::move(expr));
 }
 
+std::unique_ptr<Stmt> Parser::parseReturnStatement() {
+  if (match(SEMI)) {
+    return std::make_unique<ReturnStmt>(nullptr);
+  }
+  auto expr = parseExpression();
+  consume(SEMI, "expected ';' after expression");
+  return std::make_unique<ReturnStmt>(std::move(expr));
+}
+
+std::unique_ptr<Stmt> Parser::parseDeclarationStatement() {
+  auto type = previous().value;
+  if (match(IDENTIFIER)) {
+    auto name = previous().value;
+    auto decl =
+        parseVariableDeclaration(std::move(type), std::move(name), LOCAL);
+    return std::make_unique<DeclStmt>(std::move(decl));
+  }
+  throwParserError("expected identifier");
+  return nullptr;
+}
+
+std::unique_ptr<Stmt> Parser::parseCompoundStatement() {
+  consume(LC, "expected function body after function declarator");
+  std::vector<std::unique_ptr<Stmt>> stmts;
+  while (!check(RC) && current.type != _EOF) {
+    auto stmt = parseStatement();
+    stmts.push_back(std::move(stmt));
+  }
+  consume(RC, "expected '}'");
+  return std::make_unique<CompoundStmt>(std::move(stmts));
+}
+
 std::unique_ptr<Stmt> Parser::parseStatement() {
+  if (match(RETURN)) {
+    return parseReturnStatement();
+  }
+  if (match({VOID, I64, F64})) {
+    return parseDeclarationStatement();
+  }
   return parseExpressionStatement();
+}
+
+/**
+ * internal parse
+ */
+
+std::string Parser::parseDeclarationSpecifiers() {
+  if (match({VOID, I64, F64})) {
+    return previous().value;
+  }
+  throwParserError("expected type specifier");
+  return "";
+}
+
+std::string Parser::parseDeclarator() {
+  if (match(IDENTIFIER)) {
+    return previous().value;
+  }
+  throwParserError("expected identifier");
+  return "";
 }
 
 /**
  * parse Decl
  */
 
-std::unique_ptr<Decl> Parser::parseVariableDeclaration() {
-  auto type = previous();
-  auto id = consume(IDENTIFIER, "expected identifier").value;
-  if (VariableTable.find(id) != VariableTable.end()) {
-    throwParserError(fstr("redefinition of '{}'", id));
+std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &&type,
+                                                       std::string &&name,
+                                                       VarScope scope) {
+  std::unique_ptr<VarDecl> decl;
+  if (scope == GLOBAL) {
+    if (VariableTable.find(name) != VariableTable.end()) {
+      throwParserError(fstr("redefinition of '{}'", name));
+    }
+    VariableTable[name].first = type;
+  } else {
+    if (LocalVariableTable.find(name) != LocalVariableTable.end()) {
+      throwParserError(fstr("redefinition of '{}'", name));
+    }
+    LocalVariableTable[name].first = type;
   }
-  VariableTable[id].first = type.value;
+
   std::unique_ptr<Expr> init =
       (match(EQUAL) ? parseAssignmentExpression() : nullptr);
-  auto decl = std::make_unique<VarDecl>(std::move(type.value), std::move(id),
-                                        std::move(init));
+  decl = std::make_unique<VarDecl>(std::move(type), std::move(name),
+                                   std::move(init), scope);
   consume(SEMI, "expected ';' after declaration");
   return decl;
 }
 
-std::unique_ptr<Decl> Parser::parseFunctionDeclaration() { return nullptr; }
+std::unique_ptr<Decl> Parser::parseFunctionDeclaration(std::string &&type,
+                                                       std::string &&name) {
+  consume(RP, "expected parameter declarator");
+  clearLocalVarTable();
+  auto body = parseCompoundStatement();
+  printLocalVariableTable();
+  return std::make_unique<FunctionDecl>(std::move(name), fstr("{} ()", type),
+                                        std::vector<std::unique_ptr<Decl>>{},
+                                        std::move(body));
+}
 
-std::unique_ptr<Decl> Parser::parseDeclaration() {
-  /// typedef
-  if (match({I64, F64})) {
-    return parseVariableDeclaration();
+std::unique_ptr<Decl> Parser::parseExternalDeclaration() {
+  auto type = parseDeclarationSpecifiers();
+  auto name = parseDeclarator();
+  if (match(LP)) {
+    return parseFunctionDeclaration(std::move(type), std::move(name));
   } else {
-    /// TODO: parse for Stmt
-    // throwParserError("not implemented");
-    return parseFunctionDeclaration();
+    return parseVariableDeclaration(std::move(type), std::move(name), GLOBAL);
   }
-  // return nullptr;
 }
 
 std::unique_ptr<TranslationUnitDecl> Parser::parse() {
   std::vector<std::unique_ptr<Decl>> decls;
   advance();
-  while (true) {
-    auto decl = parseDeclaration();
+  while (current.type != _EOF) {
+    auto decl = parseExternalDeclaration();
     decls.push_back(std::move(decl));
-    if (current.type == _EOF) {
-      break;
-    }
   }
-  // consume(_EOF, "expected end of expression");
   return std::make_unique<TranslationUnitDecl>(std::move(decls));
 }
 

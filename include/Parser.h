@@ -19,10 +19,18 @@
 
 namespace toyc {
 
+/// <Name, pair<Type, Value>>
 extern std::map<std::string, std::pair<std::string, llvm::Value *>>
     VariableTable;
+extern std::map<std::string, std::pair<std::string, llvm::Value *>>
+    LocalVariableTable;
+
+/// <Name, pair<Type, Function *>>
+extern std::map<std::string, std::pair<std::string, llvm::Function *>>
+    FunctionTable;
 
 void printVariableTable();
+void printLocalVariableTable();
 
 class ParserError : public std::exception {
 private:
@@ -59,7 +67,7 @@ public:
     prev = current;
     for (;;) {
       current = lexer.scanToken();
-      debug("previous={}, current={}", prev.toString(), current.toString());
+      debug("prev={}, curr={}", prev.toString(), current.toString());
       if (current.type != ERROR) {
         break;
       }
@@ -150,8 +158,8 @@ private:
   std::unique_ptr<Expr> parseIntegerLiteral();
   std::unique_ptr<Expr> parseFloatingLiteral();
 
+private:
   std::unique_ptr<Expr> parsePrimaryExpression();
-
   std::unique_ptr<Expr> parseUnaryExpression();
   std::unique_ptr<Expr> parseMultiplicativeExpression();
   std::unique_ptr<Expr> parseAdditiveExpression();
@@ -164,12 +172,22 @@ private:
 
 private:
   std::unique_ptr<Stmt> parseExpressionStatement();
+  std::unique_ptr<Stmt> parseReturnStatement();
+  std::unique_ptr<Stmt> parseDeclarationStatement();
+  std::unique_ptr<Stmt> parseCompoundStatement();
   std::unique_ptr<Stmt> parseStatement();
 
 private:
-  std::unique_ptr<Decl> parseVariableDeclaration();
-  std::unique_ptr<Decl> parseFunctionDeclaration();
-  std::unique_ptr<Decl> parseDeclaration();
+  std::string parseDeclarationSpecifiers();
+  std::string parseDeclarator();
+
+private:
+  std::unique_ptr<Decl> parseVariableDeclaration(std::string &&type,
+                                                 std::string &&name,
+                                                 VarScope scope);
+  std::unique_ptr<Decl> parseFunctionDeclaration(std::string &&type,
+                                                 std::string &&name);
+  std::unique_ptr<Decl> parseExternalDeclaration();
 
 public:
   Parser() : lexer(), current(), prev() {}

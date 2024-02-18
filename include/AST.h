@@ -163,7 +163,7 @@ class Stmt {
 public:
   virtual ~Stmt() = default;
 
-  virtual llvm::Value *codegen() = 0;
+  virtual void codegen() = 0;
   virtual void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") = 0;
 };
 
@@ -172,10 +172,11 @@ private:
   std::vector<std::unique_ptr<Stmt>> stmts;
 
 public:
-  CompoundStmt(std::vector<std::unique_ptr<Stmt>> &&_stmts)
+  CompoundStmt(std::vector<std::unique_ptr<Stmt>> &&_stmts =
+                   std::vector<std::unique_ptr<Stmt>>{})
       : stmts(std::move(_stmts)) {}
 
-  // llvm::Value *codegen() override;
+  void codegen() override;
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
@@ -186,7 +187,7 @@ private:
 public:
   ExprStmt(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
 
-  llvm::Value *codegen() override;
+  void codegen() override;
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
@@ -197,7 +198,18 @@ private:
 public:
   DeclStmt(std::unique_ptr<Decl> _decl) : decl(std::move(_decl)) {}
 
-  // llvm::Value *codegen() override;
+  void codegen() override;
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+};
+
+class ReturnStmt : public Stmt {
+private:
+  std::unique_ptr<Expr> expr;
+
+public:
+  ReturnStmt(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
+
+  void codegen() override;
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
@@ -210,24 +222,58 @@ public:
   virtual ~Decl() = default;
 
   virtual std::string getType() const = 0;
-  virtual llvm::Value *codegen() = 0;
   virtual void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") = 0;
 };
 
+enum VarScope {
+  LOCAL,
+  GLOBAL,
+};
+
 class VarDecl : public Decl {
-private:
+protected:
   std::string type;
   std::string name;
   std::unique_ptr<Expr> init;
+  VarScope scope;
 
 public:
-  VarDecl(std::string &&_type, std::string &&_name,
-          std::unique_ptr<Expr> _init = nullptr)
-      : type(std::move(_type)), name(std::move(_name)), init(std::move(_init)) {
-  }
+  VarDecl(std::string &&_type, std::string &&_name, std::unique_ptr<Expr> _init,
+          VarScope _scope)
+      : type(std::move(_type)), name(std::move(_name)), init(std::move(_init)),
+        scope(_scope) {}
 
   std::string getType() const override;
-  llvm::Value *codegen() override;
+  llvm::Value *codegen();
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+};
+
+class ParamVarDecl : public VarDecl {
+public:
+  ParamVarDecl(std::string &&_type, std::string &&_name)
+      : VarDecl(std::move(_type), std::move(_name), nullptr, LOCAL) {}
+
+  std::string getType() const override;
+  llvm::Value *codegen();
+  void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
+};
+
+class FunctionDecl : public Decl {
+private:
+  std::string name;
+  std::string type;
+  std::vector<std::unique_ptr<Decl>> params;
+  std::unique_ptr<Stmt> body;
+
+public:
+  FunctionDecl(std::string &&_name, std::string &&_type,
+               std::vector<std::unique_ptr<Decl>> &&_params,
+               std::unique_ptr<Stmt> _body)
+      : name(std::move(_name)), type(std::move(_type)),
+        params(std::move(_params)), body(std::move(_body)) {}
+
+  std::string getType() const override;
+  llvm::Function *codegen();
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
 };
 
@@ -244,7 +290,7 @@ public:
                           std::vector<std::unique_ptr<Decl>>{})
       : decls(std::move(_decls)) {}
 
-  llvm::Value *codegen();
+  void codegen();
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "");
 };
 

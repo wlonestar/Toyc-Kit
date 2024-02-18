@@ -76,19 +76,38 @@ void BinaryOperator::dump(size_t _d, Side _s, std::string _p) {
 void CompoundStmt::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
   std::cout << fstr("{}\n", AST_STMT("CompoundStmt"));
-  /// TODO: print children
+  if (stmts.size() == 1) {
+    stmts[0]->dump(_d + 1, LEAF, _p + "  ");
+  } else if (stmts.size() >= 2) {
+    for (int i = 0; i < stmts.size() - 1; i++) {
+      stmts[i]->dump(_d + 1, INTERNAL, _p + "  |");
+    }
+    stmts[stmts.size() - 1]->dump(_d + 1, LEAF, _p + "  ");
+  }
 }
 
 void ExprStmt::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
   std::cout << fstr("{}\n", AST_STMT("ExprStmt"));
-  expr->dump(_d + 1, LEAF, _p + "  ");
+  if (expr != nullptr) {
+    expr->dump(_d + 1, LEAF, _p + "  ");
+  }
 }
 
 void DeclStmt::dump(size_t _d, Side _s, std::string _p) {
   printASTLeader(_d, _s, _p);
   std::cout << fstr("{}\n", AST_STMT("DeclStmt"));
-  decl->dump(_d + 1, LEAF, _p + "  ");
+  if (decl != nullptr) {
+    decl->dump(_d + 1, LEAF, _p + "  ");
+  }
+}
+
+void ReturnStmt::dump(size_t _d, Side _s, std::string _p) {
+  printASTLeader(_d, _s, _p);
+  std::cout << fstr("{}\n", AST_STMT("ReturnStmt"));
+  if (expr != nullptr) {
+    expr->dump(_d + 1, LEAF, _p + "  ");
+  }
 }
 
 /**
@@ -101,6 +120,22 @@ void VarDecl::dump(size_t _d, Side _s, std::string _p) {
                     AST_TYPE("'{}'", getType()));
   if (init != nullptr) {
     init->dump(_d + 1, LEAF, _p + "  ");
+  }
+}
+
+void ParamVarDecl::dump(size_t _d, Side _s, std::string _p) {
+  printASTLeader(_d, _s, _p);
+  std::cout << fstr("{} {} {}\n", AST_DECL("ParamVarDecl"),
+                    AST_LITERAL("{}", name), AST_TYPE("'{}'", getType()));
+}
+
+void FunctionDecl::dump(size_t _d, Side _s, std::string _p) {
+  printASTLeader(_d, _s, _p);
+  std::cout << fstr("{} {} {}\n", AST_DECL("FunctionDecl"),
+                    AST_LITERAL("{}", name), AST_TYPE("'{}'", type));
+  /// TODO: parameters declarations
+  if (body != nullptr) {
+    body->dump(_d + 1, LEAF, _p + "  ");
   }
 }
 

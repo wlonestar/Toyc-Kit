@@ -30,4 +30,8 @@ std::string BinaryOperator::getType() const { return type; }
 
 std::string VarDecl::getType() const { return type; }
 
+std::string ParamVarDecl::getType() const { return type; }
+
+std::string FunctionDecl::getType() const { return type; }
+
 } // namespace toyc
