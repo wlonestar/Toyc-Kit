@@ -3,6 +3,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <llvm-16/llvm/IR/Instructions.h>
+#include <llvm-16/llvm/IR/Value.h>
 #pragma once
 
 #include <AST.h>
@@ -19,10 +21,13 @@
 
 namespace toyc {
 
-/// <Name, pair<Type, Value>>
+/// <Name, pair<Type, Value *>>
 extern std::map<std::string, std::pair<std::string, llvm::Value *>>
     VariableTable;
-extern std::map<std::string, std::pair<std::string, llvm::Value *>>
+
+/// <Name, tuple<Type, Alloca *, Value *>>
+extern std::map<std::string,
+                std::tuple<std::string, llvm::AllocaInst *, llvm::Value *>>
     LocalVariableTable;
 
 /// <Name, pair<Type, Function *>>

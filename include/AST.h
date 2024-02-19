@@ -105,6 +105,8 @@ public:
   DeclRefExpr(std::string &_type, std::string &_name)
       : type(_type), name(_name) {}
 
+  std::string getName() const { return name; }
+
   std::string getType() const override;
   llvm::Value *codegen() override;
   void dump(size_t _d = 0, Side _s = LEAF, std::string _p = "") override;
@@ -268,7 +270,7 @@ private:
 public:
   FunctionDecl(std::string &&_name, std::string &&_type,
                std::vector<std::unique_ptr<Decl>> &&_params,
-               std::unique_ptr<Stmt> _body)
+               std::unique_ptr<Stmt> _body = nullptr)
       : name(std::move(_name)), type(std::move(_type)),
         params(std::move(_params)), body(std::move(_body)) {}
 

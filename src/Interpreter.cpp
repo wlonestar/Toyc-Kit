@@ -4,6 +4,7 @@
 #include <Interpreter.h>
 #include <Parser.h>
 
+#include <llvm-16/llvm/IR/Verifier.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -55,6 +56,14 @@ void Interpreter::compile(std::string &input) {
   }
 
   TheModule->print(llvm::errs(), nullptr);
+
+  /// verify Module and print out error info
+  std::string info = "\033[1;31m";
+  llvm::raw_string_ostream ros(info);
+  llvm::verifyModule(*TheModule, &ros);
+  info.append("\033[0m");
+  std::cout << info;
+
   /// Specify the filename
   std::string filename = "a.ll";
   writeByteCode(filename);

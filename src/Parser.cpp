@@ -6,6 +6,7 @@
 #include <Token.h>
 #include <Util.h>
 
+#include <llvm-16/llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
@@ -20,7 +21,10 @@
 namespace toyc {
 
 std::map<std::string, std::pair<std::string, llvm::Value *>> VariableTable;
-std::map<std::string, std::pair<std::string, llvm::Value *>> LocalVariableTable;
+
+std::map<std::string,
+         std::tuple<std::string, llvm::AllocaInst *, llvm::Value *>>
+    LocalVariableTable;
 
 void clearLocalVarTable() { LocalVariableTable.clear(); }
 
@@ -144,7 +148,7 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
   if (match(IDENTIFIER)) {
     Token token = previous();
     std::string name = token.value;
-    std::string type = LocalVariableTable[name].first;
+    std::string type = std::get<0>(LocalVariableTable[name]);
     return std::make_unique<DeclRefExpr>(type, name);
   }
   if (match(LP)) {
@@ -334,7 +338,6 @@ std::string Parser::parseDeclarator() {
 std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &&type,
                                                        std::string &&name,
                                                        VarScope scope) {
-  std::unique_ptr<VarDecl> decl;
   if (scope == GLOBAL) {
     if (VariableTable.find(name) != VariableTable.end()) {
       throwParserError(fstr("redefinition of '{}'", name));
@@ -344,13 +347,13 @@ std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &&type,
     if (LocalVariableTable.find(name) != LocalVariableTable.end()) {
       throwParserError(fstr("redefinition of '{}'", name));
     }
-    LocalVariableTable[name].first = type;
+    std::get<0>(LocalVariableTable[name]) = type;
   }
 
   std::unique_ptr<Expr> init =
       (match(EQUAL) ? parseAssignmentExpression() : nullptr);
-  decl = std::make_unique<VarDecl>(std::move(type), std::move(name),
-                                   std::move(init), scope);
+  std::unique_ptr<VarDecl> decl = std::make_unique<VarDecl>(
+      std::move(type), std::move(name), std::move(init), scope);
   consume(SEMI, "expected ';' after declaration");
   return decl;
 }
@@ -358,9 +361,14 @@ std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &&type,
 std::unique_ptr<Decl> Parser::parseFunctionDeclaration(std::string &&type,
                                                        std::string &&name) {
   consume(RP, "expected parameter declarator");
+  /// only declaration
+  if (match(SEMI)) {
+    return std::make_unique<FunctionDecl>(std::move(name), fstr("{} ()", type),
+                                          std::vector<std::unique_ptr<Decl>>{});
+  }
   clearLocalVarTable();
   auto body = parseCompoundStatement();
-  printLocalVariableTable();
+  // printLocalVariableTable();
   return std::make_unique<FunctionDecl>(std::move(name), fstr("{} ()", type),
                                         std::vector<std::unique_ptr<Decl>>{},
                                         std::move(body));

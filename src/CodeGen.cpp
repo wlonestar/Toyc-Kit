@@ -7,6 +7,7 @@
 #include <Util.h>
 
 #include <exception>
+#include <llvm-16/llvm/IR/Instructions.h>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>
 #include <llvm/IR/BasicBlock.h>
@@ -57,7 +58,10 @@ llvm::Value *CharacterLiteral::codegen() { return nullptr; }
 
 llvm::Value *StringLiteral::codegen() { return nullptr; }
 
-llvm::Value *DeclRefExpr::codegen() { return LocalVariableTable[name].second; }
+llvm::Value *DeclRefExpr::codegen() {
+  auto val = LocalVariableTable[name];
+  return std::get<2>(val);
+}
 
 llvm::Value *ParenExpr::codegen() { return expr->codegen(); }
 
@@ -82,16 +86,27 @@ llvm::Value *UnaryOperator::codegen() {
 }
 
 llvm::Value *BinaryOperator::codegen() {
-  auto *l = left->codegen();
-  auto *r = right->codegen();
+  llvm::Value *l = left->codegen();
+  llvm::Value *r = right->codegen();
+  if (auto *_left = dynamic_cast<DeclRefExpr *>(left.get())) {
+    l = std::get<2>(LocalVariableTable[_left->getName()]);
+  }
+  if (auto *_right = dynamic_cast<DeclRefExpr *>(right.get())) {
+    r = std::get<2>(LocalVariableTable[_right->getName()]);
+  }
+
+  /// assignment
+  if (op.type == EQUAL) {
+    if (auto *_left = dynamic_cast<DeclRefExpr *>(left.get())) {
+      l = std::get<1>(LocalVariableTable[_left->getName()]);
+    }
+    return Builder->CreateStore(r, l);
+  }
+
   if (!l || !r) {
     return nullptr;
   }
-  /// assignment
-  if (op.type == EQUAL) {
-    debug("binary operator =");
-    return Builder->CreateStore(l, r);
-  }
+
   if (op.type == AND_OP) {
     return Builder->CreateAnd(l, r);
   }
@@ -102,7 +117,7 @@ llvm::Value *BinaryOperator::codegen() {
   if (getType() == "i64") {
     switch (op.type) {
     case ADD:
-      return Builder->CreateAdd(l, r);
+      return Builder->CreateNSWAdd(l, r);
     case SUB:
       return Builder->CreateSub(l, r);
     case MUL:
@@ -165,8 +180,8 @@ void ReturnStmt::codegen() {
  */
 
 llvm::Value *VarDecl::codegen() {
-  llvm::Type *varType = (type == "i64" ? llvm::Type::getInt64Ty(*TheContext)
-                                       : llvm::Type::getDoubleTy(*TheContext));
+  llvm::Type *varType =
+      (type == "i64" ? Builder->getInt64Ty() : Builder->getDoubleTy());
   llvm::Constant *initializer =
       (init != nullptr ? (llvm::Constant *)init->codegen() : nullptr);
 
@@ -182,7 +197,7 @@ llvm::Value *VarDecl::codegen() {
       /// TODO: store inst: ptr -> i64* or f64*
       Builder->CreateStore(initializer, var);
     }
-    LocalVariableTable[name] = std::make_pair(type, initializer);
+    LocalVariableTable[name] = std::make_tuple(type, var, initializer);
     return var;
   }
 }
@@ -208,12 +223,15 @@ llvm::Function *FunctionDecl::codegen() {
   llvm::BasicBlock *bb = llvm::BasicBlock::Create(*TheContext, "entry", func);
   Builder->SetInsertPoint(bb);
 
-  body->codegen();
+  if (body != nullptr) {
+    body->codegen();
+  }
   return func;
 
   // func->eraseFromParent();
   // return nullptr;
 }
+
 /**
  * TranslationUnitDecl
  */
@@ -223,6 +241,8 @@ void TranslationUnitDecl::codegen() {
     if (dynamic_cast<VarDecl *>(decl.get())) {
       dynamic_cast<VarDecl *>(decl.get())->codegen();
     } else if (dynamic_cast<FunctionDecl *>(decl.get())) {
+      /// TODO: change to read from FunctionTable
+      /// (avoid seperating function declaration and definition)
       dynamic_cast<FunctionDecl *>(decl.get())->codegen();
     } else {
       /// TODO: codegen error handling
