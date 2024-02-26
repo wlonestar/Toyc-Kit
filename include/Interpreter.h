@@ -15,12 +15,13 @@ namespace toyc {
 class Interpreter {
 private:
   Parser parser;
+  IRCodegenVisitor visitor;
 
 private:
   void writeByteCode(std::string &filename);
 
 public:
-  Interpreter() : parser() { initializeModule(); }
+  Interpreter() : parser(), visitor() {}
 
   void compile(std::string &input);
 };
