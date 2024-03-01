@@ -26,6 +26,7 @@ enum Side {
 struct ASTVisitor;
 struct TranslationUnitDecl;
 struct Decl;
+struct VarDecl;
 struct Stmt;
 struct Expr;
 
@@ -93,11 +94,13 @@ struct StringLiteral : public Literal {
 };
 
 struct DeclRefExpr : public Expr {
-  std::string name;
-  std::string type;
+  // std::string name;
+  // std::string type;
+  std::unique_ptr<VarDecl> decl;
 
-  DeclRefExpr(std::string &_type, std::string &_name)
-      : type(_type), name(_name) {}
+  // DeclRefExpr(std::string &_type, std::string &_name)
+  //     : type(_type), name(_name) {}
+  DeclRefExpr(std::unique_ptr<VarDecl> _decl) : decl(std::move(_decl)) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -218,8 +221,8 @@ struct VarDecl : public Decl {
   std::unique_ptr<Expr> init;
   VarScope scope;
 
-  VarDecl(std::string &&_type, std::string &&_name, std::unique_ptr<Expr> _init,
-          VarScope _scope)
+  VarDecl(std::string &&_type, std::string &&_name,
+          std::unique_ptr<Expr> _init = nullptr, VarScope _scope = LOCAL)
       : type(std::move(_type)), name(std::move(_name)), init(std::move(_init)),
         scope(_scope) {}
 

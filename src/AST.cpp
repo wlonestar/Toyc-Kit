@@ -2,6 +2,7 @@
 
 #include <AST.h>
 #include <ASTVisitor.h>
+#include <CodeGen.h>
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
@@ -28,19 +29,17 @@ std::string CharacterLiteral::getType() const { return "i64"; }
 
 llvm::Value *CharacterLiteral::accept(ASTVisitor &visitor) {
   // return visitor.codegen(*this);
-  /// TODO: error handling
-  return nullptr;
+  throw CodeGenException("not implemented!");
 }
 
 std::string StringLiteral::getType() const { return type; }
 
 llvm::Value *StringLiteral::accept(ASTVisitor &visitor) {
   // return visitor.codegen(*this);
-  /// TODO: error handling
-  return nullptr;
+  throw CodeGenException("not implemented!");
 }
 
-std::string DeclRefExpr::getType() const { return type; }
+std::string DeclRefExpr::getType() const { return decl->type; }
 
 llvm::Value *DeclRefExpr::accept(ASTVisitor &visitor) {
   return visitor.codegen(*this);

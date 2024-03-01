@@ -46,8 +46,8 @@ void StringLiteral::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
 
 void DeclRefExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   printASTLeader(os, _d, _s, _p);
-  os << fstr("{} {} {}\n", AST_STMT("DeclRefExpr"), AST_TYPE("'{}'", type),
-             AST_LITERAL("'{}'", name));
+  os << fstr("{} {} {}\n", AST_STMT("DeclRefExpr"), AST_TYPE("'{}'", decl->type),
+             AST_LITERAL("'{}'", decl->name));
 }
 
 void ParenExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {

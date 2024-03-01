@@ -19,7 +19,11 @@ build: config
 run:
 	@./build/bin/$(EXEC)
 
-.PHONY: clean
+test:
+	@./build/bin/$(EXEC) example/a.toyc
+	@clang -mllvm -opaque-pointers a.ll -o a.exe
+
+.PHONY: clean test
 
 clean:
 	@rm -rf $(BUILD_DIR)

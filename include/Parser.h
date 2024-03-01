@@ -3,8 +3,6 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <llvm-16/llvm/IR/Instructions.h>
-#include <llvm-16/llvm/IR/Value.h>
 #pragma once
 
 #include <AST.h>
@@ -12,40 +10,38 @@
 #include <Token.h>
 #include <Util.h>
 
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
+
 #include <cstddef>
 #include <exception>
 #include <initializer_list>
+#include <map>
 #include <memory>
+#include <string>
 #include <tuple>
 #include <vector>
 
 namespace toyc {
 
-/// <Name, pair<Type, Value *>>
-extern std::map<std::string, std::pair<std::string, llvm::Value *>>
-    VariableTable;
-
-/// <Name, tuple<Type, Alloca *, Value *>>
-extern std::map<std::string,
-                std::tuple<std::string, llvm::AllocaInst *, llvm::Value *>>
-    LocalVariableTable;
-
-/// <Name, pair<Type, Function *>>
-extern std::map<std::string, std::pair<std::string, llvm::Function *>>
-    FunctionTable;
-
-void printVariableTable();
-void printLocalVariableTable();
-
-class ParserError : public std::exception {
+class ParserException : public std::exception {
 private:
   size_t line;
   size_t col;
   std::string message;
 
 public:
-  ParserError(size_t _line, size_t _col, std::string &_message);
-  ParserError(size_t _line, size_t _col, std::string &&_message);
+  ParserException(size_t _line, size_t _col, std::string &_message)
+      : line(_line), col(_col),
+        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                     _line, _col, _message)) {}
+
+  ParserException(size_t _line, size_t _col, std::string &&_message)
+      : line(_line), col(_col),
+        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                     _line, _col, _message)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };
@@ -54,16 +50,22 @@ class Parser {
 private:
   Token current;
   Token prev;
-
   Lexer lexer;
+  /// <name, type>
+  std::map<std::string, std::string> globalVarTable;
+  /// <name, type>
+  std::map<std::string, std::string> varTable;
 
 private:
-  void throwParserError(std::string &&message) {
-    throw ParserError(current.line, current.col, std::move(message));
+  void throwParserException(std::string &&message) {
+    throw ParserException(current.line, current.col, std::move(message));
   }
-  void throwParserError(std::string &message) {
-    throw ParserError(current.line, current.col, message);
+  void throwParserException(std::string &message) {
+    throw ParserException(current.line, current.col, message);
   }
+
+private:
+  void clearVarTable() { varTable.clear(); }
 
 public:
   Token peek() { return current; }
@@ -72,11 +74,11 @@ public:
     prev = current;
     for (;;) {
       current = lexer.scanToken();
-      debug("prev={}, curr={}", prev.toString(), current.toString());
+      // debug("prev={}, curr={}", prev.toString(), current.toString());
       if (current.type != ERROR) {
         break;
       }
-      throwParserError("error at parse");
+      throwParserException("error at parse");
     }
     return prev;
   }
@@ -85,14 +87,14 @@ public:
     if (current.type == type) {
       return advance();
     }
-    throwParserError(message);
+    throwParserException(message);
     return Token(ERROR, "");
   }
   Token consume(TokenType type, std::string &&message) {
     if (current.type == type) {
       return advance();
     }
-    throwParserError(message);
+    throwParserException(message);
     return Token(ERROR, "");
   }
 

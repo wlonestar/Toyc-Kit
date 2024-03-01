@@ -14,26 +14,35 @@
 
 namespace toyc {
 
-class LexerError : public std::exception {
+class LexerException : public std::exception {
 private:
   size_t line;
   size_t col;
   std::string message;
 
 public:
-  LexerError(size_t _line, size_t _col, std::string &_message);
-  LexerError(size_t _line, size_t _col, std::string &&_message);
+  LexerException(size_t _line, size_t _col, std::string &_message)
+      : line(_line), col(_col),
+        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                     _line, _col, _message)) {}
+
+  LexerException(size_t _line, size_t _col, std::string &&_message)
+      : line(_line), col(_col),
+        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                     _line, _col, _message)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };
 
-enum LexerErrorCode {
+enum LexerExceptionCode {
   INVALID_INTEGER_SUFFIX,
   INVALID_FLOATING_SUFFIX,
   INVALID_INTEGER_OR_FLOATING,
 };
 
-static std::map<LexerErrorCode, std::string> LexerErrorTable = {
+static std::map<LexerExceptionCode, std::string> LexerExceptionTable = {
     {INVALID_INTEGER_SUFFIX, "invalid suffix on integer constant"},
     {INVALID_FLOATING_SUFFIX, "invalid suffix on floating constant"},
     {INVALID_INTEGER_OR_FLOATING, "invalid integer or floating constant"},
@@ -48,11 +57,11 @@ private:
   size_t col;
 
 private:
-  void throwLexerError(std::string &&message) {
-    throw LexerError(line, col, std::move(message));
+  void throwLexerException(std::string &&message) {
+    throw LexerException(line, col, std::move(message));
   }
-  void throwLexerError(std::string &message) {
-    throw LexerError(line, col, message);
+  void throwLexerException(std::string &message) {
+    throw LexerException(line, col, message);
   }
 
 private:

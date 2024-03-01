@@ -6,7 +6,7 @@
 #include <Token.h>
 #include <Util.h>
 
-#include <llvm-16/llvm/IR/Instructions.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
@@ -19,44 +19,6 @@
 #include <vector>
 
 namespace toyc {
-
-std::map<std::string, std::pair<std::string, llvm::Value *>> VariableTable;
-
-std::map<std::string,
-         std::tuple<std::string, llvm::AllocaInst *, llvm::Value *>>
-    LocalVariableTable;
-
-void clearLocalVarTable() { LocalVariableTable.clear(); }
-
-void printVariableTable() {
-  std::cout << fstr("\033[1;32mVariableTable({}):\033[0m\n",
-                    VariableTable.size());
-  for (auto &[first, val] : VariableTable) {
-    std::string value_str;
-    llvm::raw_string_ostream ros(value_str);
-    if (val.second != nullptr) {
-      val.second->print(ros);
-    } else {
-      ros << "null";
-    }
-    std::cout << fstr("\033[1;32m  <var> '{}': {}\033[0m\n", first, value_str);
-  }
-}
-
-void printLocalVariableTable() {
-  std::cout << fstr("\033[1;32mLocalVariableTable({}):\033[0m\n",
-                    VariableTable.size());
-  for (auto &[first, val] : VariableTable) {
-    std::string value_str;
-    llvm::raw_string_ostream ros(value_str);
-    if (val.second != nullptr) {
-      val.second->print(ros);
-    } else {
-      ros << "null";
-    }
-    std::cout << fstr("\033[1;32m  <var> '{}': {}\033[0m\n", first, value_str);
-  }
-}
 
 int64_t Parser::parseIntegerSuffix(std::string &value, int base) {
   try {
@@ -80,7 +42,7 @@ int64_t Parser::parseIntegerSuffix(std::string &value, int base) {
       return stoi(value, nullptr, base);
     }
   } catch (std::out_of_range e) {
-    throwParserError(
+    throwParserException(
         "integer literal is too large to be represented in integer type");
     return -1;
   }
@@ -96,7 +58,7 @@ double Parser::parseFloatingSuffix(std::string &value, int base) {
       return stod(value, nullptr);
     }
   } catch (std::out_of_range e) {
-    throwParserError("magnitude of floating-point constant too large");
+    throwParserException("magnitude of floating-point constant too large");
     return -0;
   }
 }
@@ -148,8 +110,16 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
   if (match(IDENTIFIER)) {
     Token token = previous();
     std::string name = token.value;
-    std::string type = std::get<0>(LocalVariableTable[name]);
-    return std::make_unique<DeclRefExpr>(type, name);
+    std::string type = varTable[name];
+    /// if local variable table not found, turn to global variable table
+    if (type == "") {
+      type = globalVarTable[name];
+    }
+    if (type == "") {
+      throwParserException(fstr("identifier '{}' not found", name));
+    }
+    return std::make_unique<DeclRefExpr>(
+        std::make_unique<VarDecl>(std::move(type), std::move(name)));
   }
   if (match(LP)) {
     auto expr = parseExpression();
@@ -157,7 +127,7 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
     expr = std::make_unique<ParenExpr>(std::move(expr));
     return expr;
   }
-  throwParserError("parse primary expression error");
+  throwParserException("parse primary expression error");
   return nullptr;
 }
 
@@ -286,7 +256,7 @@ std::unique_ptr<Stmt> Parser::parseDeclarationStatement() {
         parseVariableDeclaration(std::move(type), std::move(name), LOCAL);
     return std::make_unique<DeclStmt>(std::move(decl));
   }
-  throwParserError("expected identifier");
+  throwParserException("expected identifier");
   return nullptr;
 }
 
@@ -319,7 +289,7 @@ std::string Parser::parseDeclarationSpecifiers() {
   if (match({VOID, I64, F64})) {
     return previous().value;
   }
-  throwParserError("expected type specifier");
+  throwParserException("expected type specifier");
   return "";
 }
 
@@ -327,7 +297,7 @@ std::string Parser::parseDeclarator() {
   if (match(IDENTIFIER)) {
     return previous().value;
   }
-  throwParserError("expected identifier");
+  throwParserException("expected identifier");
   return "";
 }
 
@@ -339,15 +309,15 @@ std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &&type,
                                                        std::string &&name,
                                                        VarScope scope) {
   if (scope == GLOBAL) {
-    if (VariableTable.find(name) != VariableTable.end()) {
-      throwParserError(fstr("redefinition of '{}'", name));
+    if (globalVarTable.find(name) != globalVarTable.end()) {
+      throwParserException(fstr("redefinition of '{}'", name));
     }
-    VariableTable[name].first = type;
+    globalVarTable[name] = type;
   } else {
-    if (LocalVariableTable.find(name) != LocalVariableTable.end()) {
-      throwParserError(fstr("redefinition of '{}'", name));
+    if (varTable.find(name) != varTable.end()) {
+      throwParserException(fstr("redefinition of '{}'", name));
     }
-    std::get<0>(LocalVariableTable[name]) = type;
+    varTable[name] = type;
   }
 
   std::unique_ptr<Expr> init =
@@ -366,9 +336,8 @@ std::unique_ptr<Decl> Parser::parseFunctionDeclaration(std::string &&type,
     return std::make_unique<FunctionDecl>(std::move(name), fstr("{} ()", type),
                                           std::vector<std::unique_ptr<Decl>>{});
   }
-  clearLocalVarTable();
+  clearVarTable();
   auto body = parseCompoundStatement();
-  // printLocalVariableTable();
   return std::make_unique<FunctionDecl>(std::move(name), fstr("{} ()", type),
                                         std::vector<std::unique_ptr<Decl>>{},
                                         std::move(body));
@@ -393,21 +362,5 @@ std::unique_ptr<TranslationUnitDecl> Parser::parse() {
   }
   return std::make_unique<TranslationUnitDecl>(std::move(decls));
 }
-
-/**
- * Constructor of Parser Error object
- */
-
-ParserError::ParserError(size_t _line, size_t _col, std::string &_message)
-    : line(_line), col(_col),
-      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
-                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                   _line, _col, _message)) {}
-
-ParserError::ParserError(size_t _line, size_t _col, std::string &&_message)
-    : line(_line), col(_col),
-      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
-                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                   _line, _col, _message)) {}
 
 } // namespace toyc

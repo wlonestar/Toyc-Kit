@@ -6,21 +6,21 @@
 #include <Token.h>
 #include <Util.h>
 
-#include <llvm-16/llvm/IR/DerivedTypes.h>
-#include <llvm-16/llvm/IR/GlobalValue.h>
-#include <llvm-16/llvm/IR/Verifier.h>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>
+#include <llvm/ADT/Triple.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
-#include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/TargetSelect.h>
 
 #include <exception>
 #include <memory>
@@ -33,25 +33,23 @@ namespace toyc {
 IRCodegenVisitor::IRCodegenVisitor() {
   /// Open a new context and module.
   context = std::make_unique<llvm::LLVMContext>();
-  module = std::make_unique<llvm::Module>("toyc jit", *context);
-  /// Set data layout and target triple explicitly
-  module->setDataLayout(
-      "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128");
-  module->setTargetTriple("x86_64-pc-linux-gnu");
   /// Create a new builder for the module.
-  builder = std::make_unique<llvm::IRBuilder<>>(*context);
+  builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*context));
+  module = std::make_unique<llvm::Module>("toyc jit", *context);
+
+  module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
-void IRCodegenVisitor::modulePrint(llvm::raw_ostream &OS,
-                                   llvm::AssemblyAnnotationWriter *AAW,
-                                   bool ShouldPreserveUseListOrder,
-                                   bool IsForDebug) const {
-  module->print(OS, AAW, ShouldPreserveUseListOrder, IsForDebug);
+void IRCodegenVisitor::dumpIR(llvm::raw_ostream &os) {
+  module->print(os, nullptr, false, false);
 }
 
-bool IRCodegenVisitor::verifyModule(llvm::raw_ostream *OS,
-                                    bool *BrokenDebugInfo) {
-  return llvm::verifyModule(*module, OS, BrokenDebugInfo);
+void IRCodegenVisitor::verifyModule(llvm::raw_ostream &os) {
+  std::string info;
+  llvm::raw_string_ostream ros(info);
+  llvm::verifyModule(*module, &ros, nullptr);
+  os << "\033[1;31mverify:\n"
+     << (info.size() == 0 ? "(null)" : info) << "\033[0m\n";
 }
 
 /**
@@ -67,9 +65,23 @@ llvm::Value *IRCodegenVisitor::codegen(const FloatingLiteral &expr) {
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const DeclRefExpr &expr) {
-  /// TODO: need to fix bugs
-  auto val = LocalVariableTable[expr.name];
-  return std::get<2>(val);
+  auto *id = varEnv[expr.decl->name];
+  if (id != nullptr) {
+    auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
+    if (idVal == nullptr) {
+      throw CodeGenException(fstr("identifier '{}' not load", expr.decl->name));
+    }
+    return idVal;
+  }
+  auto *gid = globalVarEnv[expr.decl->name];
+  if (gid != nullptr) {
+    auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
+    if (idVal == nullptr) {
+      throw CodeGenException(fstr("identifier '{}' not load", expr.decl->name));
+    }
+    return idVal;
+  }
+  throw CodeGenException(fstr("identifier '{}' not found", expr.decl->name));
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const ParenExpr &expr) {
@@ -79,88 +91,80 @@ llvm::Value *IRCodegenVisitor::codegen(const ParenExpr &expr) {
 llvm::Value *IRCodegenVisitor::codegen(const UnaryOperator &expr) {
   auto *r = expr.right->accept(*this);
   if (r == nullptr) {
-    /// TODO: codegen error handling
-    return nullptr;
+    throw CodeGenException("[UnaryOperator] the operand is null");
   }
   switch (expr.op.type) {
   case NOT:
-    return builder->CreateNot(r, "not");
+    return builder->CreateNot(r);
   case SUB:
     if (expr.type == "i64") {
-      return builder->CreateNeg(r, "neg");
+      return builder->CreateNeg(r);
     } else {
-      return builder->CreateFNeg(r, "neg");
+      return builder->CreateFNeg(r);
     }
   default:
-    /// TODO: codegen error handling
-    return nullptr;
+    throw CodeGenException(fstr(
+        "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
   }
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
-  llvm::Value *l = expr.left->accept(*this);
-  llvm::Value *r = expr.right->accept(*this);
-  if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.left.get())) {
-    l = std::get<2>(LocalVariableTable[_left->name]);
-  }
-  if (auto *_right = dynamic_cast<DeclRefExpr *>(expr.right.get())) {
-    r = std::get<2>(LocalVariableTable[_right->name]);
-  }
+  llvm::Value *l, *r;
 
-  /// TODO: assignment
   if (expr.op.type == EQUAL) {
     if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.left.get())) {
-      l = std::get<1>(LocalVariableTable[_left->name]);
+      l = varEnv[_left->decl->name];
     }
+    r = expr.right->accept(*this);
     return builder->CreateStore(r, l);
   }
 
-  if (!l || !r) {
-    /// TODO: codegen error handling
-    return nullptr;
+  l = expr.left->accept(*this);
+  r = expr.right->accept(*this);
+  if (l == nullptr || r == nullptr) {
+    throw CodeGenException("[BinaryOperator] operands must be not null");
   }
 
   /// logical operation
   if (expr.op.type == AND_OP) {
-    return builder->CreateAnd(l, r, "and");
+    return builder->CreateAnd(l, r);
   }
   if (expr.op.type == OR_OP) {
-    return builder->CreateOr(l, r, "or");
+    return builder->CreateOr(l, r);
   }
 
   if (expr.type == "i64") {
     switch (expr.op.type) {
     case ADD:
-      return builder->CreateNSWAdd(l, r, "add");
+      return builder->CreateAdd(l, r);
     case SUB:
-      return builder->CreateSub(l, r, "sub");
+      return builder->CreateSub(l, r);
     case MUL:
-      return builder->CreateMul(l, r, "mult");
+      return builder->CreateMul(l, r);
     case DIV:
-      return builder->CreateSDiv(l, r, "div");
+      return builder->CreateSDiv(l, r);
     case MOD:
-      return builder->CreateSRem(l, r, "rem");
+      return builder->CreateSRem(l, r);
     default:
       break;
     }
-  } else {
+  } else if (expr.type == "f64") {
     switch (expr.op.type) {
     case ADD:
-      return builder->CreateFAdd(l, r, "add");
+      return builder->CreateFAdd(l, r);
     case SUB:
-      return builder->CreateFSub(l, r, "sub");
+      return builder->CreateFSub(l, r);
     case MUL:
-      return builder->CreateFMul(l, r, "mult");
+      return builder->CreateFMul(l, r);
     case DIV:
-      return builder->CreateFDiv(l, r, "div");
+      return builder->CreateFDiv(l, r);
     case MOD:
-      return builder->CreateFRem(l, r, "rem");
+      return builder->CreateFRem(l, r);
     default:
       break;
     }
   }
-  /// TODO: codegen error handling
-  return nullptr;
+  throw CodeGenException("[BinaryOperator] unimplemented binary operation");
 }
 
 /**
@@ -181,9 +185,8 @@ llvm::Value *IRCodegenVisitor::codegen(const ExprStmt &stmt) {
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const DeclStmt &stmt) {
-  /// TODO:
   if (auto var = dynamic_cast<VarDecl *>(stmt.decl.get())) {
-    /// TODO: decl
+    return var->accept(*this);
   }
   return nullptr;
 }
@@ -214,16 +217,15 @@ llvm::Value *IRCodegenVisitor::codegen(const VarDecl &decl) {
     llvm::GlobalVariable *var = new llvm::GlobalVariable(
         *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
         initializer, decl.name);
-    VariableTable[decl.name] = std::make_pair(decl.type, initializer);
+    globalVarEnv[decl.name] = var;
+    printGlobalVarEnv();
     return var;
   } else {
-    llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr, decl.name);
+    llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
     if (decl.init != nullptr) {
-      /// TODO: store inst: ptr -> i64* or f64*
       builder->CreateStore(initializer, var);
     }
-    LocalVariableTable[decl.name] =
-        std::make_tuple(decl.type, var, initializer);
+    varEnv[decl.name] = var;
     return var;
   }
 }
@@ -234,6 +236,8 @@ llvm::Value *IRCodegenVisitor::codegen(const ParamVarDecl &decl) {
 }
 
 llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
+  clearVarEnv(); /// clear local variable table
+
   llvm::Type *resultTy;
   if (decl.type.starts_with("void")) {
     resultTy = llvm::Type::getVoidTy(*context);
@@ -249,12 +253,16 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
   llvm::Function *func = llvm::Function::Create(
       funcTy, llvm::Function::ExternalLinkage, decl.name, *module);
 
-  llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context, "entry", func);
+  llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context, "", func);
   builder->SetInsertPoint(bb);
 
   if (decl.body != nullptr) {
     decl.body->accept(*this);
+    if (resultTy == llvm::Type::getVoidTy(*context)) {
+      builder->CreateRetVoid();
+    }
   }
+  printVarEnv();
   return func;
 }
 
@@ -263,9 +271,7 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
  */
 
 void IRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
-  /// TODO:
   for (auto &d : decl.decls) {
-    /// TODO:
     if (dynamic_cast<VarDecl *>(d.get())) {
       dynamic_cast<VarDecl *>(d.get())->accept(*this);
     } else if (dynamic_cast<FunctionDecl *>(d.get())) {
@@ -273,7 +279,7 @@ void IRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
       /// (avoid seperating function declaration and definition)
       dynamic_cast<FunctionDecl *>(d.get())->accept(*this);
     } else {
-      /// TODO: codegen error handling
+      throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
     }
   }
 }

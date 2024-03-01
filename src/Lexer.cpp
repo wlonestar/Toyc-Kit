@@ -53,11 +53,11 @@ void Lexer::skipMutliComment() {
     advance();
   }
   if (isEnd()) {
-    throwLexerError("unterminated /* comment");
+    throwLexerException("unterminated /* comment");
   }
   advance();
   if (peek() != '/') {
-    throwLexerError("unterminated /* comment");
+    throwLexerException("unterminated /* comment");
   }
   advance();
 }
@@ -71,7 +71,7 @@ Token Lexer::scanString() {
     advance();
   }
   if (isEnd()) {
-    throwLexerError("unterminated string.");
+    throwLexerException("unterminated string.");
   }
   advance();
   /// remove '"' and '"': "asdasd" -> asdasd
@@ -105,7 +105,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
@@ -115,7 +115,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
@@ -125,7 +125,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
@@ -135,7 +135,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_INTEGER_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
       return makeToken(INTEGER);
     }
@@ -151,7 +151,7 @@ Token Lexer::scanNumber() {
       ///---------- !!! trivial !!! ----------///
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_INTEGER_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
       return makeToken(INTEGER);
     }
@@ -162,7 +162,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
@@ -172,7 +172,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
@@ -182,7 +182,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
@@ -193,7 +193,7 @@ Token Lexer::scanNumber() {
         forward(iter->str().size() - 1);
         if (isA(peek())) {
           forward(1);
-          throwLexerError(LexerErrorTable[INVALID_INTEGER_SUFFIX]);
+          throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
         }
         return makeToken(INTEGER);
       }
@@ -204,7 +204,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_FLOATING_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
@@ -215,7 +215,7 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_INTEGER_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
       return makeToken(INTEGER);
     }
@@ -225,12 +225,12 @@ Token Lexer::scanNumber() {
       forward(iter->str().size() - 1);
       if (isA(peek())) {
         forward(1);
-        throwLexerError(LexerErrorTable[INVALID_INTEGER_SUFFIX]);
+        throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
       return makeToken(INTEGER);
     }
   }
-  throwLexerError(LexerErrorTable[INVALID_INTEGER_OR_FLOATING]);
+  throwLexerException(LexerExceptionTable[INVALID_INTEGER_OR_FLOATING]);
   return makeToken(ERROR);
 }
 
@@ -375,24 +375,8 @@ Token Lexer::scanToken() {
     return scanString();
   }
 
-  throwLexerError("unexpected character.");
+  throwLexerException("unexpected character.");
   return Token(ERROR, "");
 }
-
-/**
- * Constructor of Lexer Error object
- */
-
-LexerError::LexerError(size_t _line, size_t _col, std::string &_message)
-    : line(_line), col(_col),
-      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
-                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                   _line, _col, _message)) {}
-
-LexerError::LexerError(size_t _line, size_t _col, std::string &&_message)
-    : line(_line), col(_col),
-      message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
-                   "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                   _line, _col, _message)) {}
 
 } // namespace toyc
