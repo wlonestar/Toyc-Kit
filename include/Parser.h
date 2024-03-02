@@ -192,6 +192,7 @@ private:
 private:
   std::unique_ptr<Stmt> parseExpressionStatement();
   std::unique_ptr<Stmt> parseReturnStatement();
+  std::unique_ptr<Stmt> parseSelectionStatement();
   std::unique_ptr<Stmt> parseDeclarationStatement();
   std::unique_ptr<Stmt> parseCompoundStatement();
   std::unique_ptr<Stmt> parseStatement();

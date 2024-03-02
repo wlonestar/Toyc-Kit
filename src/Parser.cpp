@@ -308,6 +308,19 @@ std::unique_ptr<Stmt> Parser::parseReturnStatement() {
   return std::make_unique<ReturnStmt>(std::move(expr));
 }
 
+std::unique_ptr<Stmt> Parser::parseSelectionStatement() {
+  consume(LP, "expect '(' after 'if'");
+  auto expr = parseExpression();
+  consume(RP, "expect ')'");
+  std::unique_ptr<Stmt> thenStmt, elseStmt;
+  thenStmt = parseStatement();
+  if (match(ELSE)) {
+    elseStmt = parseStatement();
+  }
+  return std::make_unique<IfStmt>(std::move(expr), std::move(thenStmt),
+                                  std::move(elseStmt));
+}
+
 std::unique_ptr<Stmt> Parser::parseDeclarationStatement() {
   auto type = previous().value;
   if (match(IDENTIFIER)) {
@@ -337,6 +350,14 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
   }
   if (match({VOID, I64, F64})) {
     return parseDeclarationStatement();
+  }
+  if (match(IF)) {
+    return parseSelectionStatement();
+  }
+  /// for other use of `parseCompoundStatement()`,
+  /// use `check()` instead of `match()`
+  if (check(LC)) {
+    return parseCompoundStatement();
   }
   return parseExpressionStatement();
 }

@@ -157,6 +157,21 @@ void DeclStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   }
 }
 
+void IfStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
+  printASTLeader(os, _d, _s, _p);
+  os << fstr("{}\n", AST_STMT("IfStmt"));
+  std::string leader = attachLeafLeader(_s, _p);
+  cond->dump(os, _d + 1, INTERNAL, leader + "|");
+  if (elseStmt != nullptr) {
+    thenStmt->dump(os, _d + 1, INTERNAL, leader + "|");
+  } else {
+    thenStmt->dump(os, _d + 1, LEAF, leader);
+  }
+  if (elseStmt != nullptr) {
+    elseStmt->dump(os, _d + 1, LEAF, leader);
+  }
+}
+
 void ReturnStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   printASTLeader(os, _d, _s, _p);
   os << fstr("{}\n", AST_STMT("ReturnStmt"));

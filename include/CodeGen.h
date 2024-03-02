@@ -110,6 +110,7 @@ public:
   virtual llvm::Value *codegen(const CompoundStmt &stmt) override;
   virtual llvm::Value *codegen(const ExprStmt &stmt) override;
   virtual llvm::Value *codegen(const DeclStmt &stmt) override;
+  virtual llvm::Value *codegen(const IfStmt &stmt) override;
   virtual llvm::Value *codegen(const ReturnStmt &stmt) override;
 
   /**

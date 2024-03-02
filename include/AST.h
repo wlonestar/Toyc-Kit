@@ -219,6 +219,21 @@ struct DeclStmt : public Stmt {
             std::string _p = "") override;
 };
 
+struct IfStmt : public Stmt {
+  std::unique_ptr<Expr> cond;
+  std::unique_ptr<Stmt> thenStmt;
+  std::unique_ptr<Stmt> elseStmt;
+
+  IfStmt(std::unique_ptr<Expr> _cond, std::unique_ptr<Stmt> _thenStmt,
+         std::unique_ptr<Stmt> _elseStmt)
+      : cond(std::move(_cond)), thenStmt(std::move(_thenStmt)),
+        elseStmt(std::move(_elseStmt)) {}
+
+  llvm::Value *accept(ASTVisitor &visitor) override;
+  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+            std::string _p = "") override;
+};
+
 struct ReturnStmt : public Stmt {
   std::unique_ptr<Expr> expr;
 

@@ -9,10 +9,20 @@ f64 mul(f64 x, f64 y) {
   return x * y;
 }
 
+// for test
+void foo() {}
+
+// for test
+i64 bar() {}
+
 i64 main() {
-  printI64(1);
-  printI64(add(3, 4));
-  printF64(1.1);
-  printF64(mul(5, 3));
-  printF64(add(12, 13) + mul(5, 3));
+  i64 a = 1;
+  if (a) {
+    a = 2 && 3 + 12;
+  } else if (!a) {
+    a = 3 - 54 || 132;
+  } else {
+    a = 4;
+  }
+  printI64(a);
 }

@@ -81,11 +81,11 @@ llvm::Function *IRCodegenVisitor::codegenFuncTy(const FunctionDecl &decl) {
  */
 
 llvm::Value *IRCodegenVisitor::codegen(const IntegerLiteral &expr) {
-  return llvm::ConstantInt::get((llvm::Type::getInt64Ty(*context)), expr.value);
+  return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), expr.value);
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const FloatingLiteral &expr) {
-  return llvm::ConstantFP::get((llvm::Type::getDoubleTy(*context)), expr.value);
+  return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), expr.value);
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const DeclRefExpr &expr) {
@@ -184,16 +184,17 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
     throw CodeGenException("[BinaryOperator] operands must be not null");
   }
 
-  /// logical operation
-  if (expr.op.type == AND_OP) {
+  /// logical operation (no matter types)
+  auto opTy = expr.op.type;
+  if (opTy == AND_OP) {
     return builder->CreateAnd(l, r);
   }
-  if (expr.op.type == OR_OP) {
+  if (opTy == OR_OP) {
     return builder->CreateOr(l, r);
   }
 
   if (expr.type == "i64") {
-    switch (expr.op.type) {
+    switch (opTy) {
     case ADD:
       return builder->CreateAdd(l, r);
     case SUB:
@@ -204,11 +205,23 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
       return builder->CreateSDiv(l, r);
     case MOD:
       return builder->CreateSRem(l, r);
+    case EQ_OP:
+      return builder->CreateICmpEQ(l, r);
+    case NE_OP:
+      return builder->CreateICmpNE(l, r);
+    case LE_OP:
+      return builder->CreateICmpSLE(l, r);
+    case GE_OP:
+      return builder->CreateICmpSGE(l, r);
+    case LA:
+      return builder->CreateICmpSLT(l, r);
+    case RA:
+      return builder->CreateICmpSGT(l, r);
     default:
       break;
     }
   } else if (expr.type == "f64") {
-    switch (expr.op.type) {
+    switch (opTy) {
     case ADD:
       return builder->CreateFAdd(l, r);
     case SUB:
@@ -219,6 +232,18 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
       return builder->CreateFDiv(l, r);
     case MOD:
       return builder->CreateFRem(l, r);
+    case EQ_OP:
+      return builder->CreateFCmpOEQ(l, r);
+    case NE_OP:
+      return builder->CreateFCmpONE(l, r);
+    case LE_OP:
+      return builder->CreateFCmpOLE(l, r);
+    case GE_OP:
+      return builder->CreateFCmpOGE(l, r);
+    case LA:
+      return builder->CreateFCmpOLT(l, r);
+    case RA:
+      return builder->CreateFCmpOGT(l, r);
     default:
       break;
     }
@@ -246,17 +271,64 @@ llvm::Value *IRCodegenVisitor::codegen(const DeclStmt &stmt) {
   if (auto var = dynamic_cast<VarDecl *>(stmt.decl.get())) {
     return var->accept(*this);
   }
-  return nullptr;
+  throw CodeGenException("invalid declaration statement");
+}
+
+llvm::Value *IRCodegenVisitor::codegen(const IfStmt &stmt) {
+  llvm::Value *condVal = stmt.cond->accept(*this);
+  if (condVal->getType() == llvm::Type::getInt64Ty(*context)) {
+    condVal = builder->CreateICmpNE(
+        condVal, llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0));
+  } else {
+    condVal = builder->CreateFCmpONE(
+        condVal, llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0.0));
+  }
+  if (condVal == nullptr) {
+    throw CodeGenException("null condition expr for if-else statement");
+  }
+  llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
+
+  /// create basic blocks
+  llvm::BasicBlock *thenB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  llvm::BasicBlock *elseB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  llvm::BasicBlock *mergeB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  builder->CreateCondBr(condVal, thenB, elseB);
+
+  /// then block
+  builder->SetInsertPoint(thenB);
+  llvm::Value *thenVal = stmt.thenStmt->accept(*this);
+  if (thenVal == nullptr) {
+    throw CodeGenException("thenVal is null");
+  }
+  builder->CreateBr(mergeB);
+  thenB = builder->GetInsertBlock();
+
+  /// else block
+  llvm::Value *elseVal;
+  parentFunc->insert(parentFunc->end(), elseB);
+  builder->SetInsertPoint(elseB);
+  if (stmt.elseStmt != nullptr) {
+    elseVal = stmt.elseStmt->accept(*this);
+  }
+  builder->CreateBr(mergeB);
+  elseB = builder->GetInsertBlock();
+
+  /// merge block
+  parentFunc->insert(parentFunc->end(), mergeB);
+  builder->SetInsertPoint(mergeB);
+  llvm::PHINode *pn = builder->CreatePHI(llvm::Type::getInt64Ty(*context), 2);
+  pn->addIncoming(builder->getInt64(1), thenB);
+  pn->addIncoming(builder->getInt64(0), elseB);
+  return pn;
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const ReturnStmt &stmt) {
   if (stmt.expr != nullptr) {
     auto retVal = stmt.expr->accept(*this);
-    builder->CreateRet(retVal);
+    return builder->CreateRet(retVal);
   } else {
-    builder->CreateRetVoid();
+    return builder->CreateRetVoid();
   }
-  return nullptr;
 }
 
 /**
@@ -298,7 +370,6 @@ llvm::Type *IRCodegenVisitor::codegen(const ParmVarDecl &decl) {
 
 llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
   llvm::Function *func = codegenFuncTy(decl);
-
   if (decl.kind == EXTERN_FUNC) {
     return func;
   }
@@ -316,7 +387,6 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
     varEnv[paramName] = builder->CreateAlloca(type, nullptr);
     builder->CreateStore(&param, varEnv[paramName]);
   }
-
   llvm::Value *retVal;
   if (decl.body != nullptr) {
     retVal = decl.body->accept(*this);
@@ -326,8 +396,9 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
   if (func->getReturnType()->isVoidTy()) {
     builder->CreateRetVoid();
   } else {
-    /// support non-void function does not return a value
-    if (retVal != nullptr) {
+    /// if basic block does not have a terminator, create a return instruction
+    auto inst = bb->getTerminator();
+    if (!(inst && llvm::isa<llvm::ReturnInst>(inst))) {
       if (func->getReturnType() == llvm::Type::getInt64Ty(*context)) {
         retVal = llvm::ConstantInt::get(func->getReturnType(), 0);
       } else {
@@ -336,7 +407,6 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
       builder->CreateRet(retVal);
     }
   }
-
   return func;
 }
 
