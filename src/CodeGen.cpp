@@ -22,6 +22,7 @@
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
 
+#include <cstddef>
 #include <exception>
 #include <memory>
 #include <tuple>
@@ -31,25 +32,48 @@
 namespace toyc {
 
 IRCodegenVisitor::IRCodegenVisitor() {
-  /// Open a new context and module.
   context = std::make_unique<llvm::LLVMContext>();
-  /// Create a new builder for the module.
   builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*context));
   module = std::make_unique<llvm::Module>("toyc jit", *context);
-
   module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
-void IRCodegenVisitor::dumpIR(llvm::raw_ostream &os) {
+void IRCodegenVisitor::dump(llvm::raw_ostream &os) {
   module->print(os, nullptr, false, false);
 }
 
-void IRCodegenVisitor::verifyModule(llvm::raw_ostream &os) {
+bool IRCodegenVisitor::verifyModule(llvm::raw_ostream &os) {
   std::string info;
   llvm::raw_string_ostream ros(info);
   llvm::verifyModule(*module, &ros, nullptr);
-  os << "\033[1;31mverify:\n"
-     << (info.size() == 0 ? "(null)" : info) << "\033[0m\n";
+  if (info.size() == 0) {
+    return true;
+  } else {
+    os << "\033[1;31mverify:\n" << info << "\033[0m\n";
+    return false;
+  }
+}
+
+llvm::Function *IRCodegenVisitor::codegenFuncTy(const FunctionDecl &decl) {
+  llvm::Type *resultTy;
+  if (decl.type.starts_with("void")) {
+    resultTy = llvm::Type::getVoidTy(*context);
+  } else if (decl.type.starts_with("i64")) {
+    resultTy = llvm::Type::getInt64Ty(*context);
+  } else if (decl.type.starts_with("f64")) {
+    resultTy = llvm::Type::getDoubleTy(*context);
+  }
+
+  std::vector<llvm::Type *> params;
+  for (auto &param : decl.params) {
+    params.push_back(param->accept(*this));
+  }
+
+  llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
+  llvm::Function *func = llvm::Function::Create(
+      funcTy, llvm::Function::ExternalLinkage, decl.name, *module);
+
+  return func;
 }
 
 /**
@@ -61,31 +85,66 @@ llvm::Value *IRCodegenVisitor::codegen(const IntegerLiteral &expr) {
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const FloatingLiteral &expr) {
-  return llvm::ConstantFP::get((llvm::Type::getFloatTy(*context)), expr.value);
+  return llvm::ConstantFP::get((llvm::Type::getDoubleTy(*context)), expr.value);
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const DeclRefExpr &expr) {
-  auto *id = varEnv[expr.decl->name];
+  auto *id = varEnv[expr.decl->getName()];
   if (id != nullptr) {
     auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("identifier '{}' not load", expr.decl->name));
+      throw CodeGenException(
+          fstr("identifier '{}' not load", expr.decl->getName()));
     }
     return idVal;
   }
-  auto *gid = globalVarEnv[expr.decl->name];
+  auto *gid = globalVarEnv[expr.decl->getName()];
   if (gid != nullptr) {
     auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("identifier '{}' not load", expr.decl->name));
+      throw CodeGenException(
+          fstr("identifier '{}' not load", expr.decl->getName()));
     }
     return idVal;
   }
-  throw CodeGenException(fstr("identifier '{}' not found", expr.decl->name));
+  throw CodeGenException(
+      fstr("identifier '{}' not found", expr.decl->getName()));
+}
+
+llvm::Value *IRCodegenVisitor::codegen(const ImplicitCastExpr &expr) {
+  if (expr.type == expr.expr->getType()) {
+    return expr.expr->accept(*this);
+  } else {
+    auto *value = expr.expr->accept(*this);
+    if (expr.type == "f64" && expr.expr->getType() == "i64") {
+      return builder->CreateSIToFP(value, llvm::Type::getDoubleTy(*context));
+    } else if (expr.type == "i64" && expr.expr->getType() == "f64") {
+      return builder->CreateFPToSI(value, llvm::Type::getInt64Ty(*context));
+    } else {
+      throw CodeGenException("not implemented!");
+    }
+  }
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const ParenExpr &expr) {
   return expr.expr->accept(*this);
+}
+
+llvm::Value *IRCodegenVisitor::codegen(const CallExpr &expr) {
+  llvm::Function *callee = module->getFunction(expr.callee->decl->getName());
+  if (callee == nullptr) {
+    throw CodeGenException(
+        fstr("function '{}' not declared", expr.callee->decl->getName()));
+  }
+  std::vector<llvm::Value *> argVals;
+  for (auto &arg : expr.args) {
+    llvm ::Value *argVal = arg->accept(*this);
+    if (argVal == nullptr) {
+      throw CodeGenException("params not exists");
+    }
+    argVals.push_back(argVal);
+  }
+  return builder->CreateCall(callee, argVals);
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const UnaryOperator &expr) {
@@ -113,7 +172,7 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
 
   if (expr.op.type == EQUAL) {
     if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.left.get())) {
-      l = varEnv[_left->decl->name];
+      l = varEnv[_left->decl->getName()];
     }
     r = expr.right->accept(*this);
     return builder->CreateStore(r, l);
@@ -172,15 +231,14 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
  */
 
 llvm::Value *IRCodegenVisitor::codegen(const CompoundStmt &stmt) {
-  /// TODO:
+  llvm::Value *retVal;
   for (auto &stmt : stmt.stmts) {
-    stmt->accept(*this);
+    retVal = stmt->accept(*this);
   }
-  return nullptr;
+  return retVal;
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const ExprStmt &stmt) {
-  /// TODO:
   return stmt.expr->accept(*this);
 }
 
@@ -192,12 +250,11 @@ llvm::Value *IRCodegenVisitor::codegen(const DeclStmt &stmt) {
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const ReturnStmt &stmt) {
-  /// TODO:
   if (stmt.expr != nullptr) {
     auto retVal = stmt.expr->accept(*this);
-    return builder->CreateRet(retVal);
+    builder->CreateRet(retVal);
   } else {
-    return builder->CreateRetVoid();
+    builder->CreateRetVoid();
   }
   return nullptr;
 }
@@ -218,7 +275,6 @@ llvm::Value *IRCodegenVisitor::codegen(const VarDecl &decl) {
         *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
         initializer, decl.name);
     globalVarEnv[decl.name] = var;
-    printGlobalVarEnv();
     return var;
   } else {
     llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
@@ -230,39 +286,57 @@ llvm::Value *IRCodegenVisitor::codegen(const VarDecl &decl) {
   }
 }
 
-llvm::Value *IRCodegenVisitor::codegen(const ParamVarDecl &decl) {
-  /// TODO:
-  return nullptr;
+llvm::Type *IRCodegenVisitor::codegen(const ParmVarDecl &decl) {
+  llvm::Type *paramTy;
+  if (decl.type.starts_with("i64")) {
+    paramTy = llvm::Type::getInt64Ty(*context);
+  } else if (decl.type.starts_with("f64")) {
+    paramTy = llvm::Type::getDoubleTy(*context);
+  }
+  return paramTy;
 }
 
 llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
-  clearVarEnv(); /// clear local variable table
+  llvm::Function *func = codegenFuncTy(decl);
 
-  llvm::Type *resultTy;
-  if (decl.type.starts_with("void")) {
-    resultTy = llvm::Type::getVoidTy(*context);
-  } else if (decl.type.starts_with("i64")) {
-    resultTy = llvm::Type::getInt64Ty(*context);
-  } else if (decl.type.starts_with("f64")) {
-    resultTy = llvm::Type::getDoubleTy(*context);
+  if (decl.kind == EXTERN_FUNC) {
+    return func;
   }
 
-  std::vector<llvm::Type *> params;
-
-  llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
-  llvm::Function *func = llvm::Function::Create(
-      funcTy, llvm::Function::ExternalLinkage, decl.name, *module);
-
+  /// function entry point
   llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context, "", func);
   builder->SetInsertPoint(bb);
 
+  /// clear local variable table
+  clearVarEnv();
+  for (auto &param : func->args()) {
+    size_t idx = param.getArgNo();
+    std::string paramName = decl.params[idx]->name;
+    llvm::Type *type = func->getFunctionType()->getParamType(idx);
+    varEnv[paramName] = builder->CreateAlloca(type, nullptr);
+    builder->CreateStore(&param, varEnv[paramName]);
+  }
+
+  llvm::Value *retVal;
   if (decl.body != nullptr) {
-    decl.body->accept(*this);
-    if (resultTy == llvm::Type::getVoidTy(*context)) {
-      builder->CreateRetVoid();
+    retVal = decl.body->accept(*this);
+  }
+
+  /// create void return if function type is void
+  if (func->getReturnType()->isVoidTy()) {
+    builder->CreateRetVoid();
+  } else {
+    /// support non-void function does not return a value
+    if (retVal != nullptr) {
+      if (func->getReturnType() == llvm::Type::getInt64Ty(*context)) {
+        retVal = llvm::ConstantInt::get(func->getReturnType(), 0);
+      } else {
+        retVal = llvm::ConstantFP::get(func->getReturnType(), 0);
+      }
+      builder->CreateRet(retVal);
     }
   }
-  printVarEnv();
+
   return func;
 }
 
@@ -272,12 +346,12 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
 
 void IRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
   for (auto &d : decl.decls) {
-    if (dynamic_cast<VarDecl *>(d.get())) {
-      dynamic_cast<VarDecl *>(d.get())->accept(*this);
-    } else if (dynamic_cast<FunctionDecl *>(d.get())) {
-      /// TODO: change to read from FunctionTable
-      /// (avoid seperating function declaration and definition)
-      dynamic_cast<FunctionDecl *>(d.get())->accept(*this);
+    if (auto varDecl = dynamic_cast<VarDecl *>(d.get())) {
+      varDecl->accept(*this);
+    } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(d.get())) {
+      if (funcDecl->getKind() != DECLARATION) {
+        funcDecl->accept(*this);
+      }
     } else {
       throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
     }

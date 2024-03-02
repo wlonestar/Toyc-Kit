@@ -1,17 +1,18 @@
-i64 a = 1;
-i64 b = 2;
+extern void printI64(i64 val);
+extern void printF64(f64 val);
 
-void foo() {}
-
-i64 foo1() {
-  i64 c = a + b;
-  return c;
+i64 add(i64 x, i64 y) {
+  return x + y;  
 }
 
-i64 foo2() {
-  i64 a = 1;
-  i64 b = 2;
-  i64 c;
-  c = a + b;
-  return c;
+f64 mul(f64 x, f64 y) {
+  return x * y;
+}
+
+i64 main() {
+  printI64(1);
+  printI64(add(3, 4));
+  printF64(1.1);
+  printF64(mul(5, 3));
+  printF64(add(12, 13) + mul(5, 3));
 }

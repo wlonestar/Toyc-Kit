@@ -29,7 +29,9 @@ public:
   virtual llvm::Value *codegen(const IntegerLiteral &expr) = 0;
   virtual llvm::Value *codegen(const FloatingLiteral &expr) = 0;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) = 0;
+  virtual llvm::Value *codegen(const ImplicitCastExpr &expr) = 0;
   virtual llvm::Value *codegen(const ParenExpr &expr) = 0;
+  virtual llvm::Value *codegen(const CallExpr &expr) = 0;
   virtual llvm::Value *codegen(const UnaryOperator &expr) = 0;
   virtual llvm::Value *codegen(const BinaryOperator &expr) = 0;
 
@@ -47,7 +49,7 @@ public:
    */
 
   virtual llvm::Value *codegen(const VarDecl &decl) = 0;
-  virtual llvm::Value *codegen(const ParamVarDecl &decl) = 0;
+  virtual llvm::Type *codegen(const ParmVarDecl &decl) = 0;
   virtual llvm::Function *codegen(const FunctionDecl &decl) = 0;
 
   /**

@@ -83,8 +83,11 @@ private:
 public:
   IRCodegenVisitor();
 
-  void dumpIR(llvm::raw_ostream &os = llvm::errs());
-  void verifyModule(llvm::raw_ostream &os = llvm::errs());
+  void dump(llvm::raw_ostream &os = llvm::errs());
+  bool verifyModule(llvm::raw_ostream &os = llvm::errs());
+
+public:
+  llvm::Function *codegenFuncTy(const FunctionDecl &decl);
 
 public:
   /**
@@ -94,7 +97,9 @@ public:
   virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
   virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
+  virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
   virtual llvm::Value *codegen(const ParenExpr &expr) override;
+  virtual llvm::Value *codegen(const CallExpr &expr) override;
   virtual llvm::Value *codegen(const UnaryOperator &expr) override;
   virtual llvm::Value *codegen(const BinaryOperator &expr) override;
 
@@ -112,7 +117,7 @@ public:
    */
 
   virtual llvm::Value *codegen(const VarDecl &decl) override;
-  virtual llvm::Value *codegen(const ParamVarDecl &decl) override;
+  virtual llvm::Type *codegen(const ParmVarDecl &decl) override;
   virtual llvm::Function *codegen(const FunctionDecl &decl) override;
 
   /**

@@ -19,9 +19,19 @@ build: config
 run:
 	@./build/bin/$(EXEC)
 
+LIB_DIR = lib
+LIB_NAME = libtoyc
+
+# compile toyc runtime (shared object)
+runtime:
+	@$(CLANG++) -fPIC -shared -o $(LIB_DIR)/$(LIB_NAME).so $(LIB_DIR)/$(LIB_NAME).cpp
+	@sudo cp $(LIB_DIR)/$(LIB_NAME).so /usr/local/lib
+	@sudo ldconfig
+
 test:
 	@./build/bin/$(EXEC) example/a.toyc
-	@clang -mllvm -opaque-pointers a.ll -o a.exe
+	@clang -mllvm -opaque-pointers -o a.exe a.ll -ltoyc
+	@./a.exe
 
 .PHONY: clean test
 

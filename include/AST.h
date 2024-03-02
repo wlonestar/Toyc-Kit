@@ -7,6 +7,7 @@
 
 #include <Token.h>
 
+#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 
 #include <cstddef>
@@ -94,13 +95,26 @@ struct StringLiteral : public Literal {
 };
 
 struct DeclRefExpr : public Expr {
-  // std::string name;
-  // std::string type;
-  std::unique_ptr<VarDecl> decl;
+  std::unique_ptr<Decl> decl;
 
-  // DeclRefExpr(std::string &_type, std::string &_name)
-  //     : type(_type), name(_name) {}
-  DeclRefExpr(std::unique_ptr<VarDecl> _decl) : decl(std::move(_decl)) {}
+  DeclRefExpr(std::unique_ptr<Decl> _decl) : decl(std::move(_decl)) {}
+  DeclRefExpr(DeclRefExpr *expr) : decl(std::move(expr->decl)) {}
+
+  std::string getType() const override;
+  llvm::Value *accept(ASTVisitor &visitor) override;
+  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+            std::string _p = "") override;
+};
+
+struct ImplicitCastExpr : public Expr {
+  std::string type;
+  std::unique_ptr<Expr> expr;
+
+  ImplicitCastExpr(std::string &_type, std::unique_ptr<Expr> _expr)
+      : type(_type), expr(std::move(_expr)) {}
+
+  ImplicitCastExpr(std::string &&_type, std::unique_ptr<Expr> _expr)
+      : type(std::move(_type)), expr(std::move(_expr)) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -112,6 +126,20 @@ struct ParenExpr : public Expr {
   std::unique_ptr<Expr> expr;
 
   ParenExpr(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
+
+  std::string getType() const override;
+  llvm::Value *accept(ASTVisitor &visitor) override;
+  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+            std::string _p = "") override;
+};
+
+struct CallExpr : public Expr {
+  std::unique_ptr<DeclRefExpr> callee;
+  std::vector<std::unique_ptr<Expr>> args;
+
+  CallExpr(std::unique_ptr<DeclRefExpr> _callee,
+           std::vector<std::unique_ptr<Expr>> _args)
+      : callee(std::move(_callee)), args(std::move(_args)) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -205,6 +233,7 @@ struct ReturnStmt : public Stmt {
 
 struct Decl {
   virtual ~Decl() = default;
+  virtual std::string getName() const = 0;
   virtual std::string getType() const = 0;
   virtual void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
                     std::string _p = "") = 0;
@@ -216,44 +245,71 @@ enum VarScope {
 };
 
 struct VarDecl : public Decl {
-  std::string type;
   std::string name;
+  std::string type;
   std::unique_ptr<Expr> init;
   VarScope scope;
 
-  VarDecl(std::string &&_type, std::string &&_name,
+  VarDecl(std::string &_name, std::string &_type,
           std::unique_ptr<Expr> _init = nullptr, VarScope _scope = LOCAL)
-      : type(std::move(_type)), name(std::move(_name)), init(std::move(_init)),
+      : name(_name), type(_type), init(std::move(_init)), scope(_scope) {}
+
+  VarDecl(std::string &&_name, std::string &&_type,
+          std::unique_ptr<Expr> _init = nullptr, VarScope _scope = LOCAL)
+      : name(std::move(_name)), type(std::move(_type)), init(std::move(_init)),
         scope(_scope) {}
 
+  std::string getName() const override;
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor);
   void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
-struct ParamVarDecl : public VarDecl {
-  ParamVarDecl(std::string &&_type, std::string &&_name)
-      : VarDecl(std::move(_type), std::move(_name), nullptr, LOCAL) {}
+struct ParmVarDecl : public VarDecl {
+  ParmVarDecl(std::string &_name, std::string &_type)
+      : VarDecl(_name, _type, nullptr, LOCAL) {}
 
+  ParmVarDecl(std::string &&_name, std::string &&_type)
+      : VarDecl(std::move(_name), std::move(_type), nullptr, LOCAL) {}
+
+  std::string getName() const override;
   std::string getType() const override;
-  llvm::Value *accept(ASTVisitor &visitor);
+  llvm::Type *accept(ASTVisitor &visitor);
   void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
+};
+
+enum FuncKind {
+  DECLARATION, // body is null
+  DEFINITION,
+  EXTERN_FUNC, // extern function
 };
 
 struct FunctionDecl : public Decl {
   std::string name;
   std::string type;
-  std::vector<std::unique_ptr<Decl>> params;
+  std::vector<std::unique_ptr<ParmVarDecl>> params;
   std::unique_ptr<Stmt> body;
+  FuncKind kind;
+
+  FunctionDecl(std::string &_name, std::string &_type,
+               std::vector<std::unique_ptr<ParmVarDecl>> &_params,
+               std::unique_ptr<Stmt> _body = nullptr,
+               FuncKind _kind = DEFINITION)
+      : name(_name), type(_type), params(std::move(_params)),
+        body(std::move(_body)), kind(_kind) {}
 
   FunctionDecl(std::string &&_name, std::string &&_type,
-               std::vector<std::unique_ptr<Decl>> &&_params,
-               std::unique_ptr<Stmt> _body = nullptr)
+               std::vector<std::unique_ptr<ParmVarDecl>> &&_params,
+               std::unique_ptr<Stmt> _body = nullptr,
+               FuncKind _kind = DEFINITION)
       : name(std::move(_name)), type(std::move(_type)),
-        params(std::move(_params)), body(std::move(_body)) {}
+        params(std::move(_params)), body(std::move(_body)), kind(_kind) {}
 
+  FuncKind getKind() { return kind; }
+
+  std::string getName() const override;
   std::string getType() const override;
   llvm::Function *accept(ASTVisitor &visitor);
   void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,

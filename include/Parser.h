@@ -51,10 +51,13 @@ private:
   Token current;
   Token prev;
   Lexer lexer;
-  /// <name, type>
+  /// global variable: <name, type>
   std::map<std::string, std::string> globalVarTable;
-  /// <name, type>
+  /// local variable: <name, type>
   std::map<std::string, std::string> varTable;
+  /// function declaration: <name, pair<retType, [type]...>>
+  std::map<std::string, std::pair<std::string, std::vector<std::string>>>
+      funcTable;
 
 private:
   void throwParserException(std::string &&message) {
@@ -148,14 +151,22 @@ private:
     return right->getType();
   }
 
-  std::string checkBinaryOperatorType(TokenType type, Expr *left, Expr *right) {
+  std::string checkBinaryOperatorType(TokenType type,
+                                      std::unique_ptr<Expr> &left,
+                                      std::unique_ptr<Expr> &right) {
     if (type == AND_OP || type == OR_OP) {
       return "i64";
     }
     if (left->getType() == right->getType()) {
+      left =
+          std::make_unique<ImplicitCastExpr>(left->getType(), std::move(left));
+      right = std::make_unique<ImplicitCastExpr>(right->getType(),
+                                                 std::move(right));
       return left->getType();
     }
     if (left->getType() == "f64" || right->getType() == "f64") {
+      left = std::make_unique<ImplicitCastExpr>("f64", std::move(left));
+      right = std::make_unique<ImplicitCastExpr>("f64", std::move(right));
       return "f64";
     }
     return "i64";
@@ -167,6 +178,7 @@ private:
 
 private:
   std::unique_ptr<Expr> parsePrimaryExpression();
+  std::unique_ptr<Expr> parsePostfixExpression();
   std::unique_ptr<Expr> parseUnaryExpression();
   std::unique_ptr<Expr> parseMultiplicativeExpression();
   std::unique_ptr<Expr> parseAdditiveExpression();
@@ -185,15 +197,20 @@ private:
   std::unique_ptr<Stmt> parseStatement();
 
 private:
-  std::string parseDeclarationSpecifiers();
+  std::pair<std::string, bool> parseDeclarationSpecifiers();
   std::string parseDeclarator();
+  std::vector<std::unique_ptr<ParmVarDecl>> parseFunctionParameters();
+  std::string
+  generateFunctionType(std::string &&retType,
+                       std::vector<std::unique_ptr<ParmVarDecl>> &params);
 
 private:
   std::unique_ptr<Decl> parseVariableDeclaration(std::string &&type,
                                                  std::string &&name,
                                                  VarScope scope);
   std::unique_ptr<Decl> parseFunctionDeclaration(std::string &&type,
-                                                 std::string &&name);
+                                                 std::string &&name,
+                                                 bool isExtern);
   std::unique_ptr<Decl> parseExternalDeclaration();
 
 public:
