@@ -15,7 +15,7 @@
 namespace toyc {
 
 /// Open the file for writing
-void Interpreter::writeByteCode(std::string &filename) {
+void Interpreter::writeByteCode(std::string filename) {
   int fd;
   std::error_code ec = llvm::sys::fs::openFileForWrite(
       filename, fd, llvm::sys::fs::CD_CreateAlways, llvm::sys::fs::OF_None);
@@ -29,7 +29,7 @@ void Interpreter::writeByteCode(std::string &filename) {
   visitor.dump(file);
 }
 
-void Interpreter::compile(std::string &input) {
+void Interpreter::compile(std::string &input, const char *dest) {
   /// support incremental parser
   parser.addInput(input);
   try {
@@ -38,10 +38,14 @@ void Interpreter::compile(std::string &input) {
     /// if the result is not null, print the generated AST
     /// and generate IR code to global Context
     if (decl != nullptr) {
-      /// set AST to std::stringstream and print out
+
+/// set AST to std::stringstream and print out
+#ifdef DEBUG
       std::stringstream ss;
       decl->dump(ss);
       std::cout << ss.str();
+#endif
+
       /// generate IR code
       visitor.codegen(*decl);
     }
@@ -62,13 +66,15 @@ void Interpreter::compile(std::string &input) {
 #endif
   }
 
+#ifdef DEBUG
   visitor.dump();
+#endif
+
   bool flag = visitor.verifyModule();
 
   /// Specify the filename
   if (flag) {
-    std::string filename = "a.ll";
-    writeByteCode(filename);
+    writeByteCode(std::string(dest));
   }
 }
 

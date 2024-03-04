@@ -14,17 +14,17 @@
 using namespace toyc;
 using namespace std;
 
-void run_file(const char *filename) {
-  ifstream file(filename);
+void run_file(const char *src, const char *dest) {
+  ifstream file(src);
   if (!file.is_open()) {
-    cerr << "Failed to open file '" << filename << "'\n";
+    cerr << "Failed to open file '" << src << "'\n";
     exit(-1);
   }
   string input((std::istreambuf_iterator<char>(file)),
                std::istreambuf_iterator<char>());
   file.close();
   Interpreter interpreter;
-  interpreter.compile(input);
+  interpreter.compile(input, dest);
 }
 
 void run_prompt() {
@@ -57,7 +57,7 @@ void run_prompt() {
         editor.setPrompt(PROMPT);
         input += line;
 
-        interpreter.compile(input);
+        interpreter.compile(input, "a.ll");
 
         /// clear buffer
         input = "";
@@ -67,11 +67,13 @@ void run_prompt() {
 }
 
 int main(int argc, const char **argv) {
-  if (argc > 2) {
-    cerr << "Usage: toyc <script>\n";
+  if (argc > 3) {
+    cerr << "Usage: toyc <src> <bytcode>\n";
     exit(-1);
+  } else if (argc == 3) {
+    run_file(argv[1], argv[2]);
   } else if (argc == 2) {
-    run_file(argv[1]);
+    run_file(argv[1], "a.ll");
   } else {
     run_prompt();
   }

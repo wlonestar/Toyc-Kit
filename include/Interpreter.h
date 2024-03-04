@@ -18,12 +18,12 @@ private:
   IRCodegenVisitor visitor;
 
 private:
-  void writeByteCode(std::string &filename);
+  void writeByteCode(std::string filename);
 
 public:
   Interpreter() : parser(), visitor() {}
 
-  void compile(std::string &input);
+  void compile(std::string &input, const char *dst);
 };
 
 } // namespace toyc

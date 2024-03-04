@@ -1,0 +1,34 @@
+extern void printI64(i64 val);
+
+i64 factorial(i64 val) {
+  if (val == 1 || val == 0) {
+    return 1;
+  } else {
+    return factorial(val - 1) * val;
+  }
+}
+
+i64 main() {
+  printI64(factorial(0));
+  printI64(factorial(1));
+  printI64(factorial(2));
+  printI64(factorial(3));
+  printI64(factorial(4));
+  printI64(factorial(5));
+  printI64(factorial(6));
+  printI64(factorial(7));
+  printI64(factorial(8));
+  printI64(factorial(9));
+  printI64(factorial(10));
+  printI64(factorial(11));
+  printI64(factorial(12));
+  printI64(factorial(13));
+  printI64(factorial(14));
+  printI64(factorial(15));
+  printI64(factorial(16));
+  printI64(factorial(17));
+  printI64(factorial(18));
+  printI64(factorial(19));
+  printI64(factorial(20));
+  return 0;
+}

@@ -10,7 +10,7 @@ set(CMAKE_CXX_COMPILER "/usr/bin/clang++-16")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-set(CMAKE_BUILD_TYPE Debug) # for debugging
+# set(CMAKE_BUILD_TYPE Debug) # for debugging
 
 # Detects memory errors 
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -33,8 +33,8 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 
 llvm_map_components_to_libnames(LLVM_LIBS
   support
-  # irreader
   core
+  # irreader
   # option
   # all
 )
