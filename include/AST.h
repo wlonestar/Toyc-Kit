@@ -31,7 +31,7 @@ struct VarDecl;
 struct Stmt;
 struct Expr;
 
-/* =============================== Expr ==================================== */
+/* ================================== Expr ================================== */
 
 struct Expr {
   virtual ~Expr() = default;
@@ -98,6 +98,7 @@ struct DeclRefExpr : public Expr {
   std::unique_ptr<Decl> decl;
 
   DeclRefExpr(std::unique_ptr<Decl> _decl) : decl(std::move(_decl)) {}
+
   DeclRefExpr(DeclRefExpr *expr) : decl(std::move(expr->decl)) {}
 
   std::string getType() const override;
@@ -178,7 +179,7 @@ struct BinaryOperator : public Expr {
             std::string _p = "") override;
 };
 
-/* =============================== Stmt ==================================== */
+/* ================================== Stmt ================================== */
 
 struct Stmt {
   virtual ~Stmt() = default;
@@ -214,6 +215,8 @@ struct DeclStmt : public Stmt {
 
   DeclStmt(std::unique_ptr<Decl> _decl) : decl(std::move(_decl)) {}
 
+  DeclStmt(DeclStmt *stmt) : decl(std::move(stmt->decl)) {}
+
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -234,6 +237,34 @@ struct IfStmt : public Stmt {
             std::string _p = "") override;
 };
 
+struct WhileStmt : public Stmt {
+  std::unique_ptr<Expr> cond;
+  std::unique_ptr<Stmt> stmt;
+
+  WhileStmt(std::unique_ptr<Expr> _cond, std::unique_ptr<Stmt> _stmt)
+      : cond(std::move(_cond)), stmt(std::move(_stmt)) {}
+
+  llvm::Value *accept(ASTVisitor &visitor) override;
+  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+            std::string _p = "") override;
+};
+
+struct ForStmt : public Stmt {
+  std::unique_ptr<DeclStmt> init;
+  std::unique_ptr<Expr> cond;
+  std::unique_ptr<Expr> update;
+  std::unique_ptr<Stmt> body;
+
+  ForStmt(std::unique_ptr<DeclStmt> _init, std::unique_ptr<Expr> _cond,
+          std::unique_ptr<Expr> _update, std::unique_ptr<Stmt> _body)
+      : init(std::move(_init)), cond(std::move(_cond)),
+        update(std::move(_update)), body(std::move(_body)) {}
+
+  llvm::Value *accept(ASTVisitor &visitor) override;
+  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+            std::string _p = "") override;
+};
+
 struct ReturnStmt : public Stmt {
   std::unique_ptr<Expr> expr;
 
@@ -244,7 +275,7 @@ struct ReturnStmt : public Stmt {
             std::string _p = "") override;
 };
 
-/* =============================== Decl ==================================== */
+/* ================================== Decl ================================== */
 
 struct Decl {
   virtual ~Decl() = default;
@@ -331,7 +362,7 @@ struct FunctionDecl : public Decl {
             std::string _p = "") override;
 };
 
-/* ========================================================================= */
+/* ========================== TranslationUnitDecl =========================== */
 
 struct TranslationUnitDecl {
   std::vector<std::unique_ptr<Decl>> decls;

@@ -1,0 +1,20 @@
+extern void printI64(i64 val);
+extern void printF64(f64 val);
+
+void test(i64 a, i64 b) {
+  printI64(a + b);
+}
+
+i64 main() {
+  i64 a = 0;
+  while (a < 5) {
+    i64 b = 0;
+    while (b < 5) {
+      test(a, b);
+      b = b + 1;
+    }
+    a = a + 1;
+  }
+  printI64(a);
+  return 0;
+}

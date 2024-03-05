@@ -43,6 +43,8 @@ public:
   virtual llvm::Value *codegen(const ExprStmt &stmt) = 0;
   virtual llvm::Value *codegen(const DeclStmt &stmt) = 0;
   virtual llvm::Value *codegen(const IfStmt &stmt) = 0;
+  virtual llvm::Value *codegen(const WhileStmt &stmt) = 0;
+  virtual llvm::Value *codegen(const ForStmt &stmt) = 0;
   virtual llvm::Value *codegen(const ReturnStmt &stmt) = 0;
 
   /**

@@ -51,18 +51,18 @@ void Interpreter::compile(std::string &input, const char *dest) {
     }
   } catch (LexerException e1) {
     std::cerr << e1.what() << "\n";
-    return;
+    exit(EXIT_FAILURE);
   } catch (ParserException e2) {
     std::cerr << e2.what() << "\n";
-    return;
+    exit(EXIT_FAILURE);
   } catch (CodeGenException e3) {
     std::cerr << e3.what() << "\n";
-    return;
+    exit(EXIT_FAILURE);
 #ifndef DEBUG
   } catch (...) {
     /// catch error for release version
     std::cerr << "there is something wrong in compiler inner\n";
-    return;
+    exit(EXIT_FAILURE);
 #endif
   }
 

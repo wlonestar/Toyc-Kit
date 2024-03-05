@@ -172,6 +172,26 @@ void IfStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   }
 }
 
+void WhileStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
+  printASTLeader(os, _d, _s, _p);
+  os << fstr("{}\n", AST_STMT("WhileStmt"));
+  std::string leader = attachLeafLeader(_s, _p);
+  cond->dump(os, _d + 1, INTERNAL, leader + "|");
+  if (stmt != nullptr) {
+    stmt->dump(os, _d + 1, LEAF, leader);
+  }
+}
+
+void ForStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
+  printASTLeader(os, _d, _s, _p);
+  os << fstr("{}\n", AST_STMT("ForStmt"));
+  std::string leader = attachLeafLeader(_s, _p);
+  init->dump(os, _d + 1, INTERNAL, leader + "|");
+  cond->dump(os, _d + 1, INTERNAL, leader + "|");
+  update->dump(os, _d + 1, INTERNAL, leader + "|");
+  body->dump(os, _d + 1, LEAF, leader);
+}
+
 void ReturnStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   printASTLeader(os, _d, _s, _p);
   os << fstr("{}\n", AST_STMT("ReturnStmt"));

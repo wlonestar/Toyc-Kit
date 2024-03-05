@@ -94,6 +94,14 @@ llvm::Value *IfStmt::accept(ASTVisitor &visitor) {
   return visitor.codegen(*this);
 }
 
+llvm::Value *WhileStmt::accept(ASTVisitor &visitor) {
+  return visitor.codegen(*this);
+}
+
+llvm::Value *ForStmt::accept(ASTVisitor &visitor) {
+  return visitor.codegen(*this);
+}
+
 llvm::Value *ReturnStmt::accept(ASTVisitor &visitor) {
   return visitor.codegen(*this);
 }

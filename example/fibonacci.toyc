@@ -1,43 +1,27 @@
 extern void printI64(i64 val);
 
 i64 fibonacci(i64 val) {
-  if (val == 1 || val == 0) {
-    return 1;
-  } else {
-    return fibonacci(val - 1) + fibonacci(val - 2);
+  i64 pp;
+  i64 p = 0;
+  i64 c = 1;
+  i64 i = 0;
+  while (i < val) {
+    pp = p;
+    p = c;
+    c = pp + p;
+    i = i + 1;
   }
+  return c;
 }
 
 i64 main() {
-  printI64(fibonacci(0));
-  printI64(fibonacci(1));
-  printI64(fibonacci(2));
-  printI64(fibonacci(3));
-  printI64(fibonacci(4));
-  printI64(fibonacci(5));
-  printI64(fibonacci(6));
-  printI64(fibonacci(7));
-  printI64(fibonacci(8));
-  printI64(fibonacci(9));
-  printI64(fibonacci(10));
-  printI64(fibonacci(11));
-  printI64(fibonacci(12));
-  printI64(fibonacci(13));
-  printI64(fibonacci(14));
-  printI64(fibonacci(15));
-  printI64(fibonacci(16));
-  printI64(fibonacci(17));
-  printI64(fibonacci(18));
-  printI64(fibonacci(19));
-  printI64(fibonacci(20));
-  printI64(fibonacci(21));
-  printI64(fibonacci(22));
-  printI64(fibonacci(23));
-  printI64(fibonacci(24));
-  printI64(fibonacci(25));
-  printI64(fibonacci(26));
-  printI64(fibonacci(27));
-  printI64(fibonacci(28));
-  printI64(fibonacci(29));
+  i64 a = 0;
+  while (a <= 91) {
+    printI64(fibonacci(a));
+    a = a + 1;
+  }
+  for (i64 i = 0; i <= 91; i = i + 1) {
+    printI64(fibonacci(i));
+  }
   return 0;
 }

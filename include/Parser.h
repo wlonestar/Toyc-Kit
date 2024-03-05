@@ -102,6 +102,17 @@ public:
   }
 
 private:
+  bool check(std::initializer_list<TokenType> types) {
+    for (TokenType type : types) {
+      if (type == _EOF) {
+        return false;
+      }
+      if (peek().type == type) {
+        return true;
+      }
+    }
+    return false;
+  }
   bool check(TokenType type) {
     if (type == _EOF) {
       return false;
@@ -192,6 +203,7 @@ private:
 private:
   std::unique_ptr<Stmt> parseExpressionStatement();
   std::unique_ptr<Stmt> parseReturnStatement();
+  std::unique_ptr<Stmt> parseIterationStatement();
   std::unique_ptr<Stmt> parseSelectionStatement();
   std::unique_ptr<Stmt> parseDeclarationStatement();
   std::unique_ptr<Stmt> parseCompoundStatement();

@@ -294,34 +294,75 @@ std::unique_ptr<Expr> Parser::parseExpression() {
  */
 
 std::unique_ptr<Stmt> Parser::parseExpressionStatement() {
-  auto expr = parseExpression();
-  consume(SEMI, "expected ';' after expression");
+  std::unique_ptr<Expr> expr = nullptr;
+  if (!match(SEMI)) {
+    expr = parseExpression();
+    consume(SEMI, "expected ';' after expression");
+  }
   return std::make_unique<ExprStmt>(std::move(expr));
 }
 
 std::unique_ptr<Stmt> Parser::parseReturnStatement() {
-  if (match(SEMI)) {
-    return std::make_unique<ReturnStmt>(nullptr);
+  consume(RETURN, "expected 'return'");
+  std::unique_ptr<Expr> expr = nullptr;
+  if (!match(SEMI)) {
+    expr = parseExpression();
+    consume(SEMI, "expected ';' after expression");
   }
-  auto expr = parseExpression();
-  consume(SEMI, "expected ';' after expression");
   return std::make_unique<ReturnStmt>(std::move(expr));
 }
 
-std::unique_ptr<Stmt> Parser::parseSelectionStatement() {
-  consume(LP, "expect '(' after 'if'");
-  auto expr = parseExpression();
-  consume(RP, "expect ')'");
-  std::unique_ptr<Stmt> thenStmt, elseStmt;
-  thenStmt = parseStatement();
-  if (match(ELSE)) {
-    elseStmt = parseStatement();
+std::unique_ptr<Stmt> Parser::parseIterationStatement() {
+  if (match(WHILE)) {
+    consume(LP, "expect '(' after 'while'");
+    auto expr = parseExpression();
+    consume(RP, "expect ')'");
+    auto stmt = parseStatement();
+    return std::make_unique<WhileStmt>(std::move(expr), std::move(stmt));
+  } else if (match(FOR)) {
+    consume(LP, "expect '(' after 'for'");
+    std::unique_ptr<Stmt> init;
+    if (check({I64, F64})) {
+      init = parseDeclarationStatement();
+    } else {
+      // init = parseExpressionStatement();
+      throwParserException("not support expression statement now!");
+    }
+    auto cond = parseExpression();
+    consume(SEMI, "expected ';' after expression");
+    auto update = parseExpression();
+    consume(RP, "expect ')'");
+    auto body = parseStatement();
+    /// TODO: definition inside for-stmt should be moved when exited for-body
+    auto _init = dynamic_cast<DeclStmt *>(init.get());
+    varTable.erase(_init->decl->getName());
+    return std::make_unique<ForStmt>(std::make_unique<DeclStmt>(_init),
+                                     std::move(cond), std::move(update),
+                                     std::move(body));
   }
-  return std::make_unique<IfStmt>(std::move(expr), std::move(thenStmt),
-                                  std::move(elseStmt));
+  throwParserException("error in iteration statement");
+  return nullptr;
+}
+
+std::unique_ptr<Stmt> Parser::parseSelectionStatement() {
+  if (match(IF)) {
+    consume(LP, "expect '(' after 'if'");
+    auto expr = parseExpression();
+    consume(RP, "expect ')'");
+    std::unique_ptr<Stmt> thenStmt, elseStmt;
+    thenStmt = parseStatement();
+    if (match(ELSE)) {
+      elseStmt = parseStatement();
+    }
+    return std::make_unique<IfStmt>(std::move(expr), std::move(thenStmt),
+                                    std::move(elseStmt));
+  }
+  throwParserException("error in selection statement");
+  return nullptr;
 }
 
 std::unique_ptr<Stmt> Parser::parseDeclarationStatement() {
+  advance();
   auto type = previous().value;
   if (match(IDENTIFIER)) {
     auto name = previous().value;
@@ -345,14 +386,18 @@ std::unique_ptr<Stmt> Parser::parseCompoundStatement() {
 }
 
 std::unique_ptr<Stmt> Parser::parseStatement() {
-  if (match(RETURN)) {
+  if (check(RETURN)) {
     return parseReturnStatement();
   }
-  if (match({VOID, I64, F64})) {
+  if (check({VOID, I64, F64})) {
     return parseDeclarationStatement();
   }
-  if (match(IF)) {
+  if (check(IF)) {
     return parseSelectionStatement();
+  }
+  /// support while and for statement
+  if (check({WHILE, FOR})) {
+    return parseIterationStatement();
   }
   /// for other use of `parseCompoundStatement()`,
   /// use `check()` instead of `match()`

@@ -306,8 +306,6 @@ llvm::Value *IRCodegenVisitor::codegen(const IfStmt &stmt) {
   llvm::BasicBlock *mergeB = llvm::BasicBlock::Create(*context, "", parentFunc);
   builder->CreateCondBr(condVal, thenB, elseB);
 
-  bool noRet = false;
-
   /// then block
   builder->SetInsertPoint(thenB);
   llvm::Value *thenVal = stmt.thenStmt->accept(*this);
@@ -316,7 +314,6 @@ llvm::Value *IRCodegenVisitor::codegen(const IfStmt &stmt) {
   }
   if (thenVal->getType() == llvm::Type::getVoidTy(*context)) {
     thenVal = zeroVal;
-    noRet = true;
   }
   builder->CreateBr(mergeB);
   thenB = builder->GetInsertBlock();
@@ -335,7 +332,6 @@ llvm::Value *IRCodegenVisitor::codegen(const IfStmt &stmt) {
   }
   if (elseVal->getType() == llvm::Type::getVoidTy(*context)) {
     elseVal = oneVal;
-    noRet = true;
   }
   builder->CreateBr(mergeB);
   elseB = builder->GetInsertBlock();
@@ -346,10 +342,87 @@ llvm::Value *IRCodegenVisitor::codegen(const IfStmt &stmt) {
   llvm::PHINode *pn = builder->CreatePHI(retTy, 2);
   pn->addIncoming(thenVal, thenB);
   pn->addIncoming(elseVal, elseB);
-  if (noRet) {
-    return pn;
+  return pn;
+}
+
+/// TODO: return inst inside the body
+llvm::Value *IRCodegenVisitor::codegen(const WhileStmt &stmt) {
+  llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
+  llvm::Type *retTy = parentFunc->getReturnType();
+
+  /// create basic blocks
+  llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context, "", parentFunc);
+
+  /// cond block
+  builder->CreateBr(condB);
+  builder->SetInsertPoint(condB);
+
+  /// set condition expression
+  llvm::Value *condVal = stmt.cond->accept(*this);
+  if (condVal == nullptr) {
+    throw CodeGenException("null condition expr for if-else statement");
   }
-  return builder->CreateRet(pn);
+  llvm::Value *zeroVal;
+  if (condVal->getType() != llvm::Type::getInt1Ty(*context)) {
+    if (condVal->getType() == llvm::Type::getInt64Ty(*context)) {
+      zeroVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+      condVal = builder->CreateICmpNE(condVal, zeroVal);
+    } else if (condVal->getType() == llvm::Type::getInt64Ty(*context)) {
+      zeroVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
+      condVal = builder->CreateFCmpONE(condVal, zeroVal);
+    } else {
+      throw CodeGenException("not implemented!");
+    }
+  }
+
+  /// set condition branch
+  builder->CreateCondBr(condVal, bodyB, exitB);
+
+  /// then block
+  builder->SetInsertPoint(bodyB);
+  if (stmt.stmt != nullptr) {
+    stmt.stmt->accept(*this);
+  }
+  builder->CreateBr(condB);
+
+  /// exit block
+  builder->SetInsertPoint(exitB);
+  return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
+}
+
+llvm::Value *IRCodegenVisitor::codegen(const ForStmt &stmt) {
+  llvm::Value *init = stmt.init->accept(*this);
+
+  llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
+  llvm::Type *retTy = parentFunc->getReturnType();
+
+  /// init
+  stmt.init->accept(*this);
+
+  /// condition block
+  llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  builder->CreateBr(condB);
+  builder->SetInsertPoint(condB);
+
+  /// condition check
+  auto cmp = stmt.cond->accept(*this);
+  llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  builder->CreateCondBr(cmp, bodyB, exitB);
+
+  /// loop body
+  builder->SetInsertPoint(bodyB);
+  stmt.body->accept(*this);
+
+  /// update loop
+  stmt.update->accept(*this);
+  builder->CreateBr(condB);
+
+  /// exit
+  builder->SetInsertPoint(exitB);
+  return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const ReturnStmt &stmt) {
@@ -432,14 +505,14 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
     /// if function does not have a terminator, create a return instruction
     if (retVal == nullptr ||
         (retVal != nullptr &&
-         retVal->getType() != llvm::Type::getVoidTy(*context))) {
+         retVal->getType() == llvm::Type::getVoidTy(*context))) {
       if (func->getReturnType() == llvm::Type::getInt64Ty(*context)) {
         retVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
       } else {
         retVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
       }
-      builder->CreateRet(retVal);
     }
+    builder->CreateRet(retVal);
   }
   return func;
 }
