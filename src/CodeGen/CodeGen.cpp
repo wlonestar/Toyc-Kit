@@ -1,10 +1,10 @@
 // ! code generation implementation
 
-#include <AST.h>
-#include <Token.h>
+#include <AST/AST.h>
+#include <CodeGen/CodeGen.h>
+#include <Lexer/Token.h>
+#include <Parser/Parser.h>
 #include <Util.h>
-#include <compiler/CompilerCodeGen.h>
-#include <compiler/CompilerParser.h>
 
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>
@@ -31,8 +31,6 @@
 #include <vector>
 
 namespace toyc {
-
-// ====================== Codegen Visitor for compiler ====================== //
 
 void CompilerCodegenVisitor::printGlobalVarEnv() {
   std::cout << "\033[1;32mGlobalVarEnv:\n";

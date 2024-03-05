@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <Token.h>
+#include <Lexer/Token.h>
 
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>

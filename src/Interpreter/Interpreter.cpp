@@ -1,8 +1,8 @@
 //! Interpreter implementation
 
-#include <interpreter/InterpreterCodeGen.h>
-#include <interpreter/Interpreter.h>
-#include <interpreter/InterpreterParser.h>
+#include <CodeGen/InterpreterCodeGen.h>
+#include <Interpreter/Interpreter.h>
+#include <Parser/InterpreterParser.h>
 
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/FileSystem.h>

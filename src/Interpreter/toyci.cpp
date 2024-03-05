@@ -1,9 +1,7 @@
 //! entry point of toyc
 
-#include <Lexer.h>
-#include <Token.h>
-#include <interpreter/Interpreter.h>
-#include <interpreter/LineEditor.h>
+#include <Interpreter/Interpreter.h>
+#include <Interpreter/LineEditor.h>
 
 #include <cassert>
 #include <fstream>

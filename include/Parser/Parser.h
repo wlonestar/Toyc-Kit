@@ -1,13 +1,13 @@
 //! parser of toyc
 
-#ifndef COMPILER_PARSER_H
-#define COMPILER_PARSER_H
+#ifndef PARSER_H
+#define PARSER_H
 
 #pragma once
 
-#include <AST.h>
-#include <Lexer.h>
-#include <Token.h>
+#include <AST/AST.h>
+#include <Lexer/Lexer.h>
+#include <Lexer/Token.h>
 #include <Util.h>
 
 #include <cstddef>

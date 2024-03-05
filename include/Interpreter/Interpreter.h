@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <interpreter/InterpreterCodeGen.h>
-#include <interpreter/InterpreterParser.h>
+#include <CodeGen/InterpreterCodeGen.h>
+#include <Parser/InterpreterParser.h>
 
 #include <string>
 

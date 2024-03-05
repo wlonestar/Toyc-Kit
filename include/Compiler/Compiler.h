@@ -5,12 +5,16 @@
 
 #pragma once
 
-#include <compiler/CompilerCodeGen.h>
-#include <compiler/CompilerParser.h>
+#include <CodeGen/CodeGen.h>
+#include <Parser/Parser.h>
 
 namespace toyc {
 
-/// acts as a compiler frontend: source code -> byte code
+/**
+ * @brief compiler frontend
+ *
+ * source code -> byte code
+ */
 class Compiler {
 private:
   CompilerParser parser;

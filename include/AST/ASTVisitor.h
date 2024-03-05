@@ -5,15 +5,8 @@
 
 #pragma once
 
-#include <AST.h>
+#include <AST/AST.h>
 
-#include <llvm/ADT/APFloat.h>
-#include <llvm/ADT/APInt.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 
 #include <map>

@@ -1,6 +1,6 @@
 //! compiler class implementation
 
-#include <compiler/Compiler.h>
+#include <Compiler/Compiler.h>
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>

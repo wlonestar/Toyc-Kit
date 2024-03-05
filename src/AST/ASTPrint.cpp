@@ -1,7 +1,7 @@
 //! AST Print
 
-#include <AST.h>
-#include <ASTPrint.h>
+#include <AST/AST.h>
+#include <AST/ASTPrint.h>
 #include <Util.h>
 
 #include <cstddef>

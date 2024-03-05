@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include <AST.h>
-#include <ASTVisitor.h>
-#include <compiler/CompilerCodeGen.h>
-#include <interpreter/JIT.h>
+#include <AST/AST.h>
+#include <AST/ASTVisitor.h>
+#include <CodeGen/CodeGen.h>
+#include <Interpreter/JIT.h>
 
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>

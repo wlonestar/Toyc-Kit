@@ -4,7 +4,6 @@ CLANG = /usr/bin/clang-16
 CLANG++ = /usr/bin/clang++-16
 
 BUILD_DIR = build
-EXEC = toyc
 
 .DEFAULT_GOAL := build
 
@@ -19,9 +18,6 @@ config:
 build: config
 	@ninja -C $(BUILD_DIR)
 
-run:
-	@./build/bin/$(EXEC)
-
 LIB_DIR = lib
 LIB_NAME = libtoyc
 
@@ -30,12 +26,6 @@ runtime:
 	@$(CLANG++) -fPIC -shared -o $(LIB_DIR)/$(LIB_NAME).so $(LIB_DIR)/$(LIB_NAME).cpp
 	@sudo cp $(LIB_DIR)/$(LIB_NAME).so /usr/local/lib
 	@sudo ldconfig
-
-# deprecated
-test:
-	@./build/bin/$(EXEC) example/a.toyc
-	@clang -mllvm -opaque-pointers -o a.exe a.ll -ltoyc
-	@./a.exe
 
 .PHONY: clean test
 

@@ -1,6 +1,6 @@
 //! compiler for toyc
 
-#include <compiler/Compiler.h>
+#include <Compiler/Compiler.h>
 
 using namespace toyc;
 using namespace std;

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <Token.h>
+#include <Lexer/Token.h>
 #include <Util.h>
 
 #include <cstddef>

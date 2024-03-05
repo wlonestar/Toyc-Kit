@@ -35,25 +35,6 @@ include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
-llvm_map_components_to_libnames(LLVM_LIBS_C
-  support
-  core
-  # irreader
-  # option
-  # all
-)
-
-
-llvm_map_components_to_libnames(LLVM_LIBS_I
-  support
-  core
-  orcjit
-  native
-  # irreader
-  # option
-  # all
-)
-
 include_directories(include)
 add_subdirectory(src)
 add_subdirectory(test)

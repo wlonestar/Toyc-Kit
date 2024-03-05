@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include <AST.h>
-#include <Lexer.h>
-#include <Token.h>
+#include <AST/AST.h>
+#include <Lexer/Lexer.h>
+#include <Lexer/Token.h>
+#include <Parser/Parser.h>
 #include <Util.h>
-#include <compiler/CompilerParser.h>
 
 #include <cstddef>
 #include <exception>

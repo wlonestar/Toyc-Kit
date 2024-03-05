@@ -1,8 +1,7 @@
 //! Lexer implementation
 
-#include <Lexer.h>
-#include <Token.h>
-#include <Util.h>
+#include <Lexer/Lexer.h>
+#include <Lexer/Token.h>
 
 #include <iostream>
 #include <regex>

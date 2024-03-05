@@ -1,12 +1,12 @@
 //! code generation
 
-#ifndef COMPILER_CODE_GEN_H
-#define COMPILER_CODE_GEN_H
+#ifndef CODE_GEN_H
+#define CODE_GEN_H
 
 #pragma once
 
-#include <AST.h>
-#include <ASTVisitor.h>
+#include <AST/AST.h>
+#include <AST/ASTVisitor.h>
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
