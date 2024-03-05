@@ -9,6 +9,54 @@
 
 namespace toyc {
 
+bool Lexer::match(char expected) {
+  if (isEnd()) {
+    return false;
+  }
+  if (input.at(current) != expected) {
+    return false;
+  }
+  col++;
+  current++;
+  return true;
+}
+
+void Lexer::forward(size_t steps) {
+  current += steps;
+  col += steps;
+}
+
+void Lexer::backward(size_t steps) {
+  current -= steps;
+  col -= steps;
+}
+
+char Lexer::advance() {
+  col++;
+  return input.at(current++);
+}
+
+char Lexer::peek() {
+  if (isEnd()) {
+    return '\0';
+  }
+  return input.at(current);
+}
+
+char Lexer::peekNext() {
+  if (current + 1 >= input.size()) {
+    return '\0';
+  }
+  return input.at(current + 1);
+}
+
+char Lexer::previous() {
+  if (current - 1 < 0) {
+    return '\0';
+  }
+  return input.at(current - 1);
+}
+
 void Lexer::skipWhitespace() {
   for (;;) {
     char c = peek();
@@ -243,6 +291,19 @@ Token Lexer::scanIdentifier() {
     return makeToken(KeywordTable[value]);
   } else {
     return makeToken(IDENTIFIER);
+  }
+}
+
+void Lexer::addInput(std::string &_input) {
+  if (input.size() == 0) {
+    input = _input;
+  } else {
+    size_t before = input.size();
+    input = input + '\n' + _input;
+    /// reset column cursor
+    current = before + 1;
+    line++;
+    col = 0;
   }
 }
 

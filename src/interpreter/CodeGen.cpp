@@ -1,38 +1,39 @@
 // ! code generation implementation
 
-// #include <AST.h>
-// #include <CodeGen.h>
-// #include <Parser.h>
-// #include <Token.h>
-// #include <Util.h>
+#include <AST.h>
+#include <Token.h>
+#include <Util.h>
+#include <interpreter/InterpreterCodeGen.h>
+#include <interpreter/InterpreterParser.h>
 
-// #include <llvm/ADT/APFloat.h>
-// #include <llvm/ADT/APInt.h>
-// #include <llvm/ADT/Triple.h>
-// #include <llvm/IR/BasicBlock.h>
-// #include <llvm/IR/Constant.h>
-// #include <llvm/IR/DerivedTypes.h>
-// #include <llvm/IR/Function.h>
-// #include <llvm/IR/IRBuilder.h>
-// #include <llvm/IR/Instructions.h>
-// #include <llvm/IR/LLVMContext.h>
-// #include <llvm/IR/Type.h>
-// #include <llvm/IR/Value.h>
-// #include <llvm/IR/Verifier.h>
-// #include <llvm/Support/Host.h>
-// #include <llvm/Support/TargetSelect.h>
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/APInt.h>
+#include <llvm/ADT/Triple.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/TargetSelect.h>
 
-// #include <cstddef>
-// #include <cstdint>
-// #include <exception>
-// #include <memory>
-// #include <tuple>
-// #include <utility>
-// #include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <memory>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace toyc {
 
-// ====================== Codegen Visitor for compiler ====================== //
+// // ====================== Codegen Visitor for compiler ======================
+// //
 
 // void CompilerCodegenVisitor::printGlobalVarEnv() {
 //   std::cout << "\033[1;32mGlobalVarEnv:\n";
@@ -66,8 +67,9 @@ namespace toyc {
 
 // CompilerCodegenVisitor::CompilerCodegenVisitor() {
 //   context = std::make_unique<llvm::LLVMContext>();
-//   builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*context));
-//   module = std::make_unique<llvm::Module>("toyc jit", *context);
+//   builder = std::unique_ptr<llvm::IRBuilder<>>(new
+//   llvm::IRBuilder<>(*context)); module = std::make_unique<llvm::Module>("toyc
+//   jit", *context);
 //   module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 // }
 
@@ -108,8 +110,8 @@ namespace toyc {
 //     params.push_back(param->accept(*this));
 //   }
 
-//   llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
-//   llvm::Function *func = llvm::Function::Create(
+//   llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params,
+//   false); llvm::Function *func = llvm::Function::Create(
 //       funcTy, llvm::Function::ExternalLinkage, decl.name, *module);
 
 //   return func;
@@ -120,11 +122,13 @@ namespace toyc {
 //  */
 
 // llvm::Value *CompilerCodegenVisitor::codegen(const IntegerLiteral &expr) {
-//   return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), expr.value);
+//   return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context),
+//   expr.value);
 // }
 
 // llvm::Value *CompilerCodegenVisitor::codegen(const FloatingLiteral &expr) {
-//   return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), expr.value);
+//   return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context),
+//   expr.value);
 // }
 
 // llvm::Value *CompilerCodegenVisitor::codegen(const DeclRefExpr &expr) {
@@ -340,9 +344,10 @@ namespace toyc {
 //   }
 
 //   /// create basic blocks
-//   llvm::BasicBlock *thenB = llvm::BasicBlock::Create(*context, "", parentFunc);
-//   llvm::BasicBlock *elseB = llvm::BasicBlock::Create(*context, "", parentFunc);
-//   llvm::BasicBlock *mergeB = llvm::BasicBlock::Create(*context, "", parentFunc);
+//   llvm::BasicBlock *thenB = llvm::BasicBlock::Create(*context, "",
+//   parentFunc); llvm::BasicBlock *elseB = llvm::BasicBlock::Create(*context,
+//   "", parentFunc); llvm::BasicBlock *mergeB =
+//   llvm::BasicBlock::Create(*context, "", parentFunc);
 //   builder->CreateCondBr(condVal, thenB, elseB);
 
 //   /// then block
@@ -390,9 +395,10 @@ namespace toyc {
 //   llvm::Type *retTy = parentFunc->getReturnType();
 
 //   /// create basic blocks
-//   llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "", parentFunc);
-//   llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
-//   llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context, "", parentFunc);
+//   llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "",
+//   parentFunc); llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context,
+//   "", parentFunc); llvm::BasicBlock *exitB =
+//   llvm::BasicBlock::Create(*context, "", parentFunc);
 
 //   /// cond block
 //   builder->CreateBr(condB);
@@ -441,15 +447,14 @@ namespace toyc {
 //   stmt.init->accept(*this);
 
 //   /// condition block
-//   llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "", parentFunc);
-//   builder->CreateBr(condB);
-//   builder->SetInsertPoint(condB);
+//   llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "",
+//   parentFunc); builder->CreateBr(condB); builder->SetInsertPoint(condB);
 
 //   /// condition check
 //   auto cmp = stmt.cond->accept(*this);
-//   llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
-//   llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context, "", parentFunc);
-//   builder->CreateCondBr(cmp, bodyB, exitB);
+//   llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "",
+//   parentFunc); llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context,
+//   "", parentFunc); builder->CreateCondBr(cmp, bodyB, exitB);
 
 //   /// loop body
 //   builder->SetInsertPoint(bodyB);
@@ -569,145 +574,146 @@ namespace toyc {
 //         funcDecl->accept(*this);
 //       }
 //     } else {
-//       throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
+//       throw CodeGenException("[TranslationUnitDecl] unsupported
+//       declaration");
 //     }
 //   }
 // }
 
-// // ==================== Codegen Visitor for interpreter ===================== //
+// ==================== Codegen Visitor for interpreter ===================== //
 
-// #ifdef _WIN32
-// #define DLLEXPORT __declspec(dllexport)
-// #else
-// #define DLLEXPORT
-// #endif
+#ifdef _WIN32
+#define DLLEXPORT __declspec(dllexport)
+#else
+#define DLLEXPORT
+#endif
 
-// extern "C" DLLEXPORT void printI64(int64_t x) { fprintf(stderr, "%ld\n", x); }
+extern "C" DLLEXPORT void printI64(int64_t x) { fprintf(stderr, "%ld\n", x); }
 
-// extern "C" DLLEXPORT void printF64(double x) { fprintf(stderr, "%lf\n", x); }
+extern "C" DLLEXPORT void printF64(double x) { fprintf(stderr, "%lf\n", x); }
 
-// InterpreterCodegenVisitor::InterpreterCodegenVisitor() {
-//   llvm::InitializeNativeTarget();
-//   llvm::InitializeNativeTargetAsmPrinter();
-//   llvm::InitializeNativeTargetAsmParser();
+InterpreterCodegenVisitor::InterpreterCodegenVisitor() {
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
 
-//   JIT = ExitOnErr(ToycJIT::create());
+  JIT = ExitOnErr(ToycJIT::create());
 
-//   module->setDataLayout(JIT->getDataLayout());
+  module->setDataLayout(JIT->getDataLayout());
 
-//   // Create new pass and analysis managers.
-//   FPM = std::make_unique<llvm::FunctionPassManager>();
-//   LAM = std::make_unique<llvm::LoopAnalysisManager>();
-//   FAM = std::make_unique<llvm::FunctionAnalysisManager>();
-//   CGAM = std::make_unique<llvm::CGSCCAnalysisManager>();
-//   MAM = std::make_unique<llvm::ModuleAnalysisManager>();
-//   PIC = std::make_unique<llvm::PassInstrumentationCallbacks>();
-//   SI = std::make_unique<llvm::StandardInstrumentations>(*context, true);
-//   SI->registerCallbacks(*PIC, FAM.get());
+  // Create new pass and analysis managers.
+  FPM = std::make_unique<llvm::FunctionPassManager>();
+  LAM = std::make_unique<llvm::LoopAnalysisManager>();
+  FAM = std::make_unique<llvm::FunctionAnalysisManager>();
+  CGAM = std::make_unique<llvm::CGSCCAnalysisManager>();
+  MAM = std::make_unique<llvm::ModuleAnalysisManager>();
+  PIC = std::make_unique<llvm::PassInstrumentationCallbacks>();
+  SI = std::make_unique<llvm::StandardInstrumentations>(*context, true);
+  SI->registerCallbacks(*PIC, FAM.get());
 
-//   // Add transform passes.
-//   FPM->addPass(llvm::InstCombinePass());
-//   FPM->addPass(llvm::ReassociatePass());
-//   FPM->addPass(llvm::GVNPass());
-//   FPM->addPass(llvm::SimplifyCFGPass());
+  // Add transform passes.
+  FPM->addPass(llvm::InstCombinePass());
+  FPM->addPass(llvm::ReassociatePass());
+  FPM->addPass(llvm::GVNPass());
+  FPM->addPass(llvm::SimplifyCFGPass());
 
-//   // Register analysis passes used in these transform passes.
-//   llvm::PassBuilder PB;
-//   PB.registerModuleAnalyses(*MAM);
-//   PB.registerFunctionAnalyses(*FAM);
-//   PB.crossRegisterProxies(*LAM, *FAM, *CGAM, *MAM);
-// }
+  // Register analysis passes used in these transform passes.
+  llvm::PassBuilder PB;
+  PB.registerModuleAnalyses(*MAM);
+  PB.registerFunctionAnalyses(*FAM);
+  PB.crossRegisterProxies(*LAM, *FAM, *CGAM, *MAM);
+}
 
-// /**
-//  * Decl
-//  */
+/**
+ * Decl
+ */
 
-// llvm::Value *InterpreterCodegenVisitor::codegen(const VarDecl &decl) {
-//   llvm::Type *varTy =
-//       (decl.type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
-//   llvm::Constant *initializer =
-//       (decl.init != nullptr ? (llvm::Constant *)decl.init->accept(*this)
-//                             : nullptr);
+llvm::Value *InterpreterCodegenVisitor::codegen(const VarDecl &decl) {
+  llvm::Type *varTy =
+      (decl.type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
+  llvm::Constant *initializer =
+      (decl.init != nullptr ? (llvm::Constant *)decl.init->accept(*this)
+                            : nullptr);
 
-//   if (decl.scope == GLOBAL) {
-//     llvm::GlobalVariable *var = new llvm::GlobalVariable(
-//         *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
-//         initializer, decl.name);
-//     globalVarEnv[decl.name] = var;
-//     return var;
+  if (decl.scope == GLOBAL) {
+    llvm::GlobalVariable *var = new llvm::GlobalVariable(
+        *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
+        initializer, decl.name);
+    globalVarEnv[decl.name] = var;
+    return var;
+  } else {
+    llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
+    if (decl.init != nullptr) {
+      builder->CreateStore(initializer, var);
+    }
+    varEnv[decl.name] = var;
+    return var;
+  }
+}
+
+// llvm::Function *InterpreterCodegenVisitor::codegen(const FunctionDecl &decl)
+// {
+//   llvm::Function *func = codegenFuncTy(decl);
+//   if (decl.kind == EXTERN_FUNC) {
+//     return func;
+//   }
+
+//   /// function entry point
+//   llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context, "", func);
+//   builder->SetInsertPoint(bb);
+
+//   /// clear local variable table
+//   clearVarEnv();
+//   for (auto &param : func->args()) {
+//     size_t idx = param.getArgNo();
+//     std::string paramName = decl.params[idx]->name;
+//     llvm::Type *type = func->getFunctionType()->getParamType(idx);
+//     varEnv[paramName] = builder->CreateAlloca(type, nullptr);
+//     builder->CreateStore(&param, varEnv[paramName]);
+//   }
+
+//   llvm::Value *retVal = nullptr;
+//   if (decl.body != nullptr) {
+//     if (auto ret = decl.body->accept(*this)) {
+//       retVal = ret;
+//     }
+//   }
+
+//   /// create void return if function type is void
+//   if (func->getReturnType()->isVoidTy()) {
+//     builder->CreateRetVoid();
 //   } else {
-//     llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
-//     if (decl.init != nullptr) {
-//       builder->CreateStore(initializer, var);
-//     }
-//     varEnv[decl.name] = var;
-//     return var;
-//   }
-// }
-
-// // llvm::Function *InterpreterCodegenVisitor::codegen(const FunctionDecl &decl)
-// // {
-// //   llvm::Function *func = codegenFuncTy(decl);
-// //   if (decl.kind == EXTERN_FUNC) {
-// //     return func;
-// //   }
-
-// //   /// function entry point
-// //   llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context, "", func);
-// //   builder->SetInsertPoint(bb);
-
-// //   /// clear local variable table
-// //   clearVarEnv();
-// //   for (auto &param : func->args()) {
-// //     size_t idx = param.getArgNo();
-// //     std::string paramName = decl.params[idx]->name;
-// //     llvm::Type *type = func->getFunctionType()->getParamType(idx);
-// //     varEnv[paramName] = builder->CreateAlloca(type, nullptr);
-// //     builder->CreateStore(&param, varEnv[paramName]);
-// //   }
-
-// //   llvm::Value *retVal = nullptr;
-// //   if (decl.body != nullptr) {
-// //     if (auto ret = decl.body->accept(*this)) {
-// //       retVal = ret;
-// //     }
-// //   }
-
-// //   /// create void return if function type is void
-// //   if (func->getReturnType()->isVoidTy()) {
-// //     builder->CreateRetVoid();
-// //   } else {
-// //     /// if function does not have a terminator, create a return instruction
-// //     if (retVal == nullptr ||
-// //         (retVal != nullptr &&
-// //          retVal->getType() == llvm::Type::getVoidTy(*context))) {
-// //       if (func->getReturnType() == llvm::Type::getInt64Ty(*context)) {
-// //         retVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
-// //       } else {
-// //         retVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
-// //       }
-// //     }
-// //     builder->CreateRet(retVal);
-// //   }
-// //   return func;
-// // }
-
-// /**
-//  * TranslationUnitDecl
-//  */
-
-// void InterpreterCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
-//   for (auto &d : decl.decls) {
-//     if (auto varDecl = dynamic_cast<VarDecl *>(d.get())) {
-//       varDecl->accept(*this);
-//     } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(d.get())) {
-//       if (funcDecl->getKind() != DECLARATION) {
-//         auto *ir = funcDecl->accept(*this);
+//     /// if function does not have a terminator, create a return instruction
+//     if (retVal == nullptr ||
+//         (retVal != nullptr &&
+//          retVal->getType() == llvm::Type::getVoidTy(*context))) {
+//       if (func->getReturnType() == llvm::Type::getInt64Ty(*context)) {
+//         retVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+//       } else {
+//         retVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
 //       }
-//     } else {
-//       throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
 //     }
+//     builder->CreateRet(retVal);
 //   }
+//   return func;
 // }
+
+/**
+ * TranslationUnitDecl
+ */
+
+void InterpreterCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
+  for (auto &d : decl.decls) {
+    if (auto varDecl = dynamic_cast<VarDecl *>(d.get())) {
+      varDecl->accept(*this);
+    } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(d.get())) {
+      if (funcDecl->getKind() != DECLARATION) {
+        auto *ir = funcDecl->accept(*this);
+      }
+    } else {
+      throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
+    }
+  }
+}
 
 } // namespace toyc

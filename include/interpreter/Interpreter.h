@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <CodeGen.h>
-#include <Parser.h>
+#include <interpreter/InterpreterCodeGen.h>
+#include <interpreter/InterpreterParser.h>
 
 #include <string>
 
@@ -14,16 +14,13 @@ namespace toyc {
 
 class Interpreter {
 private:
-  Parser parser;
-  IRCodegenVisitor visitor;
-
-private:
-  void writeByteCode(std::string filename);
+  InterpreterParser parser;
+  InterpreterCodegenVisitor visitor;
 
 public:
   Interpreter() : parser(), visitor() {}
 
-  void compile(std::string &input, const char *dst);
+  void compile(std::string &input);
 };
 
 } // namespace toyc

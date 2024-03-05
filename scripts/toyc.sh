@@ -12,7 +12,7 @@ bc="$2"
 exec="$3"
 
 # build bytecode from source file
-build/bin/toyc "$src" "$bc"
+build/bin/toycc "$src" "$bc"
 if [ $? -ne 0 ]; then
   echo "error in running toyc frontend"
   exit 1

@@ -1,23 +1,16 @@
 //! code generation
 
-#ifndef CODE_GEN_H
-#define CODE_GEN_H
+#ifndef COMPILER_CODE_GEN_H
+#define COMPILER_CODE_GEN_H
 
 #pragma once
 
 #include <AST.h>
 #include <ASTVisitor.h>
 
-#include <llvm/ADT/APFloat.h>
-#include <llvm/ADT/APInt.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
-#include <llvm/Support/raw_ostream.h>
 
 #include <map>
 
@@ -28,18 +21,19 @@ private:
   std::string message;
 
 public:
-  CodeGenException(std::string &_message)
-      : message(fstr("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _message)) {
-  }
-
-  CodeGenException(std::string &&_message)
-      : message(fstr("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _message)) {
-  }
+  CodeGenException(std::string &_msg)
+      : message(fstr("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
+  CodeGenException(std::string &&_msg)
+      : message(fstr("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };
 
-class IRCodegenVisitor : public ASTVisitor {
+/**
+ * @brief Codegen Visitor for compiler
+ *
+ */
+class CompilerCodegenVisitor : public ASTVisitor {
 protected:
   std::unique_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::Module> module;
@@ -47,47 +41,20 @@ protected:
   std::map<std::string, llvm::GlobalVariable *> globalVarEnv;
   std::map<std::string, llvm::AllocaInst *> varEnv;
 
-private:
-  void printGlobalVarEnv() {
-    std::cout << "\033[1;32mGlobalVarEnv:\n";
-    for (auto &[first, second] : globalVarEnv) {
-      std::string valueStr;
-      llvm::raw_string_ostream ros(valueStr);
-      if (second != nullptr) {
-        second->print(ros);
-      } else {
-        ros << "<null>";
-      }
-      std::cout << fstr("  <var> '{}': {}\n", first, valueStr);
-    }
-    std::cout << "\033[0m\n";
-  }
-
-  void printVarEnv() {
-    std::cout << "\033[1;32mVarEnv:\n";
-    for (auto &[first, second] : varEnv) {
-      std::string valueStr;
-      llvm::raw_string_ostream ros(valueStr);
-      if (second != nullptr) {
-        second->print(ros);
-      } else {
-        ros << "<null>";
-      }
-      std::cout << fstr("  <var> '{}': {}\n", first, valueStr);
-    }
-    std::cout << "\033[0m\n";
-  }
-
+protected:
+  void printGlobalVarEnv();
+  void printVarEnv();
   void clearVarEnv() { varEnv.clear(); }
 
 public:
-  IRCodegenVisitor();
+  CompilerCodegenVisitor();
 
-  void dump(llvm::raw_ostream &os = llvm::errs());
-  bool verifyModule(llvm::raw_ostream &os = llvm::errs());
+  virtual void dump(llvm::raw_ostream &os = llvm::errs());
+  virtual bool verifyModule(llvm::raw_ostream &os = llvm::errs());
+  virtual void setModuleID(std::string &name);
 
 public:
-  llvm::Function *codegenFuncTy(const FunctionDecl &decl);
+  virtual llvm::Function *codegenFuncTy(const FunctionDecl &decl);
 
 public:
   /**

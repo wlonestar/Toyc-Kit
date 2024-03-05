@@ -1,10 +1,10 @@
 //! Parser implementation
 
 #include <AST.h>
-#include <CodeGen.h>
-#include <Parser.h>
 #include <Token.h>
 #include <Util.h>
+#include <compiler/CompilerCodeGen.h>
+#include <compiler/CompilerParser.h>
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
@@ -22,7 +22,89 @@
 
 namespace toyc {
 
-int64_t Parser::parseIntegerSuffix(std::string &value, int base) {
+// ================================= Parser ================================= //
+
+Token CompilerParser::advance() {
+  prev = current;
+  for (;;) {
+    current = lexer.scanToken();
+    // debug("prev={}, curr={}", prev.toString(), current.toString());
+    if (current.type != ERROR) {
+      break;
+    }
+    throwParserException("error at parse");
+  }
+  return prev;
+}
+
+Token CompilerParser::consume(TokenType type, std::string &message) {
+  if (current.type == type) {
+    return advance();
+  }
+  throwParserException(message);
+  return Token(ERROR, "");
+}
+
+Token CompilerParser::consume(TokenType type, std::string &&message) {
+  if (current.type == type) {
+    return advance();
+  }
+  throwParserException(message);
+  return Token(ERROR, "");
+}
+
+bool CompilerParser::check(std::initializer_list<TokenType> types) {
+  for (TokenType type : types) {
+    if (type == _EOF) {
+      return false;
+    }
+    if (peek().type == type) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool CompilerParser::check(TokenType type) {
+  if (type == _EOF) {
+    return false;
+  }
+  return peek().type == type;
+}
+
+bool CompilerParser::match(std::initializer_list<TokenType> types) {
+  for (TokenType type : types) {
+    if (check(type)) {
+      advance();
+      return true;
+    }
+  }
+  return false;
+}
+
+bool CompilerParser::match(TokenType type) {
+  if (check(type)) {
+    advance();
+    return true;
+  }
+  return false;
+}
+
+bool CompilerParser::checkHexadecimal(std::string &value) {
+  if (value.starts_with("0x") || value.starts_with("0X")) {
+    return true;
+  }
+  return false;
+}
+
+bool CompilerParser::checkOctal(std::string &value) {
+  if (value.starts_with("0") && value.size() != 1) {
+    return true;
+  }
+  return false;
+}
+
+int64_t CompilerParser::parseIntegerSuffix(std::string &value, int base) {
   try {
     if (value.ends_with("llu") || value.ends_with("llU") ||
         value.ends_with("LLu") || value.ends_with("LLU") ||
@@ -50,7 +132,7 @@ int64_t Parser::parseIntegerSuffix(std::string &value, int base) {
   }
 }
 
-double Parser::parseFloatingSuffix(std::string &value, int base) {
+double CompilerParser::parseFloatingSuffix(std::string &value, int base) {
   try {
     if (value.ends_with("f") || value.ends_with("F")) {
       return std::stof(value, nullptr);
@@ -65,11 +147,38 @@ double Parser::parseFloatingSuffix(std::string &value, int base) {
   }
 }
 
+std::string CompilerParser::checkUnaryOperatorType(TokenType type,
+                                                   Expr *right) {
+  if (type == NOT) {
+    return "i64";
+  }
+  return right->getType();
+}
+
+std::string CompilerParser::checkBinaryOperatorType(
+    TokenType type, std::unique_ptr<Expr> &left, std::unique_ptr<Expr> &right) {
+  if (type == AND_OP || type == OR_OP) {
+    return "i64";
+  }
+  if (left->getType() == right->getType()) {
+    left = std::make_unique<ImplicitCastExpr>(left->getType(), std::move(left));
+    right =
+        std::make_unique<ImplicitCastExpr>(right->getType(), std::move(right));
+    return left->getType();
+  }
+  if (left->getType() == "f64" || right->getType() == "f64") {
+    left = std::make_unique<ImplicitCastExpr>("f64", std::move(left));
+    right = std::make_unique<ImplicitCastExpr>("f64", std::move(right));
+    return "f64";
+  }
+  return "i64";
+}
+
 /**
  * parse Expr
  */
 
-std::unique_ptr<Expr> Parser::parseIntegerLiteral() {
+std::unique_ptr<Expr> CompilerParser::parseIntegerLiteral() {
   auto value_str = previous().value;
   int64_t value;
   if (checkHexadecimal(value_str)) {
@@ -90,13 +199,13 @@ std::unique_ptr<Expr> Parser::parseIntegerLiteral() {
   return std::make_unique<IntegerLiteral>(value, "i64");
 }
 
-std::unique_ptr<Expr> Parser::parseFloatingLiteral() {
+std::unique_ptr<Expr> CompilerParser::parseFloatingLiteral() {
   auto value_str = previous().value;
   auto value = parseFloatingSuffix(value_str, 10);
   return std::make_unique<FloatingLiteral>(value, "f64");
 }
 
-std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
+std::unique_ptr<Expr> CompilerParser::parsePrimaryExpression() {
   if (match(INTEGER)) {
     return parseIntegerLiteral();
   }
@@ -154,7 +263,7 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
   return nullptr;
 }
 
-std::unique_ptr<Expr> Parser::parsePostfixExpression() {
+std::unique_ptr<Expr> CompilerParser::parsePostfixExpression() {
   auto expr = parsePrimaryExpression();
   /// parse function call
   if (match(LP)) {
@@ -187,7 +296,7 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseUnaryExpression() {
+std::unique_ptr<Expr> CompilerParser::parseUnaryExpression() {
   if (match({ADD, NOT, SUB})) {
     auto op = previous();
     auto right = parseUnaryExpression();
@@ -198,7 +307,7 @@ std::unique_ptr<Expr> Parser::parseUnaryExpression() {
   return parsePostfixExpression();
 }
 
-std::unique_ptr<Expr> Parser::parseMultiplicativeExpression() {
+std::unique_ptr<Expr> CompilerParser::parseMultiplicativeExpression() {
   auto expr = parseUnaryExpression();
   while (match({MUL, DIV, MOD})) {
     auto op = previous();
@@ -210,7 +319,7 @@ std::unique_ptr<Expr> Parser::parseMultiplicativeExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseAdditiveExpression() {
+std::unique_ptr<Expr> CompilerParser::parseAdditiveExpression() {
   auto expr = parseMultiplicativeExpression();
   while (match({ADD, SUB})) {
     auto op = previous();
@@ -222,7 +331,7 @@ std::unique_ptr<Expr> Parser::parseAdditiveExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseRelationalExpression() {
+std::unique_ptr<Expr> CompilerParser::parseRelationalExpression() {
   auto expr = parseAdditiveExpression();
   while (match({LE_OP, GE_OP, LA, RA})) {
     auto op = previous();
@@ -234,7 +343,7 @@ std::unique_ptr<Expr> Parser::parseRelationalExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseEqualityExpression() {
+std::unique_ptr<Expr> CompilerParser::parseEqualityExpression() {
   auto expr = parseRelationalExpression();
   while (match({EQ_OP, NE_OP})) {
     auto op = previous();
@@ -246,7 +355,7 @@ std::unique_ptr<Expr> Parser::parseEqualityExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseLogicalAndExpression() {
+std::unique_ptr<Expr> CompilerParser::parseLogicalAndExpression() {
   auto expr = parseEqualityExpression();
   while (match(AND_OP)) {
     auto op = previous();
@@ -258,7 +367,7 @@ std::unique_ptr<Expr> Parser::parseLogicalAndExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseLogicalOrExpression() {
+std::unique_ptr<Expr> CompilerParser::parseLogicalOrExpression() {
   auto expr = parseLogicalAndExpression();
   while (match(OR_OP)) {
     auto op = previous();
@@ -270,7 +379,7 @@ std::unique_ptr<Expr> Parser::parseLogicalOrExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseAssignmentExpression() {
+std::unique_ptr<Expr> CompilerParser::parseAssignmentExpression() {
   auto expr = parseLogicalOrExpression();
   if (match(EQUAL)) {
     auto token = previous();
@@ -285,7 +394,7 @@ std::unique_ptr<Expr> Parser::parseAssignmentExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseExpression() {
+std::unique_ptr<Expr> CompilerParser::parseExpression() {
   return parseAssignmentExpression();
 }
 
@@ -293,7 +402,7 @@ std::unique_ptr<Expr> Parser::parseExpression() {
  * parse Stmt
  */
 
-std::unique_ptr<Stmt> Parser::parseExpressionStatement() {
+std::unique_ptr<Stmt> CompilerParser::parseExpressionStatement() {
   std::unique_ptr<Expr> expr = nullptr;
   if (!match(SEMI)) {
     expr = parseExpression();
@@ -302,7 +411,7 @@ std::unique_ptr<Stmt> Parser::parseExpressionStatement() {
   return std::make_unique<ExprStmt>(std::move(expr));
 }
 
-std::unique_ptr<Stmt> Parser::parseReturnStatement() {
+std::unique_ptr<Stmt> CompilerParser::parseReturnStatement() {
   consume(RETURN, "expected 'return'");
   std::unique_ptr<Expr> expr = nullptr;
   if (!match(SEMI)) {
@@ -312,7 +421,7 @@ std::unique_ptr<Stmt> Parser::parseReturnStatement() {
   return std::make_unique<ReturnStmt>(std::move(expr));
 }
 
-std::unique_ptr<Stmt> Parser::parseIterationStatement() {
+std::unique_ptr<Stmt> CompilerParser::parseIterationStatement() {
   if (match(WHILE)) {
     consume(LP, "expect '(' after 'while'");
     auto expr = parseExpression();
@@ -344,7 +453,7 @@ std::unique_ptr<Stmt> Parser::parseIterationStatement() {
   return nullptr;
 }
 
-std::unique_ptr<Stmt> Parser::parseSelectionStatement() {
+std::unique_ptr<Stmt> CompilerParser::parseSelectionStatement() {
   if (match(IF)) {
     consume(LP, "expect '(' after 'if'");
     auto expr = parseExpression();
@@ -361,20 +470,19 @@ std::unique_ptr<Stmt> Parser::parseSelectionStatement() {
   return nullptr;
 }
 
-std::unique_ptr<Stmt> Parser::parseDeclarationStatement() {
+std::unique_ptr<Stmt> CompilerParser::parseDeclarationStatement() {
   advance();
   auto type = previous().value;
   if (match(IDENTIFIER)) {
     auto name = previous().value;
-    auto decl =
-        parseVariableDeclaration(std::move(type), std::move(name), LOCAL);
+    auto decl = parseVariableDeclaration(type, name, LOCAL);
     return std::make_unique<DeclStmt>(std::move(decl));
   }
   throwParserException("expected identifier");
   return nullptr;
 }
 
-std::unique_ptr<Stmt> Parser::parseCompoundStatement() {
+std::unique_ptr<Stmt> CompilerParser::parseCompoundStatement() {
   consume(LC, "expected function body after function declarator");
   std::vector<std::unique_ptr<Stmt>> stmts;
   while (!check(RC) && current.type != _EOF) {
@@ -385,7 +493,7 @@ std::unique_ptr<Stmt> Parser::parseCompoundStatement() {
   return std::make_unique<CompoundStmt>(std::move(stmts));
 }
 
-std::unique_ptr<Stmt> Parser::parseStatement() {
+std::unique_ptr<Stmt> CompilerParser::parseStatement() {
   if (check(RETURN)) {
     return parseReturnStatement();
   }
@@ -411,7 +519,7 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
  * internal parse
  */
 
-std::pair<std::string, bool> Parser::parseDeclarationSpecifiers() {
+std::pair<std::string, bool> CompilerParser::parseDeclarationSpecifiers() {
   std::string spec;
   bool isExtern = false;
   if (match(EXTERN)) {
@@ -422,10 +530,10 @@ std::pair<std::string, bool> Parser::parseDeclarationSpecifiers() {
   };
   return {spec, isExtern};
   throwParserException("expected type specifier");
-  return {spec, isExtern};
+  return {"", false};
 }
 
-std::string Parser::parseDeclarator() {
+std::string CompilerParser::parseDeclarator() {
   if (match(IDENTIFIER)) {
     return previous().value;
   }
@@ -433,7 +541,8 @@ std::string Parser::parseDeclarator() {
   return "";
 }
 
-std::vector<std::unique_ptr<ParmVarDecl>> Parser::parseFunctionParameters() {
+std::vector<std::unique_ptr<ParmVarDecl>>
+CompilerParser::parseFunctionParameters() {
   std::vector<std::unique_ptr<ParmVarDecl>> params;
   if (!check(RP)) {
     do {
@@ -451,9 +560,10 @@ std::vector<std::unique_ptr<ParmVarDecl>> Parser::parseFunctionParameters() {
   return params;
 }
 
-std::string Parser::generateFunctionType(
-    std::string &&retType, std::vector<std::unique_ptr<ParmVarDecl>> &params) {
-  std::string funcType = retType + " (";
+std::string
+CompilerParser::genFuncType(std::string &&retTy,
+                            std::vector<std::unique_ptr<ParmVarDecl>> &params) {
+  std::string funcType = retTy + " (";
   for (size_t i = 0; i < params.size(); i++) {
     funcType += params[i]->getType();
     if (i != params.size() - 1) {
@@ -468,9 +578,9 @@ std::string Parser::generateFunctionType(
  * parse Decl
  */
 
-std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &&type,
-                                                       std::string &&name,
-                                                       VarScope scope) {
+std::unique_ptr<Decl>
+CompilerParser::parseVariableDeclaration(std::string &type, std::string &name,
+                                         VarScope scope) {
   if (scope == GLOBAL) {
     if (globalVarTable.find(name) != globalVarTable.end()) {
       throwParserException(fstr("redefinition of '{}'", name));
@@ -494,20 +604,20 @@ std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &&type,
   return decl;
 }
 
-std::unique_ptr<Decl> Parser::parseFunctionDeclaration(std::string &&retType,
-                                                       std::string &&name,
-                                                       bool isExtern) {
+std::unique_ptr<Decl>
+CompilerParser::parseFunctionDeclaration(std::string &retTy, std::string &name,
+                                         bool isExtern) {
   clearVarTable();
   std::vector<std::unique_ptr<ParmVarDecl>> params = parseFunctionParameters();
   consume(RP, "expected parameter declarator");
-  std::string funcType = generateFunctionType(std::move(retType), params);
+  std::string funcType = genFuncType(std::move(retTy), params);
 
   /// store in funcTable
   std::vector<std::string> paramsTy;
   for (auto &param : params) {
     paramsTy.push_back(param->getType());
   }
-  funcTable[name] = std::make_pair(retType, paramsTy);
+  funcTable[name] = std::make_pair(retTy, paramsTy);
 
   std::unique_ptr<Stmt> body = nullptr;
   /// if match SEMI, body in null, otherwise, parse the function body
@@ -521,17 +631,17 @@ std::unique_ptr<Decl> Parser::parseFunctionDeclaration(std::string &&retType,
                                         kind);
 }
 
-std::unique_ptr<Decl> Parser::parseExternalDeclaration() {
+std::unique_ptr<Decl> CompilerParser::parseExternalDeclaration() {
   auto [type, flag] = parseDeclarationSpecifiers();
   auto name = parseDeclarator();
   if (match(LP)) {
-    return parseFunctionDeclaration(std::move(type), std::move(name), flag);
+    return parseFunctionDeclaration(type, name, flag);
   } else {
-    return parseVariableDeclaration(std::move(type), std::move(name), GLOBAL);
+    return parseVariableDeclaration(type, name, GLOBAL);
   }
 }
 
-std::unique_ptr<TranslationUnitDecl> Parser::parse() {
+std::unique_ptr<TranslationUnitDecl> CompilerParser::parse() {
   std::vector<std::unique_ptr<Decl>> decls;
   advance();
   while (current.type != _EOF) {
@@ -540,5 +650,58 @@ std::unique_ptr<TranslationUnitDecl> Parser::parse() {
   }
   return std::make_unique<TranslationUnitDecl>(std::move(decls));
 }
+
+// =========================== InterpreterParser ============================ //
+
+// std::unique_ptr<Decl>
+// InterpreterParser::parseVariableDeclaration(std::string &type,
+//                                             std::string &name, VarScope
+//                                             scope) {
+//   if (varTable.find(name) != varTable.end()) {
+//     throwParserException(fstr("redefinition of '{}'", name));
+//   }
+//   varTable[name] = type;
+
+//   std::unique_ptr<Expr> init =
+//       (match(EQUAL) ? parseAssignmentExpression() : nullptr);
+//   if (init != nullptr && type != init->getType()) {
+//     init = std::make_unique<ImplicitCastExpr>(type, std::move(init));
+//   }
+//   // std::unique_ptr<VarDecl> decl =
+//   //     std::make_unique<VarDecl>(name, type, std::move(init), scope);
+//   consume(SEMI, "expected ';' after declaration");
+
+//   auto stmt = std::make_unique<ReturnStmt>(std::move(init));
+
+//   std::string funcName = "__anon_expr";
+//   std::vector<std::unique_ptr<ParmVarDecl>> params;
+//   /// wrap into a function
+//   auto func =
+//       std::make_unique<FunctionDecl>(funcName, type, params,
+//       std::move(stmt));
+//   funcTable[funcName] = std::make_pair(type, std::vector<std::string>{});
+//   clearVarTable();
+//   return func;
+// }
+
+// std::unique_ptr<Decl> InterpreterParser::parseExternalDeclaration() {
+//   auto [type, flag] = parseDeclarationSpecifiers();
+//   auto name = parseDeclarator();
+//   if (match(LP)) {
+//     return parseFunctionDeclaration(type, name, flag);
+//   } else {
+//     return parseVariableDeclaration(type, name, LOCAL);
+//   }
+// }
+
+// std::unique_ptr<TranslationUnitDecl> InterpreterParser::parse() {
+//   std::vector<std::unique_ptr<Decl>> decls;
+//   advance();
+//   while (current.type != _EOF) {
+//     auto decl = parseExternalDeclaration();
+//     decls.push_back(std::move(decl));
+//   }
+//   return std::make_unique<TranslationUnitDecl>(std::move(decls));
+// }
 
 } // namespace toyc

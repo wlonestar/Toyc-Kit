@@ -2,7 +2,6 @@
 
 #include <AST.h>
 #include <ASTVisitor.h>
-#include <CodeGen.h>
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
@@ -29,13 +28,15 @@ llvm::Value *FloatingLiteral::accept(ASTVisitor &visitor) {
 std::string CharacterLiteral::getType() const { return "i64"; }
 
 llvm::Value *CharacterLiteral::accept(ASTVisitor &visitor) {
-  throw CodeGenException("not implemented!");
+  // throw CodeGenException("not implemented!");
+  return nullptr;
 }
 
 std::string StringLiteral::getType() const { return type; }
 
 llvm::Value *StringLiteral::accept(ASTVisitor &visitor) {
-  throw CodeGenException("not implemented!");
+  // throw CodeGenException("not implemented!");
+  return nullptr;
 }
 
 std::string DeclRefExpr::getType() const { return decl->getType(); }

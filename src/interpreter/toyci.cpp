@@ -1,9 +1,9 @@
 //! entry point of toyc
 
-#include <Interpreter.h>
 #include <Lexer.h>
-#include <LineEditor.h>
 #include <Token.h>
+#include <interpreter/Interpreter.h>
+#include <interpreter/LineEditor.h>
 
 #include <cassert>
 #include <fstream>
@@ -13,19 +13,6 @@
 
 using namespace toyc;
 using namespace std;
-
-void run_file(const char *src, const char *dest) {
-  ifstream file(src);
-  if (!file.is_open()) {
-    cerr << "Failed to open file '" << src << "'\n";
-    exit(-1);
-  }
-  string input((std::istreambuf_iterator<char>(file)),
-               std::istreambuf_iterator<char>());
-  file.close();
-  Interpreter interpreter;
-  interpreter.compile(input, dest);
-}
 
 void run_prompt() {
   string input;
@@ -57,7 +44,7 @@ void run_prompt() {
         editor.setPrompt(PROMPT);
         input += line;
 
-        interpreter.compile(input, "a.ll");
+        interpreter.compile(input);
 
         /// clear buffer
         input = "";
@@ -67,15 +54,10 @@ void run_prompt() {
 }
 
 int main(int argc, const char **argv) {
-  if (argc > 3) {
+  if (argc > 2) {
     cerr << "Usage: toyc <src> <bytcode>\n";
     exit(-1);
-  } else if (argc == 3) {
-    run_file(argv[1], argv[2]);
-  } else if (argc == 2) {
-    run_file(argv[1], "a.ll");
-  } else {
-    run_prompt();
   }
+  run_prompt();
   return 0;
 }

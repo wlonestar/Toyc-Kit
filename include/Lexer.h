@@ -66,17 +66,7 @@ private:
 
 private:
   bool isEnd() { return current >= input.size(); }
-  bool match(char expected) {
-    if (isEnd()) {
-      return false;
-    }
-    if (input.at(current) != expected) {
-      return false;
-    }
-    col++;
-    current++;
-    return true;
-  }
+  bool match(char expected);
   bool isD(char c) { return (c >= '0' && c <= '9'); }
   bool isNZ(char c) { return (c >= '1' && c <= '9'); }
   bool isL(char c) {
@@ -87,41 +77,17 @@ private:
   bool isCP(char c) { return c == 'u' || c == 'U' || c == 'L'; }
 
 private:
-  void forward(size_t steps) {
-    current += steps;
-    col += steps;
-  }
-  void backward(size_t steps) {
-    current -= steps;
-    col -= steps;
-  }
+  void forward(size_t steps);
+  void backward(size_t steps);
 
-  char advance() {
-    col++;
-    return input.at(current++);
-  }
-  char peek() {
-    if (isEnd()) {
-      return '\0';
-    }
-    return input.at(current);
-  }
+  char advance();
+  char peek();
 
 public:
-  char peekNext() {
-    if (current + 1 >= input.size()) {
-      return '\0';
-    }
-    return input.at(current + 1);
-  }
+  char peekNext();
 
 private:
-  char previous() {
-    if (current - 1 < 0) {
-      return '\0';
-    }
-    return input.at(current - 1);
-  }
+  char previous();
 
 private:
   Token makeToken(TokenType type) {
@@ -142,19 +108,7 @@ private:
 public:
   Lexer() : input(""), start(0), current(0), line(1), col(0) {}
 
-  void addInput(std::string &_input) {
-    if (input.size() == 0) {
-      input = _input;
-    } else {
-      size_t before = input.size();
-      input = input + '\n' + _input;
-      /// reset column cursor
-      current = before + 1;
-      line++;
-      col = 0;
-    }
-  }
-
+  void addInput(std::string &_input);
   std::string getInput() { return input; }
 
   Token scanToken();

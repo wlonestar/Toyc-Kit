@@ -18,13 +18,19 @@ static std::string MULTI_PROMPT = "..... ";
 class LineEditor {
 private:
   std::string _prompt;
+  size_t _size;
 
 public:
-  LineEditor(std::string &str) : _prompt(str) {}
+  LineEditor(std::string &str) : _prompt(str), _size(0) {}
+  ~LineEditor() { clearHistory(); }
 
   void setPrompt(std::string &prompt) { _prompt = prompt; }
   std::string readLine() { return std::string(readline(_prompt.c_str())); }
-  void addHistory(std::string &str) { add_history(str.c_str()); }
+  void addHistory(std::string &str) {
+    add_history(str.c_str());
+    _size++;
+  }
+  void clearHistory() { remove_history(_size); }
 };
 
 static void trim(std::string &str) {
