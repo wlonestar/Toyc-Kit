@@ -1,0 +1,15 @@
+i64 add(i64 x, i64 y) {
+  return x + y;  
+}
+
+f64 mul(f64 x, f64 y) {
+  return x * y;
+}
+
+i64 main() {
+  i64 a = 1;
+  i64 b = 2;
+  i64 c = add(a, b);
+  f64 d = mul(a, b);
+  return 0;
+}
