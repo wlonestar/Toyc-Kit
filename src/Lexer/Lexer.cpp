@@ -109,7 +109,6 @@ void Lexer::skipMutliComment() {
   advance();
 }
 
-/// TODO: support (u8|u|U|L) prefix
 Token Lexer::scanString() {
   while (peek() != '"' && !isEnd()) {
     if (peek() == '\n') {
@@ -256,7 +255,6 @@ Token Lexer::scanNumber() {
       return makeToken(FLOATING);
     }
   } else if (isCP(previous())) {
-    /// TODO: failed to support all C11-style CharacterLiteral
     iter = std::sregex_iterator(_str.begin(), _str.end(), int4);
     if (iter != end) {
       forward(iter->str().size() - 1);

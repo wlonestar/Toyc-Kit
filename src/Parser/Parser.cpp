@@ -185,7 +185,6 @@ std::unique_ptr<Expr> CompilerParser::parseIntegerLiteral() {
     value_str.erase(0, 1);
     value = parseIntegerSuffix(value_str, 8);
   } else if (value_str.starts_with("'")) {
-    /// TODO: not support escape sequence yet
     value_str.erase(0, 1); // remove leading '
     value_str.pop_back();  // remove suffix '
     int value = value_str[0];
@@ -237,7 +236,6 @@ std::unique_ptr<Expr> CompilerParser::parsePrimaryExpression() {
             fstr("implicit declaration of function '{}' is invalid", name));
       }
 
-      /// TODO: create FunctionDecl reference, need to be improved
       std::string funcName = name;
       std::string retType = funcTable[name].first;
       std::vector<std::unique_ptr<ParmVarDecl>> params;
@@ -431,7 +429,6 @@ std::unique_ptr<Stmt> CompilerParser::parseIterationStatement() {
     if (check({I64, F64})) {
       init = parseDeclarationStatement();
     } else {
-      // init = parseExpressionStatement();
       throwParserException("not support expression statement now!");
     }
     auto cond = parseExpression();
@@ -439,7 +436,7 @@ std::unique_ptr<Stmt> CompilerParser::parseIterationStatement() {
     auto update = parseExpression();
     consume(RP, "expect ')'");
     auto body = parseStatement();
-    /// TODO: definition inside for-stmt should be moved when exited for-body
+
     auto _init = dynamic_cast<DeclStmt *>(init.get());
     varTable.erase(_init->decl->getName());
     return std::make_unique<ForStmt>(std::make_unique<DeclStmt>(_init),

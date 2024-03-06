@@ -382,7 +382,6 @@ llvm::Value *CompilerCodegenVisitor::codegen(const IfStmt &stmt) {
   return pn;
 }
 
-/// TODO: return inst inside the body
 llvm::Value *CompilerCodegenVisitor::codegen(const WhileStmt &stmt) {
   llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
   llvm::Type *retTy = parentFunc->getReturnType();
@@ -459,6 +458,7 @@ llvm::Value *CompilerCodegenVisitor::codegen(const ForStmt &stmt) {
 
   /// exit
   builder->SetInsertPoint(exitB);
+  varEnv.erase(stmt.init->decl->getName());
   return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
 }
 

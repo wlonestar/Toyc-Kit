@@ -4,24 +4,22 @@ i64 fibonacci(i64 val) {
   i64 pp;
   i64 p = 0;
   i64 c = 1;
-  i64 i = 0;
-  while (i < val) {
+  for (i64 i = 0; i < val; i = i + 1) {
     pp = p;
     p = c;
     c = pp + p;
-    i = i + 1;
   }
   return c;
 }
 
 i64 main() {
+  for (i64 a = 0; a <= 91; a = a + 1) {
+    printI64(fibonacci(a));
+  }
   i64 a = 0;
   while (a <= 91) {
     printI64(fibonacci(a));
     a = a + 1;
-  }
-  for (i64 i = 0; i <= 91; i = i + 1) {
-    printI64(fibonacci(i));
   }
   return 0;
 }
