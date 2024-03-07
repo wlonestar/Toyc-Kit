@@ -184,19 +184,50 @@ llvm::Value *IRCodegenVisitor::codegen(const CallExpr &expr) {
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const UnaryOperator &expr) {
-  auto *r = expr.right->accept(*this);
-  if (r == nullptr) {
+  auto *e = expr.expr->accept(*this);
+  if (e == nullptr) {
     throw CodeGenException("[UnaryOperator] the operand is null");
   }
+
+  /// prepare for INC_OP and DEC_OP
+  llvm::Value *oneVal;
+  if (expr.type == "i64") {
+    oneVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1);
+  } else {
+    oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
+  }
+  llvm::Value *var;
+  if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
+    var = varEnv[_left->decl->getName()];
+  }
+
   switch (expr.op.type) {
   case NOT:
-    return builder->CreateNot(r);
+    return builder->CreateNot(e);
   case SUB:
     if (expr.type == "i64") {
-      return builder->CreateNeg(r);
+      return builder->CreateNeg(e);
     } else {
-      return builder->CreateFNeg(r);
+      return builder->CreateFNeg(e);
     }
+  case INC_OP: {
+    llvm::Value *updated;
+    if (expr.type == "i64") {
+      updated = builder->CreateAdd(e, oneVal);
+    } else {
+      updated = builder->CreateFAdd(e, oneVal);
+    }
+    return builder->CreateStore(updated, var);
+  }
+  case DEC_OP: {
+    llvm::Value *updated;
+    if (expr.type == "i64") {
+      updated = builder->CreateSub(e, oneVal);
+    } else {
+      updated = builder->CreateFSub(e, oneVal);
+    }
+    return builder->CreateStore(updated, var);
+  }
   default:
     throw CodeGenException(fstr(
         "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));

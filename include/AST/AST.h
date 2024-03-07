@@ -148,13 +148,20 @@ struct CallExpr : public Expr {
             std::string _p = "") override;
 };
 
+enum UnarySide {
+  PREFIX,
+  POSTFIX,
+};
+
 struct UnaryOperator : public Expr {
   Token op;
-  std::unique_ptr<Expr> right;
+  std::unique_ptr<Expr> expr;
   std::string type;
+  UnarySide side;
 
-  UnaryOperator(Token _op, std::unique_ptr<Expr> _right, std::string &&_type)
-      : op(_op), right(std::move(_right)), type(std::move(_type)) {}
+  UnaryOperator(Token _op, std::unique_ptr<Expr> _expr, std::string &&_type,
+                UnarySide _side)
+      : op(_op), expr(std::move(_expr)), type(std::move(_type)), side(_side) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;

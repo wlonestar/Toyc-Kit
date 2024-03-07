@@ -285,8 +285,13 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
       } while (match(COMMA));
     }
     consume(RP, "expect ')' after arguments");
-
     return std::make_unique<CallExpr>(std::move(func), std::move(args));
+  }
+  if (match({INC_OP, DEC_OP})) {
+    auto op = previous();
+    auto type = checkUnaryOperatorType(op.type, expr.get());
+    return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
+                                           POSTFIX);
   }
   return expr;
 }
@@ -294,10 +299,10 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
 std::unique_ptr<Expr> Parser::parseUnaryExpression() {
   if (match({ADD, NOT, SUB})) {
     auto op = previous();
-    auto right = parseUnaryExpression();
-    auto type = checkUnaryOperatorType(op.type, right.get());
-    return std::make_unique<UnaryOperator>(op, std::move(right),
-                                           std::move(type));
+    auto expr = parseUnaryExpression();
+    auto type = checkUnaryOperatorType(op.type, expr.get());
+    return std::make_unique<UnaryOperator>(op, std::move(expr),
+                                           std::move(type), PREFIX);
   }
   return parsePostfixExpression();
 }

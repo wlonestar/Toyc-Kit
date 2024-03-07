@@ -109,9 +109,11 @@ void CallExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
 
 void UnaryOperator::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   printASTLeader(os, _d, _s, _p);
-  os << fstr("{} '{}'\n", AST_STMT("UnaryOperator"), op.value);
+  os << fstr("{} {} {} '{}'\n", AST_STMT("UnaryOperator"),
+             AST_TYPE("'{}'", type), side == PREFIX ? "prefix" : "postfix",
+             op.value);
   std::string leader = attachLeafLeader(_s, _p);
-  right->dump(os, _d + 1, LEAF, leader);
+  expr->dump(os, _d + 1, LEAF, leader);
 }
 
 void BinaryOperator::dump(std::ostream &os, size_t _d, Side _s,

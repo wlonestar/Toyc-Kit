@@ -1,18 +1,23 @@
 extern void printI64(i64 val);
-extern void printF64(f64 val);
+extern void println();
+extern void printSpace();
 
 void test(i64 a, i64 b) {
-  printI64(a + b);
+  printI64(a);
+  printSpace();
+  printI64(b);
+  println();
 }
 
 i64 main() {
-  for (i64 a = 0; a < 5; a = a + 1) {
-    for (i64 b = 5; b >= 0; b = b - 1) {
+  for (i64 a = 0; a < 5; a++) {
+    for (i64 b = 5; b >= 0; b--) {
       test(a, b);
     }
   }
-  for (i64 a = 0; a < 5; a = a + 1) {
+  for (i64 a = 0; a < 5; a++) {
     printI64(a);
+    printSpace();
   }
   return 0;
 }
