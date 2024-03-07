@@ -19,10 +19,13 @@ Toyc is a compiler frontend for a subset of the C language. It's designed for le
 
 ### Prerequisites
 
-Before using Toyc, make sure you have **Clang**, **LLVM** (version >= 15, recommended version 16), and **Boost** installed. On Debian or Ubuntu, you can install them with:
+Before using Toyc, make sure you have **CMake**, **Ninja**, **Clang**, **LLVM** (version >= 15, recommended version 16), and **Boost** installed. On Debian or Ubuntu, you can install them with:
 
 ```
-sudo apt install clang-16 llvm-16 llvm-16-dev libboost1.81-all-dev
+sudo apt install \
+  cmake ninja-build \
+  clang-16 libclang-16-dev llvm-16 llvm-16-dev \
+  libboost1.81-all-dev libzstd-dev libfmt-dev libreadline-dev
 ```
 
 ### Installation
@@ -39,7 +42,7 @@ git clone https:://github.com/wlonestar/toyc.git
 make TYPE=Release # or just type make
 ```
 
-3. (**Optional**) Compile essential runtime (if you want to see some print out):
+3. Compile essential runtime (if you want to see some print out):
 
 ```
 make runtime
