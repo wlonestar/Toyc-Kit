@@ -14,24 +14,12 @@
 #include <llvm/ADT/APInt.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/StandardInstrumentations.h>
 #include <llvm/Support/Error.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Target/TargetMachine.h>
-#include <llvm/Transforms/InstCombine/InstCombine.h>
-#include <llvm/Transforms/Scalar.h>
-#include <llvm/Transforms/Scalar/GVN.h>
-#include <llvm/Transforms/Scalar/Reassociate.h>
-#include <llvm/Transforms/Scalar/SimplifyCFG.h>
-
-#include <map>
 
 namespace toyc {
 
@@ -39,7 +27,7 @@ namespace toyc {
  * @brief Codegen Visitor for interpreter
  *
  */
-class InterpreterCodegenVisitor : public CompilerCodegenVisitor {
+class InterpreterCodegenVisitor : public IRCodegenVisitor {
 protected:
   std::unique_ptr<ToycJIT> JIT;
   std::unique_ptr<llvm::FunctionPassManager> FPM;

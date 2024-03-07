@@ -1,25 +1,27 @@
+extern void println();
+extern void printSpace();
 extern void printI64(i64 val);
 
-i64 fibonacci(i64 val) {
-  i64 pp;
-  i64 p = 0;
-  i64 c = 1;
-  for (i64 i = 0; i < val; i = i + 1) {
-    pp = p;
-    p = c;
-    c = pp + p;
+i64 fibonacci(i64 n) {
+  if (n <= 1) {
+    return n;
+  } else {
+    i64 fib = 1;
+    i64 prev = 1;
+    for (i64 i = 2; i < n; i = i + 1) {
+      i64 tmp = fib;
+      fib = fib + prev;
+      prev = tmp;
+    }
+    return fib;
   }
-  return c;
 }
 
 i64 main() {
-  for (i64 a = 0; a <= 91; a = a + 1) {
+  for (i64 a = 0; a < 20; a = a + 1) {
     printI64(fibonacci(a));
+    printSpace();
   }
-  i64 a = 0;
-  while (a <= 91) {
-    printI64(fibonacci(a));
-    a = a + 1;
-  }
+  println();
   return 0;
 }

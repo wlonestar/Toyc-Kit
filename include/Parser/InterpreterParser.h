@@ -22,9 +22,9 @@
 
 namespace toyc {
 
-class InterpreterParser : public CompilerParser {
+class InterpreterParser : public Parser {
 public:
-  InterpreterParser() : CompilerParser() {}
+  InterpreterParser() : Parser() {}
 
   virtual std::unique_ptr<Decl>
   parseVariableDeclaration(std::string &type, std::string &name,

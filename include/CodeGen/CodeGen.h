@@ -33,7 +33,7 @@ public:
  * @brief Codegen Visitor for compiler
  *
  */
-class CompilerCodegenVisitor : public ASTVisitor {
+class IRCodegenVisitor : public ASTVisitor {
 protected:
   std::unique_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::Module> module;
@@ -47,7 +47,7 @@ protected:
   void clearVarEnv() { varEnv.clear(); }
 
 public:
-  CompilerCodegenVisitor();
+  IRCodegenVisitor();
 
   virtual void dump(llvm::raw_ostream &os = llvm::errs());
   virtual bool verifyModule(llvm::raw_ostream &os = llvm::errs());

@@ -19,7 +19,7 @@ Toyc is a compiler frontend for a subset of the C language. It's designed for le
 
 ### Prerequisites
 
-Before using Toyc, make sure you have Clang, LLVM (version >= 15, recommended version 16), and Boost installed. On Debian or Ubuntu, you can install them with:
+Before using Toyc, make sure you have **Clang**, **LLVM** (version >= 15, recommended version 16), and **Boost** installed. On Debian or Ubuntu, you can install them with:
 
 ```
 sudo apt install clang-16 llvm-16 llvm-16-dev libboost1.81-all-dev
@@ -55,6 +55,8 @@ To compile examples, use the `scripts/toycc.sh` script:
 ./scripts/toycc.sh example/simple.toyc
 ```
 
+![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-07_14-13-05.jpg)
+
 If compiled in **Release** mode, bytecode and executable files (a.ll and a.exe) will be generated. In **Debug** mode, colored AST tree dump and generated IR will be shown.
 
 ## Contributing
@@ -73,5 +75,5 @@ Thank you for considering contributing to Toyc!
 
 Here are some ideas for future improvements and features:
 
-- **Optimization**: Implement optimization passes to improve generated code efficiency.
 - **REPL**: Expanding project to include an interpreter for toyc along with a Read-Eval-Print Loop (REPL).
+- **Optimization**: Implement optimization passes to improve generated code efficiency.

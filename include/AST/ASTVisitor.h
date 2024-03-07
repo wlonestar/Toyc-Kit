@@ -9,8 +9,6 @@
 
 #include <llvm/IR/Value.h>
 
-#include <map>
-
 namespace toyc {
 
 class ASTVisitor {

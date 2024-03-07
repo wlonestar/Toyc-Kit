@@ -99,10 +99,12 @@ void CallExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   } else {
     callee->dump(os, _d + 1, LEAF, leader);
   }
-  for (size_t i = 0; i < args.size() - 1; i++) {
-    args[i]->dump(os, _d + 1, INTERNAL, leader + "|");
+  if (args.size() != 0) {
+    for (size_t i = 0; i < args.size() - 1; i++) {
+      args[i]->dump(os, _d + 1, INTERNAL, leader + "|");
+    }
+    args[args.size() - 1]->dump(os, _d + 1, LEAF, leader);
   }
-  args[args.size() - 1]->dump(os, _d + 1, LEAF, leader);
 }
 
 void UnaryOperator::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {

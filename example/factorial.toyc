@@ -1,3 +1,5 @@
+extern void println();
+extern void printSpace();
 extern void printI64(i64 val);
 
 i64 factorial(i64 val) {
@@ -10,12 +12,10 @@ i64 factorial(i64 val) {
 
 i64 main() {
   i64 a = 0;
-  while (a <= 20) {
+  while (a <= 10) {
     printI64(factorial(a));
+    printSpace();
     a = a + 1;
-  }
-  for (i64 i = 0; i <= 20; i = i + 1) {
-    printI64(factorial(i));
   }
   return 0;
 }

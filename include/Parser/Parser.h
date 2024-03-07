@@ -7,15 +7,10 @@
 
 #include <AST/AST.h>
 #include <Lexer/Lexer.h>
-#include <Lexer/Token.h>
-#include <Util.h>
 
 #include <cstddef>
 #include <exception>
 #include <initializer_list>
-#include <map>
-#include <memory>
-#include <string>
 #include <tuple>
 #include <vector>
 
@@ -43,7 +38,7 @@ public:
   const char *what() const noexcept override { return message.c_str(); }
 };
 
-class CompilerParser {
+class Parser {
 protected:
   Token current;
   Token prev;
@@ -130,7 +125,7 @@ protected:
   virtual std::unique_ptr<Decl> parseExternalDeclaration();
 
 public:
-  CompilerParser() : lexer(), current(), prev() {}
+  Parser() : lexer(), current(), prev() {}
 
   void addInput(std::string &_input) { lexer.addInput(_input); }
   std::string getInput() { return lexer.getInput(); }

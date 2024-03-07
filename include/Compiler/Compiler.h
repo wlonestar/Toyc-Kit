@@ -17,8 +17,8 @@ namespace toyc {
  */
 class Compiler {
 private:
-  CompilerParser parser;
-  CompilerCodegenVisitor visitor;
+  Parser parser;
+  IRCodegenVisitor visitor;
 
 private:
   bool readFrom(std::string &src, std::string &input);
