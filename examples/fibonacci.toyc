@@ -5,16 +5,15 @@ extern void printI64(i64 val);
 i64 fibonacci(i64 n) {
   if (n <= 1) {
     return n;
-  } else {
-    i64 fib = 1;
-    i64 prev = 1;
-    for (i64 i = 2; i < n; i = i + 1) {
-      i64 tmp = fib;
-      fib = fib + prev;
-      prev = tmp;
-    }
-    return fib;
+  } 
+  i64 fib = 1;
+  i64 prev = 1;
+  for (i64 i = 2; i < n; i = i + 1) {
+    i64 tmp = fib;
+    fib = fib + prev;
+    prev = tmp;
   }
+  return fib;
 }
 
 i64 main() {

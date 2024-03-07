@@ -4,17 +4,15 @@ extern void printF64(f64 val);
 i64 foo1(i64 a, i64 b) {
   if (a == b) {
     return 1;
-  } else {
-    return 2;
-  }
+  } 
+  return 2;
 }
 
 f64 foo2(f64 a, f64 b) {
   if (a == b) {
     return 1.1;
-  } else {
-    return 2.2;
   }
+  return 2.2;
 }
 
 void bar1() {}

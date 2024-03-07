@@ -5,9 +5,8 @@ extern void printI64(i64 val);
 i64 factorial(i64 val) {
   if (val == 1 || val == 0) {
     return 1;
-  } else {
-    return factorial(val - 1) * val;
   }
+  return factorial(val - 1) * val;
 }
 
 i64 main() {

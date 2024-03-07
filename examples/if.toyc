@@ -1,0 +1,26 @@
+extern void printI64ln(i64 n);
+
+void foo() {
+  if (1 == 2) {
+    i64 b = 2;
+  }
+  i64 a = 1;
+}
+
+i64 bar(i64 a) {
+  if (a == 1) {
+    return 1;
+  } else if (a == 2) {
+    return 2;
+  } else {
+    return a * a;
+  }
+}
+
+i64 main() {
+  foo();
+  for (i64 i = 1; i <= 5; i = i + 1) {
+    printI64ln(bar(i));
+  }
+  return 0;
+}

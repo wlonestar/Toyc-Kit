@@ -32,7 +32,3 @@ fi
 
 # run the executable
 ./"$exec"
-if [ $? -ne 0 ]; then
-  echo -e "${RED}error in running executable file${RET}"
-  exit 1
-fi

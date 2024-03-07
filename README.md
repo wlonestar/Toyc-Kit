@@ -55,10 +55,10 @@ You need have enough permission.
 To compile examples, use the `scripts/toycc.sh` script:
 
 ```
-./scripts/toycc.sh example/simple.toyc
+./scripts/toycc.sh examples/simple.toyc
 ```
 
-![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-07_14-13-05.jpg)
+![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-07_21-04-24.jpg)
 
 If compiled in **Release** mode, bytecode and executable files (a.ll and a.exe) will be generated. In **Debug** mode, colored AST tree dump and generated IR will be shown.
 

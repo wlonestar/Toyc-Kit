@@ -65,7 +65,7 @@ void IRCodegenVisitor::printVarEnv() {
 IRCodegenVisitor::IRCodegenVisitor() {
   context = std::make_unique<llvm::LLVMContext>();
   builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*context));
-  module = std::make_unique<llvm::Module>("toyc jit", *context);
+  module = std::make_unique<llvm::Module>("toycc", *context);
   module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
@@ -336,49 +336,86 @@ llvm::Value *IRCodegenVisitor::codegen(const IfStmt &stmt) {
     }
   }
 
-  /// create basic blocks
-  llvm::BasicBlock *thenB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  llvm::BasicBlock *elseB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  llvm::BasicBlock *mergeB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  builder->CreateCondBr(condVal, thenB, elseB);
-
-  /// then block
-  builder->SetInsertPoint(thenB);
-  llvm::Value *thenVal = stmt.thenStmt->accept(*this);
-  if (thenVal == nullptr) {
-    thenVal = zeroVal;
-  }
-  if (thenVal->getType() == llvm::Type::getVoidTy(*context)) {
-    thenVal = zeroVal;
-  }
-  builder->CreateBr(mergeB);
-  thenB = builder->GetInsertBlock();
-
-  /// else block
-  parentFunc->insert(parentFunc->end(), elseB);
-  builder->SetInsertPoint(elseB);
-  llvm::Value *elseVal = nullptr;
   if (stmt.elseStmt != nullptr) {
+    /// create basic blocks
+    llvm::BasicBlock *thenB =
+        llvm::BasicBlock::Create(*context, "", parentFunc);
+    llvm::BasicBlock *elseB =
+        llvm::BasicBlock::Create(*context, "", parentFunc);
+    llvm::BasicBlock *mergeB =
+        llvm::BasicBlock::Create(*context, "", parentFunc);
+    builder->CreateCondBr(condVal, thenB, elseB);
+
+    /// then block
+    builder->SetInsertPoint(thenB);
+    llvm::Value *thenVal = stmt.thenStmt->accept(*this);
+    if (thenVal == nullptr ||
+        thenVal->getType() == llvm::Type::getVoidTy(*context)) {
+      thenVal = zeroVal;
+    }
+    builder->CreateBr(mergeB);
+    thenB = builder->GetInsertBlock();
+
+    /// else block
+    parentFunc->insert(parentFunc->end(), elseB);
+    builder->SetInsertPoint(elseB);
+    llvm::Value *elseVal = nullptr;
     elseVal = stmt.elseStmt->accept(*this);
-    if (elseVal == nullptr) {
+    if (elseVal == nullptr ||
+        elseVal->getType() == llvm::Type::getVoidTy(*context)) {
       elseVal = oneVal;
     }
-  } else {
-    elseVal = oneVal;
-  }
-  if (elseVal->getType() == llvm::Type::getVoidTy(*context)) {
-    elseVal = oneVal;
-  }
-  builder->CreateBr(mergeB);
-  elseB = builder->GetInsertBlock();
+    builder->CreateBr(mergeB);
+    elseB = builder->GetInsertBlock();
 
-  /// merge block
-  parentFunc->insert(parentFunc->end(), mergeB);
-  builder->SetInsertPoint(mergeB);
-  llvm::PHINode *pn = builder->CreatePHI(retTy, 2);
-  pn->addIncoming(thenVal, thenB);
-  pn->addIncoming(elseVal, elseB);
-  return pn;
+    /// merge block
+    parentFunc->insert(parentFunc->end(), mergeB);
+    builder->SetInsertPoint(mergeB);
+    llvm::PHINode *pn = builder->CreatePHI(retTy, 2);
+    pn->addIncoming(thenVal, thenB);
+    pn->addIncoming(elseVal, elseB);
+    return pn;
+  } else {
+    /**
+     * if there is no else-stmt
+     */
+
+    /// create basic blocks
+    llvm::BasicBlock *thenB =
+        llvm::BasicBlock::Create(*context, "then", parentFunc);
+    llvm::BasicBlock *afterB =
+        llvm::BasicBlock::Create(*context, "after", parentFunc);
+    builder->CreateCondBr(condVal, thenB, afterB);
+
+    /// then block
+    builder->SetInsertPoint(thenB);
+    llvm::Value *thenVal = stmt.thenStmt->accept(*this);
+    if (thenVal == nullptr ||
+        thenVal->getType() == llvm::Type::getVoidTy(*context)) {
+      thenVal = zeroVal;
+    }
+
+    /// create return in if-stmt
+    if (parentFunc->getReturnType()->isVoidTy()) {
+      builder->CreateRetVoid();
+    } else {
+      /// if function does not have a terminator, create a return instruction
+      if (thenVal == nullptr ||
+          (thenVal != nullptr &&
+           thenVal->getType() == llvm::Type::getVoidTy(*context))) {
+        if (parentFunc->getReturnType() == llvm::Type::getInt64Ty(*context)) {
+          thenVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+        } else {
+          thenVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
+        }
+      }
+      builder->CreateRet(thenVal);
+    }
+
+    /// after block
+    builder->SetInsertPoint(afterB);
+    return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
+  }
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const WhileStmt &stmt) {
