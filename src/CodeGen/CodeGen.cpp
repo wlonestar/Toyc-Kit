@@ -307,6 +307,10 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
       return builder->CreateICmpSLT(l, r);
     case RA:
       return builder->CreateICmpSGT(l, r);
+    case LEFT_OP:
+      return builder->CreateShl(l, r);
+    case RIGHT_OP:
+      return builder->CreateAShr(l, r);
     default:
       break;
     }

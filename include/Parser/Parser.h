@@ -86,6 +86,9 @@ protected:
   std::string checkBinaryOperatorType(TokenType type,
                                       std::unique_ptr<Expr> &left,
                                       std::unique_ptr<Expr> &right);
+  std::string checkShiftOperatorType(TokenType type,
+                                      std::unique_ptr<Expr> &left,
+                                      std::unique_ptr<Expr> &right);
 
 protected:
   std::unique_ptr<Expr> parseIntegerLiteral();
@@ -97,6 +100,7 @@ protected:
   std::unique_ptr<Expr> parseCastExpression();
   std::unique_ptr<Expr> parseMultiplicativeExpression();
   std::unique_ptr<Expr> parseAdditiveExpression();
+  std::unique_ptr<Expr> parseShiftExpression();
   std::unique_ptr<Expr> parseRelationalExpression();
   std::unique_ptr<Expr> parseEqualityExpression();
   std::unique_ptr<Expr> parseLogicalAndExpression();

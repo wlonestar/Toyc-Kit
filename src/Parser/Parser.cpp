@@ -172,6 +172,17 @@ std::string Parser::checkBinaryOperatorType(TokenType type,
   return "i64";
 }
 
+std::string Parser::checkShiftOperatorType(TokenType type,
+                                           std::unique_ptr<Expr> &left,
+                                           std::unique_ptr<Expr> &right) {
+  if (left->getType() == "f64" || right->getType() == "f64") {
+    throwParserException(
+        fstr("invalid operands to binary expression ('{}' and '{}')",
+             left->getType(), right->getType()));
+  }
+  return "i64";
+}
+
 /**
  * parse Expr
  */
@@ -352,11 +363,23 @@ std::unique_ptr<Expr> Parser::parseAdditiveExpression() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parseRelationalExpression() {
+std::unique_ptr<Expr> Parser::parseShiftExpression() {
   auto expr = parseAdditiveExpression();
-  while (match({LE_OP, GE_OP, LA, RA})) {
+  while (match({LEFT_OP, RIGHT_OP})) {
     auto op = previous();
     auto right = parseAdditiveExpression();
+    auto type = checkShiftOperatorType(op.type, expr, right);
+    expr = std::make_unique<BinaryOperator>(op, std::move(expr),
+                                            std::move(right), std::move(type));
+  }
+  return expr;
+}
+
+std::unique_ptr<Expr> Parser::parseRelationalExpression() {
+  auto expr = parseShiftExpression();
+  while (match({LE_OP, GE_OP, LA, RA})) {
+    auto op = previous();
+    auto right = parseShiftExpression();
     auto type = checkBinaryOperatorType(op.type, expr, right);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));

@@ -9,5 +9,9 @@ i64 main() {
   printI64ln(b);
   f64 c = (i64) 1.132e2;
   printF64ln(c);
+  i64 x = -1024 << 1;
+  printI64ln(x);
+  x = x >> 2;
+  printI64ln(x);
   return 0;
 }
