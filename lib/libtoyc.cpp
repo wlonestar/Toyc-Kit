@@ -5,12 +5,12 @@
 #define i64 int64_t
 #define f64 double
 
-extern "C" void println() { printf("\n"); }
-extern "C" void printSpace() { printf(" "); }
-extern "C" void printI64(i64 x) { printf("%ld", x); }
-extern "C" void printI64ln(i64 x) { printf("%ld\n", x); }
-extern "C" void printF64(f64 x) { printf("%lf", x); }
-extern "C" void printF64ln(f64 x) { printf("%lf\n", x); }
+extern "C" i64 println() { return printf("\n"); }
+extern "C" i64 printspace() { return printf(" "); }
+extern "C" i64 printi64(i64 x) { return printf("%ld", x); }
+extern "C" i64 printi64ln(i64 x) { return printf("%ld\n", x); }
+extern "C" i64 printf64(f64 x) { return printf("%lf", x); }
+extern "C" i64 printf64ln(f64 x) { return printf("%lf\n", x); }
 
 extern "C" i64 _absi(i64 x) { return std::abs(x); }
 extern "C" f64 _absf(f64 x) { return std::abs(x); }

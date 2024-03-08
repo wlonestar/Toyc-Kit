@@ -1,8 +1,6 @@
-extern void println();
-extern void printSpace();
-
-extern void printI64(i64 val);
-extern void printI64ln(i64 val);
-
-extern void printF64(f64 val);
-extern void printF64ln(f64 val);
+extern i64 println();
+extern i64 printspace();
+extern i64 printi64(i64 x);
+extern i64 printi64ln(i64 x);
+extern i64 printf64(f64 x);
+extern i64 printf64ln(f64 x);

@@ -3,12 +3,12 @@
 
 i64 main() {
   i64 a = _absi(-12);
-  printI64ln(a);
+  printi64ln(a);
   f64 b = _absf(-12.12);
-  printF64ln(b);
-  
+  printf64ln(b);
   f64 c = _sqrt(b);
-  printF64ln(c);
-
+  printf64ln(c);
+  f64 d = _sin(a);
+  printf64ln(d);
   return 0;
 }

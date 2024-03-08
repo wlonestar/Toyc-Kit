@@ -4,6 +4,8 @@ CLANG = /usr/bin/clang-16
 CLANG++ = /usr/bin/clang++-16
 
 BUILD_DIR = build
+LIB_DIR = lib
+LIB_NAME = libtoyc
 
 .DEFAULT_GOAL := build
 
@@ -18,16 +20,13 @@ config:
 build: config
 	@ninja -C $(BUILD_DIR)
 
-LIB_DIR = lib
-LIB_NAME = libtoyc
-
 # compile toyc runtime (shared object)
 runtime:
 	@$(CLANG++) -fPIC -shared -lm -o $(LIB_DIR)/$(LIB_NAME).so $(LIB_DIR)/$(LIB_NAME).cpp
 	@sudo cp $(LIB_DIR)/$(LIB_NAME).so /usr/local/lib
 	@sudo ldconfig
 
-.PHONY: clean test
+.PHONY: clean
 
 clean:
 	@rm -rf $(BUILD_DIR)

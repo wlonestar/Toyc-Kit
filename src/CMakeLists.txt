@@ -16,7 +16,7 @@ add_executable(toycc
 target_compile_definitions(toycc PRIVATE
   $<$<CONFIG:Debug>:DEBUG>
 )
-target_link_libraries(toycc
+target_link_libraries(toycc PRIVATE
   fmt
   readline
   ${LLVM_LIBS_C}

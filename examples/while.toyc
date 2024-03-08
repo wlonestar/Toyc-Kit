@@ -1,7 +1,8 @@
 #include std
 
 void test(i64 a, i64 b) {
-  printI64(a + b);
+  printi64(a + b);
+  printspace();
 }
 
 i64 main() {
@@ -14,6 +15,6 @@ i64 main() {
     }
     a = a + 1;
   }
-  printI64(a);
+  printi64(a);
   return 0;
 }

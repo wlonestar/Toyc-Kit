@@ -1,9 +1,9 @@
 #include std
 
 void test(i64 a, i64 b) {
-  printI64(a);
-  printSpace();
-  printI64(b);
+  printi64(a);
+  printspace();
+  printi64(b);
   println();
 }
 
@@ -14,8 +14,8 @@ i64 main() {
     }
   }
   for (i64 a = 0; a < 5; ++a) {
-    printI64(a);
-    printSpace();
+    printi64(a);
+    printspace();
   }
   return 0;
 }

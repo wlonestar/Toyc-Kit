@@ -1,7 +1,8 @@
-/.cache
-/build
-/demo
 *.ll
 *.exe
 *.o
 *.out
+/.cache
+/build
+/demo
+/lib/*.so

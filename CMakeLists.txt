@@ -12,9 +12,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 # set(CMAKE_BUILD_TYPE Debug) # for debugging
 
-# copy standard library
-file(COPY ${CMAKE_SOURCE_DIR}/lib/include DESTINATION ${CMAKE_BINARY_DIR})
-
 # set compile flags
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
   if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -39,5 +36,6 @@ separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
 include_directories(include)
+add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(test)

@@ -20,7 +20,7 @@ i64 bar(i64 a) {
 i64 main() {
   foo();
   for (i64 i = 1; i <= 5; i = i + 1) {
-    printI64ln(bar(i));
+    printi64ln(bar(i));
   }
   return 0;
 }

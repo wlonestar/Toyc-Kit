@@ -24,7 +24,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # compile bytecode to executable
-$CLANG -o "$exec" "$bc" -L ./lib/ -ltoyc
+$CLANG -o "$exec" "$bc" -ltoyc
 if [ $? -ne 0 ]; then
   echo -e "${RED}error in compiling bytecode${RET}"
   exit 1
