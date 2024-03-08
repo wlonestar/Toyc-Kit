@@ -1,0 +1,14 @@
+#include math
+#include std
+
+i64 main() {
+  i64 a = _absi(-12);
+  printI64ln(a);
+  f64 b = _absf(-12.12);
+  printF64ln(b);
+  
+  f64 c = _sqrt(b);
+  printF64ln(c);
+
+  return 0;
+}

@@ -6,6 +6,7 @@ llvm_map_components_to_libnames(LLVM_LIBS_C
 add_executable(toycc
   Compiler/toycc.cpp
   Compiler/Compiler.cpp
+  Preprocessor/Preprocessor.cpp
   Parser/Parser.cpp
   CodeGen/CodeGen.cpp
   Lexer/Lexer.cpp

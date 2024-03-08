@@ -1,6 +1,4 @@
-extern void printI64(i64 val);
-extern void println();
-extern void printSpace();
+#include std
 
 void test(i64 a, i64 b) {
   printI64(a);

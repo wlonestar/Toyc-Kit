@@ -1,6 +1,7 @@
 //! compiler class implementation
 
 #include <Compiler/Compiler.h>
+#include <Preprocessor/Preprocessor.h>
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
@@ -42,6 +43,15 @@ void Compiler::compile(std::string &src, std::string &dest) {
   std::string input;
   if (readFrom(src, input) == false) {
     std::cerr << fstr("failed to open file '{}'\n", src);
+    exit(EXIT_FAILURE);
+  }
+
+  /// preprocessor
+  preprocessor.addInput(input);
+  try {
+    input = preprocessor.process();
+  } catch (PreprocessorException e) {
+    std::cerr << e.what() << "\n";
     exit(EXIT_FAILURE);
   }
 

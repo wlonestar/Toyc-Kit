@@ -1,4 +1,4 @@
-extern void printI64ln(i64 n);
+#include std
 
 void foo() {
   if (1 == 2) {

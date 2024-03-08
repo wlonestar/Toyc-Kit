@@ -1,5 +1,4 @@
-extern void printI64(i64 val);
-extern void printF64(f64 val);
+#include std
 
 void test(i64 a, i64 b) {
   printI64(a + b);

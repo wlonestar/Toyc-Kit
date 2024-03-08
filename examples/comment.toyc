@@ -1,0 +1,11 @@
+#include std
+
+// this is a single line comment
+
+/**
+ * this is a multi line comment
+ */
+i64 main() {
+  i64 a = 1; // variable a
+  return 0;
+}

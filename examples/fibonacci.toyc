@@ -1,6 +1,4 @@
-extern void println();
-extern void printSpace();
-extern void printI64(i64 val);
+#include std
 
 i64 fibonacci(i64 n) {
   if (n <= 1) {

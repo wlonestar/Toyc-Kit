@@ -1,5 +1,4 @@
-extern void printI64ln(i64 x);
-extern void printF64ln(f64 x);
+#include std
 
 i64 main() {
   i64 a = 0;

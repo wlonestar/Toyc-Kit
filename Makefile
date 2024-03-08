@@ -23,7 +23,7 @@ LIB_NAME = libtoyc
 
 # compile toyc runtime (shared object)
 runtime:
-	@$(CLANG++) -fPIC -shared -o $(LIB_DIR)/$(LIB_NAME).so $(LIB_DIR)/$(LIB_NAME).cpp
+	@$(CLANG++) -fPIC -shared -lm -o $(LIB_DIR)/$(LIB_NAME).so $(LIB_DIR)/$(LIB_NAME).cpp
 	@sudo cp $(LIB_DIR)/$(LIB_NAME).so /usr/local/lib
 	@sudo ldconfig
 

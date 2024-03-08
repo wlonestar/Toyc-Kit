@@ -5,8 +5,8 @@
 using namespace toyc;
 using namespace std;
 
-void run_file(std::string src, std::string dest) {
-  Compiler compiler;
+void run_file(const char *arg0, std::string src, std::string dest) {
+  Compiler compiler((char *)arg0);
   compiler.compile(src, dest);
 }
 
@@ -16,9 +16,9 @@ int main(int argc, const char **argv) {
     exit(-1);
   }
   if (argc == 3) {
-    run_file(argv[1], argv[2]);
+    run_file(argv[0], argv[1], argv[2]);
   } else if (argc == 2) {
-    run_file(argv[1], "a.ll");
+    run_file(argv[0], argv[1], "a.ll");
   }
   return 0;
 }
