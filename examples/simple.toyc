@@ -1,15 +1,14 @@
-i64 add(i64 x, i64 y) {
-  return x + y;  
-}
-
-f64 mul(f64 x, f64 y) {
-  return x * y;
-}
+extern void printI64ln(i64 x);
+extern void printF64ln(f64 x);
 
 i64 main() {
-  i64 a = 1;
-  i64 b = 2;
-  i64 c = add(a, b);
-  f64 d = mul(a, b);
+  i64 a = 0;
+  a = a++ + a++;
+  printI64ln(a);
+  i64 b = 0;
+  b = ++b + ++b;
+  printI64ln(b);
+  f64 c = 1.e11;
+  printF64ln(c);
   return 0;
 }

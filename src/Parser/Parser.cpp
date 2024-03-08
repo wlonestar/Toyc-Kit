@@ -31,6 +31,7 @@ Token Parser::advance() {
     }
     throwParserException("error at parse");
   }
+  // debug("prev:{}, curent:{}", prev.toString(), current.toString());
   return prev;
 }
 
@@ -297,7 +298,7 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
 }
 
 std::unique_ptr<Expr> Parser::parseUnaryExpression() {
-  if (match({ADD, NOT, SUB})) {
+  if (match({ADD, NOT, SUB, INC_OP, DEC_OP})) {
     auto op = previous();
     auto expr = parseUnaryExpression();
     auto type = checkUnaryOperatorType(op.type, expr.get());

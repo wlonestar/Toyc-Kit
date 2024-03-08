@@ -11,11 +11,11 @@ void test(i64 a, i64 b) {
 
 i64 main() {
   for (i64 a = 0; a < 5; a++) {
-    for (i64 b = 5; b >= 0; b--) {
+    for (i64 b = 5; b >= 0; --b) {
       test(a, b);
     }
   }
-  for (i64 a = 0; a < 5; a++) {
+  for (i64 a = 0; a < 5; ++a) {
     printI64(a);
     printSpace();
   }

@@ -21,30 +21,31 @@ target_link_libraries(toycc
   ${LLVM_LIBS_C}
 )
 
-llvm_map_components_to_libnames(LLVM_LIBS_I
-  support
-  core
-  orcjit
-  native
-  # all
-)
+# llvm_map_components_to_libnames(LLVM_LIBS_I
+#   support
+#   core
+#   orcjit
+#   native
+#   # all
+# )
 
-add_executable(toyci
-  Interpreter/toyci.cpp
-  Interpreter/Interpreter.cpp
-  Parser/InterpreterParser.cpp
-  Parser/Parser.cpp
-  CodeGen/InterpreterCodeGen.cpp
-  CodeGen/CodeGen.cpp
-  Lexer/Lexer.cpp
-  AST/AST.cpp
-  AST/ASTPrint.cpp
-)
-target_compile_definitions(toyci PRIVATE
-  $<$<CONFIG:Debug>:DEBUG>
-)
-target_link_libraries(toyci
-  fmt
-  readline
-  ${LLVM_LIBS_I}
-)
+# not implemented!
+# add_executable(toyci
+#   Interpreter/toyci.cpp
+#   Interpreter/Interpreter.cpp
+#   Parser/InterpreterParser.cpp
+#   Parser/Parser.cpp
+#   CodeGen/InterpreterCodeGen.cpp
+#   CodeGen/CodeGen.cpp
+#   Lexer/Lexer.cpp
+#   AST/AST.cpp
+#   AST/ASTPrint.cpp
+# )
+# target_compile_definitions(toyci PRIVATE
+#   $<$<CONFIG:Debug>:DEBUG>
+# )
+# target_link_libraries(toyci
+#   fmt
+#   readline
+#   ${LLVM_LIBS_I}
+# )

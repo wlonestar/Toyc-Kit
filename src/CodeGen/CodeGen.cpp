@@ -125,26 +125,24 @@ llvm::Value *IRCodegenVisitor::codegen(const FloatingLiteral &expr) {
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const DeclRefExpr &expr) {
-  auto *id = varEnv[expr.decl->getName()];
+  std::string varName = expr.decl->getName();
+  auto *id = varEnv[varName];
   if (id != nullptr) {
     auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
-      throw CodeGenException(
-          fstr("identifier '{}' not load", expr.decl->getName()));
+      throw CodeGenException(fstr("[1] identifier '{}' not load", varName));
     }
     return idVal;
   }
-  auto *gid = globalVarEnv[expr.decl->getName()];
+  auto *gid = globalVarEnv[varName];
   if (gid != nullptr) {
     auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
-      throw CodeGenException(
-          fstr("identifier '{}' not load", expr.decl->getName()));
+      throw CodeGenException(fstr("[2] identifier '{}' not load", varName));
     }
     return idVal;
   }
-  throw CodeGenException(
-      fstr("identifier '{}' not found", expr.decl->getName()));
+  throw CodeGenException(fstr("[3] identifier '{}' not found", varName));
 }
 
 llvm::Value *IRCodegenVisitor::codegen(const ImplicitCastExpr &expr) {
@@ -217,7 +215,12 @@ llvm::Value *IRCodegenVisitor::codegen(const UnaryOperator &expr) {
     } else {
       updated = builder->CreateFAdd(e, oneVal);
     }
-    return builder->CreateStore(updated, var);
+    builder->CreateStore(updated, var);
+    if (expr.side == POSTFIX) {
+      return e;
+    } else {
+      return updated;
+    }
   }
   case DEC_OP: {
     llvm::Value *updated;
@@ -226,7 +229,12 @@ llvm::Value *IRCodegenVisitor::codegen(const UnaryOperator &expr) {
     } else {
       updated = builder->CreateFSub(e, oneVal);
     }
-    return builder->CreateStore(updated, var);
+    builder->CreateStore(updated, var);
+    if (expr.side == POSTFIX) {
+      return e;
+    } else {
+      return updated;
+    }
   }
   default:
     throw CodeGenException(fstr(

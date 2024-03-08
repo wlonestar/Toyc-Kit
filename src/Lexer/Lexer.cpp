@@ -125,7 +125,16 @@ Token Lexer::scanString() {
 }
 
 Token Lexer::scanNumber() {
-  std::string _str = input.substr(current - 1);
+  /// firstly split the possible number literal from the whole input string
+  size_t tokSize = 0;
+  for (size_t i = current - 1; i < input.size(); i++, tokSize++) {
+    if (input[i] == ';' || input[i] == ' ' || input[i] == '\r' ||
+        input[i] == '\t' || input[i] == '\n' || input[i] == '\v' ||
+        input[i] == '\f') {
+      break;
+    }
+  }
+  std::string _str = input.substr(current - 1, tokSize);
   std::sregex_iterator iter, end;
 
   std::regex float6(R"(0[xX][a-fA-F0-9]+\.([pP][+-]?[0-9]+)(f|F|l|L)?)");
