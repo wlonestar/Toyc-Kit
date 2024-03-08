@@ -123,6 +123,22 @@ struct ImplicitCastExpr : public Expr {
             std::string _p = "") override;
 };
 
+struct CastExpr : public Expr {
+  std::string type;
+  std::unique_ptr<Expr> expr;
+
+  CastExpr(std::string &_type, std::unique_ptr<Expr> _expr)
+      : type(_type), expr(std::move(_expr)) {}
+
+  CastExpr(std::string &&_type, std::unique_ptr<Expr> _expr)
+      : type(std::move(_type)), expr(std::move(_expr)) {}
+
+  std::string getType() const override;
+  llvm::Value *accept(ASTVisitor &visitor) override;
+  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+            std::string _p = "") override;
+};
+
 struct ParenExpr : public Expr {
   std::unique_ptr<Expr> expr;
 

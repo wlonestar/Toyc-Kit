@@ -65,6 +65,7 @@ public:
   virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
   virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
+  virtual llvm::Value *codegen(const CastExpr &expr) override;
   virtual llvm::Value *codegen(const ParenExpr &expr) override;
   virtual llvm::Value *codegen(const CallExpr &expr) override;
   virtual llvm::Value *codegen(const UnaryOperator &expr) override;

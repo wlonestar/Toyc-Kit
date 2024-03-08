@@ -94,6 +94,7 @@ protected:
   std::unique_ptr<Expr> parsePrimaryExpression();
   std::unique_ptr<Expr> parsePostfixExpression();
   std::unique_ptr<Expr> parseUnaryExpression();
+  std::unique_ptr<Expr> parseCastExpression();
   std::unique_ptr<Expr> parseMultiplicativeExpression();
   std::unique_ptr<Expr> parseAdditiveExpression();
   std::unique_ptr<Expr> parseRelationalExpression();

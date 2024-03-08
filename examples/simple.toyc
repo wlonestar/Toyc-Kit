@@ -8,7 +8,7 @@ i64 main() {
   i64 b = 0;
   b = ++b + ++b;
   printI64ln(b);
-  f64 c = 1.e11;
+  f64 c = (i64) 1.132e2;
   printF64ln(c);
   return 0;
 }

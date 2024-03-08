@@ -83,6 +83,13 @@ void ImplicitCastExpr::dump(std::ostream &os, size_t _d, Side _s,
   expr->dump(os, _d + 1, LEAF, leader);
 }
 
+void CastExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
+  printASTLeader(os, _d, _s, _p);
+  os << fstr("{} {}\n", AST_STMT("CastExpr"), AST_TYPE("'{}'", type));
+  std::string leader = attachLeafLeader(_s, _p);
+  expr->dump(os, _d + 1, LEAF, leader);
+}
+
 void ParenExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   printASTLeader(os, _d, _s, _p);
   os << fstr("{} {}\n", AST_STMT("ParenExpr"), AST_TYPE("'{}'", getType()));

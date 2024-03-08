@@ -21,6 +21,7 @@ public:
   virtual llvm::Value *codegen(const FloatingLiteral &expr) = 0;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) = 0;
   virtual llvm::Value *codegen(const ImplicitCastExpr &expr) = 0;
+  virtual llvm::Value *codegen(const CastExpr &expr) = 0;
   virtual llvm::Value *codegen(const ParenExpr &expr) = 0;
   virtual llvm::Value *codegen(const CallExpr &expr) = 0;
   virtual llvm::Value *codegen(const UnaryOperator &expr) = 0;

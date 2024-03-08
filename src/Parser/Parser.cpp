@@ -298,21 +298,41 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
 }
 
 std::unique_ptr<Expr> Parser::parseUnaryExpression() {
-  if (match({ADD, NOT, SUB, INC_OP, DEC_OP})) {
+  if (match({ADD, NOT, SUB})) {
+    auto op = previous();
+    auto expr = parseCastExpression();
+    auto type = checkUnaryOperatorType(op.type, expr.get());
+    return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
+                                           PREFIX);
+  }
+  if (match({INC_OP, DEC_OP})) {
     auto op = previous();
     auto expr = parseUnaryExpression();
     auto type = checkUnaryOperatorType(op.type, expr.get());
-    return std::make_unique<UnaryOperator>(op, std::move(expr),
-                                           std::move(type), PREFIX);
+    return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
+                                           PREFIX);
   }
   return parsePostfixExpression();
 }
 
+std::unique_ptr<Expr> Parser::parseCastExpression() {
+  if (match(LP)) {
+    if (match({I64, F64})) {
+      auto type = previous().value;
+      consume(RP, "expected ')'");
+      auto expr = parseCastExpression();
+      return std::make_unique<CastExpr>(type, std::move(expr));
+    }
+    throwParserException("support cast expression only type 'i64' and 'f64'");
+  }
+  return parseUnaryExpression();
+}
+
 std::unique_ptr<Expr> Parser::parseMultiplicativeExpression() {
-  auto expr = parseUnaryExpression();
+  auto expr = parseCastExpression();
   while (match({MUL, DIV, MOD})) {
     auto op = previous();
-    auto right = parseUnaryExpression();
+    auto right = parseCastExpression();
     auto type = checkBinaryOperatorType(op.type, expr, right);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));

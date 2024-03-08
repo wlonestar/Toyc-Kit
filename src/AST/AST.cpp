@@ -45,6 +45,12 @@ llvm::Value *ImplicitCastExpr::accept(ASTVisitor &visitor) {
   return visitor.codegen(*this);
 }
 
+std::string CastExpr::getType() const { return type; }
+
+llvm::Value *CastExpr::accept(ASTVisitor &visitor) {
+  return visitor.codegen(*this);
+}
+
 std::string ParenExpr::getType() const { return expr->getType(); }
 
 llvm::Value *ParenExpr::accept(ASTVisitor &visitor) {
