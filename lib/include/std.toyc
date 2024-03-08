@@ -1,3 +1,4 @@
+// print functions
 extern i64 println();
 extern i64 printspace();
 extern i64 printi64(i64 x);

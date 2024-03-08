@@ -226,7 +226,7 @@ llvm::Value *IRCodegenVisitor::codegen(const UnaryOperator &expr) {
   case INC_OP: {
     llvm::Value *updated;
     if (expr.type == "i64") {
-      updated = builder->CreateAdd(e, oneVal);
+      updated = builder->CreateNSWAdd(e, oneVal);
     } else {
       updated = builder->CreateFAdd(e, oneVal);
     }
@@ -240,7 +240,7 @@ llvm::Value *IRCodegenVisitor::codegen(const UnaryOperator &expr) {
   case DEC_OP: {
     llvm::Value *updated;
     if (expr.type == "i64") {
-      updated = builder->CreateSub(e, oneVal);
+      updated = builder->CreateNSWSub(e, oneVal);
     } else {
       updated = builder->CreateFSub(e, oneVal);
     }
@@ -286,11 +286,11 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
   if (expr.type == "i64") {
     switch (opTy) {
     case ADD:
-      return builder->CreateAdd(l, r);
+      return builder->CreateNSWAdd(l, r);
     case SUB:
-      return builder->CreateSub(l, r);
+      return builder->CreateNSWSub(l, r);
     case MUL:
-      return builder->CreateMul(l, r);
+      return builder->CreateNSWMul(l, r);
     case DIV:
       return builder->CreateSDiv(l, r);
     case MOD:

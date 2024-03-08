@@ -1,0 +1,8 @@
+// generate random number
+extern void seed(i64 x);
+extern i64 random();
+
+// get current time stamps
+extern i64 get_time_ns();
+extern i64 get_time_us();
+extern i64 get_time_ms();

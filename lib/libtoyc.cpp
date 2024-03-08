@@ -1,10 +1,13 @@
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 
 #define i64 int64_t
 #define f64 double
 
+// std
 extern "C" i64 println() { return printf("\n"); }
 extern "C" i64 printspace() { return printf(" "); }
 extern "C" i64 printi64(i64 x) { return printf("%ld", x); }
@@ -12,6 +15,7 @@ extern "C" i64 printi64ln(i64 x) { return printf("%ld\n", x); }
 extern "C" i64 printf64(f64 x) { return printf("%lf", x); }
 extern "C" i64 printf64ln(f64 x) { return printf("%lf\n", x); }
 
+// math
 extern "C" i64 _absi(i64 x) { return std::abs(x); }
 extern "C" f64 _absf(f64 x) { return std::abs(x); }
 extern "C" f64 _acos(f64 x) { return std::acos(x); }
@@ -57,3 +61,24 @@ extern "C" f64 _round(f64 x) { return std::round(x); }
 extern "C" f64 _scalbln(f64 x, i64 y) { return std::scalbln(x, y); }
 extern "C" f64 _tgamma(f64 x) { return std::tgamma(x); }
 extern "C" f64 _trunc(f64 x) { return std::trunc(x); }
+
+// time
+extern "C" void seed(i64 x) { srand(x); }
+extern "C" i64 random() { return rand(); }
+extern "C" i64 get_time_ns() {
+  auto current = std::chrono::high_resolution_clock::now();
+  auto duration = current.time_since_epoch();
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+}
+extern "C" i64 get_time_us() {
+  auto current = std::chrono::high_resolution_clock::now();
+  auto duration = current.time_since_epoch();
+  return std::chrono::duration_cast<std::chrono::microseconds>(duration)
+      .count();
+}
+extern "C" i64 get_time_ms() {
+  auto current = std::chrono::high_resolution_clock::now();
+  auto duration = current.time_since_epoch();
+  return std::chrono::duration_cast<std::chrono::milliseconds>(duration)
+      .count();
+}

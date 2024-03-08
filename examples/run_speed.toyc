@@ -1,0 +1,21 @@
+#include time
+
+i64 fibonacci(i64 n) {
+  if (n <= 1) {
+    return n;
+  } 
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+i64 main() {
+  i64 n = 10000;
+  i64 sum = 0;
+  for (i64 i = 0; i < n; i++) {
+    i64 begin = get_time_ns();
+    i64 answer = fibonacci(25);
+    i64 end = get_time_ns();
+    sum = sum + end - begin;
+  }
+  i64 avg = sum / n;
+  return sum;
+}

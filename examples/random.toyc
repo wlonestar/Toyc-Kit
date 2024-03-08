@@ -1,0 +1,11 @@
+#include std
+#include time
+
+i64 main() {
+  seed(get_time_ms());
+  for (i64 i = 0; i < 100; i++) {
+    printi64(random() % 1000);
+    printspace();
+  }
+  return 0;
+}

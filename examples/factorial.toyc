@@ -9,7 +9,7 @@ i64 factorial(i64 val) {
 
 i64 main() {
   i64 a = 0;
-  while (a <= 10) {
+  while (a <= 20) {
     printi64(factorial(a));
     printspace();
     a = a + 1;
