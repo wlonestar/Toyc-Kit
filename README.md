@@ -80,3 +80,11 @@ Here are some ideas for future improvements and features:
 
 - **REPL**: Expanding project to include an interpreter for toyc along with a Read-Eval-Print Loop (REPL).
 - **Optimization**: Implement optimization passes to improve generated code efficiency.
+
+## References
+
+1. Robert Nystrom. *Crafting Interpreters*. Genever Benning (July 28, 2021). from [https://craftinginterpreters.com/](https://craftinginterpreters.com/)
+
+2. LLVM Tutorial. (2023) *My First Language Frontend with LLVM Tutorial*. from [https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html)
+
+3. Mukul Rathi. (2019). *bolt*. Github. from [https://github.com/mukul-rathi/bolt](https://github.com/mukul-rathi/bolt)
