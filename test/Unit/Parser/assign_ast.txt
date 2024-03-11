@@ -1,0 +1,13 @@
+[1;32mTranslationUnitDecl[0m
+[0;34m`-[0m[1;32mFunctionDecl[0m [1;36minc[0m [0;32m'i64 ()'[0m
+[0;34m  `-[0m[1;35mCompoundStmt[0m
+[0;34m    |-[0m[1;35mDeclStmt[0m
+[0;34m    | `-[0m[1;32mVarDecl[0m [1;36mi[0m [0;32m'i64'[0m
+[0;34m    `-[0m[1;35mExprStmt[0m
+[0;34m      `-[0m[1;35mBinaryOperator[0m [0;32m'i64'[0m '='
+[0;34m        |-[0m[1;35mDeclRefExpr[0m [0;32m'i64'[0m [1;32mVar[0m [1;36m'i'[0m
+[0;34m        `-[0m[1;35mBinaryOperator[0m [0;32m'i64'[0m '+'
+[0;34m          |-[0m[1;35mImplicitCastExpr[0m [0;32m'i64'[0m
+[0;34m          | `-[0m[1;35mDeclRefExpr[0m [0;32m'i64'[0m [1;32mVar[0m [1;36m'i'[0m
+[0;34m          `-[0m[1;35mImplicitCastExpr[0m [0;32m'i64'[0m
+[0;34m            `-[0m[1;35mIntegerLiteral[0m [0;32m'i64'[0m [1;36m1[0m

@@ -1,0 +1,10 @@
+#include std
+
+i64 main() {
+  i64 i = 0;
+  while (i < 10) {
+    printi64ln(i);
+    i++;
+  }
+  return 0; 
+}

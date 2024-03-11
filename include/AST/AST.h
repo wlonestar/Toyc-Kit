@@ -37,7 +37,7 @@ struct Expr {
   virtual ~Expr() = default;
   virtual std::string getType() const = 0;
   virtual llvm::Value *accept(ASTVisitor &visitor) = 0;
-  virtual void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  virtual void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
                     std::string _p = "") = 0;
 };
 
@@ -52,7 +52,7 @@ struct IntegerLiteral : public Literal {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -65,7 +65,7 @@ struct FloatingLiteral : public Literal {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -77,7 +77,7 @@ struct CharacterLiteral : public Literal {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -90,7 +90,7 @@ struct StringLiteral : public Literal {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -103,7 +103,7 @@ struct DeclRefExpr : public Expr {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -119,7 +119,7 @@ struct ImplicitCastExpr : public Expr {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -135,7 +135,7 @@ struct CastExpr : public Expr {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -146,7 +146,7 @@ struct ParenExpr : public Expr {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -160,7 +160,7 @@ struct CallExpr : public Expr {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -181,7 +181,7 @@ struct UnaryOperator : public Expr {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -198,7 +198,7 @@ struct BinaryOperator : public Expr {
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -207,7 +207,7 @@ struct BinaryOperator : public Expr {
 struct Stmt {
   virtual ~Stmt() = default;
   virtual llvm::Value *accept(ASTVisitor &visitor) = 0;
-  virtual void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  virtual void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
                     std::string _p = "") = 0;
 };
 
@@ -219,7 +219,7 @@ struct CompoundStmt : public Stmt {
       : stmts(std::move(_stmts)) {}
 
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -229,7 +229,7 @@ struct ExprStmt : public Stmt {
   ExprStmt(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
 
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -241,7 +241,7 @@ struct DeclStmt : public Stmt {
   DeclStmt(DeclStmt *stmt) : decl(std::move(stmt->decl)) {}
 
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -256,7 +256,7 @@ struct IfStmt : public Stmt {
         elseStmt(std::move(_elseStmt)) {}
 
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -268,7 +268,7 @@ struct WhileStmt : public Stmt {
       : cond(std::move(_cond)), stmt(std::move(_stmt)) {}
 
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -284,7 +284,7 @@ struct ForStmt : public Stmt {
         update(std::move(_update)), body(std::move(_body)) {}
 
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -294,7 +294,7 @@ struct ReturnStmt : public Stmt {
   ReturnStmt(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
 
   llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -304,7 +304,7 @@ struct Decl {
   virtual ~Decl() = default;
   virtual std::string getName() const = 0;
   virtual std::string getType() const = 0;
-  virtual void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  virtual void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
                     std::string _p = "") = 0;
 };
 
@@ -331,7 +331,7 @@ struct VarDecl : public Decl {
   std::string getName() const override;
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor);
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -345,7 +345,7 @@ struct ParmVarDecl : public VarDecl {
   std::string getName() const override;
   std::string getType() const override;
   llvm::Type *accept(ASTVisitor &visitor);
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -381,7 +381,7 @@ struct FunctionDecl : public Decl {
   std::string getName() const override;
   std::string getType() const override;
   llvm::Function *accept(ASTVisitor &visitor);
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
 };
 
@@ -395,7 +395,7 @@ struct TranslationUnitDecl {
       : decls(std::move(_decls)) {}
 
   void accept(ASTVisitor &visitor);
-  void dump(std::ostream &os = std::cout, size_t _d = 0, Side _s = LEAF,
+  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "");
 };
 

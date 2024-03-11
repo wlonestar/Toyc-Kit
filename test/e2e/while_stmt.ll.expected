@@ -1,0 +1,37 @@
+; ModuleID = 'test/e2e/while_stmt.toyc'
+source_filename = "test/e2e/while_stmt.toyc"
+target triple = "x86_64-pc-linux-gnu"
+
+declare i64 @println()
+
+declare i64 @printspace()
+
+declare i64 @printi64(i64)
+
+declare i64 @printi64ln(i64)
+
+declare i64 @printf64(double)
+
+declare i64 @printf64ln(double)
+
+define i64 @main() {
+  %1 = alloca i64, align 8
+  store i64 0, ptr %1, align 4
+  br label %2
+
+2:                                                ; preds = %5, %0
+  %3 = load i64, ptr %1, align 4
+  %4 = icmp slt i64 %3, 10
+  br i1 %4, label %5, label %10
+
+5:                                                ; preds = %2
+  %6 = load i64, ptr %1, align 4
+  %7 = call i64 @printi64ln(i64 %6)
+  %8 = load i64, ptr %1, align 4
+  %9 = add nsw i64 %8, 1
+  store i64 %9, ptr %1, align 4
+  br label %2
+
+10:                                               ; preds = %2
+  ret i64 0
+}

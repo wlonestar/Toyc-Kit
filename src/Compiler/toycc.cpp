@@ -2,21 +2,27 @@
 
 #include <Compiler/Compiler.h>
 
-void execute(std::string src, std::string dest) {
-  toyc::Compiler compiler;
-  compiler.compile(src, dest);
-}
+#include <fstream>
 
 int main(int argc, const char **argv) {
-  if (argc < 2 || argc > 3) {
+  if (argc < 2) {
     std::cerr << "Usage: toyc <src> <bytcode>\n";
     exit(-1);
   }
 
-  if (argc == 3) {
-    execute(argv[1], argv[2]);
-  } else if (argc == 2) {
-    execute(argv[1], "a.ll");
+  toyc::Compiler compiler;
+  /// wrap parameters
+  std::string src = argv[1];
+  std::string dest = (argc == 3) ? argv[2] : "a.ll";
+
+  /// redirect to string first
+  std::string output;
+  llvm::raw_string_ostream ros(output);
+  compiler.compile(src, ros);
+  /// write into file
+  if (toyc::write_to(dest, output) == false) {
+    std::cerr << fstr("failed to open file '{}'\n", src);
+    exit(EXIT_FAILURE);
   }
   return 0;
 }

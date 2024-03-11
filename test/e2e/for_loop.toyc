@@ -1,0 +1,8 @@
+#include std
+
+i64 main() {
+  for (i64 i = 9; i >= 0; i--) {
+    printi64ln(i);
+  }
+  return 0;
+}

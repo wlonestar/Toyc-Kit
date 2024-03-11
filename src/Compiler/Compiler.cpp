@@ -15,19 +15,7 @@
 
 namespace toyc {
 
-bool Compiler::writeTo(std::string &dest) {
-  int fd;
-  std::error_code ec = llvm::sys::fs::openFileForWrite(
-      dest, fd, llvm::sys::fs::CD_CreateAlways, llvm::sys::fs::OF_None);
-  if (ec) {
-    return false;
-  }
-  llvm::raw_fd_ostream file(fd, true);
-  visitor.dump(file);
-  return true;
-}
-
-void Compiler::compile(std::string &src, std::string &dest) {
+void Compiler::compile(std::string &src, llvm::raw_ostream &os) {
   /// read from src file
   std::string input;
   if (read_from(src, input) == false) {
@@ -52,7 +40,7 @@ void Compiler::compile(std::string &src, std::string &dest) {
 #ifdef DEBUG
       std::stringstream ss;
       translationUnit->dump(ss);
-      std::cout << ss.str();
+      std::cerr << ss.str();
 #endif
       /// generate IR code
       visitor.setModuleID(src);
@@ -81,10 +69,7 @@ void Compiler::compile(std::string &src, std::string &dest) {
     std::cerr << "there is something wrong in compiler inner\n";
     exit(EXIT_FAILURE);
   }
-  if (writeTo(dest) == false) {
-    std::cerr << fstr("failed to open file '{}'\n", dest);
-    exit(EXIT_FAILURE);
-  }
+  visitor.dump(os);
 }
 
 } // namespace toyc

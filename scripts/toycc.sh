@@ -1,13 +1,12 @@
 #!/bin/bash
 
-CLANG="clang-16"
+clang="clang-16"
 RED="\033[1;31m"
 RET="\033[0m"
 
 # find the shell script its absolute path
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TOYCC="${SCRIPT_DIR}/../build/bin/toycc"
-
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+TOYCC="${script_dir}/../build/bin/toycc"
 export toycc=$TOYCC
 
 # check if correct number of arguments are provided
@@ -21,19 +20,19 @@ src="$1"
 bc="${2:-a.ll}"
 exec="${3:-a.exe}"
 
-# build bytecode from source file
+# 1. build bytecode from source file
 $toycc "$src" "$bc"
 if [ $? -ne 0 ]; then
   echo -e "${RED}error in running toyc frontend${RET}"
   exit 1
 fi
 
-# compile bytecode to executable
-$CLANG -o "$exec" "$bc" -ltoyc
+# 2. compile bytecode to executable
+$clang -o "$exec" "$bc" -ltoyc
 if [ $? -ne 0 ]; then
   echo -e "${RED}error in compiling bytecode${RET}"
   exit 1
 fi
 
-# run the executable
+# 3. run the executable
 ./"$exec"

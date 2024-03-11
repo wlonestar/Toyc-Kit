@@ -50,23 +50,50 @@ make install
 
 You need have enough permission.
 
-4. Run all tests
-
-```
-make test-all
-```
-
 ### Usage
 
-To compile examples, use the `scripts/toycc.sh` script:
+To compile examples, use the provided `toycc.sh` script:
 
 ```
 ./scripts/toycc.sh examples/simple.toyc
 ```
 
-![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-07_21-04-24.jpg)
+This command will compile the specified example source file(`simple.toyc`) using the script.
 
 If compiled in **Release** mode, bytecode and executable files (a.ll and a.exe) will be generated. In **Debug** mode, colored AST tree dump and generated IR will be shown.
+
+![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-07_21-04-24.jpg)
+
+### Running the Frontend Separately
+
+If you want to run the frontend separately, you can use the `toycc` binary directly. Before it you need to set environment variable `toycc`.
+
+```
+export toycc=build/bin/toycc
+build/bin/toycc <source_file> <bytecode_file>
+```
+
+## Running Tests
+
+### Unit Tests
+
+To run unit tests, execute the following command:
+
+```bash
+make test-all
+```
+
+This command will run all unit tests included in the project and report any failures.
+
+### End-to-End Tests
+
+To run end-to-end tests, execute the following command:
+
+```bash
+./script/run_e2e_test.sh
+```
+
+These tests cover the entire compilation process, from source code to generated executable, and ensure that the compiler frontend behaves as expected in real-world scenarios.
 
 ## Contributing
 

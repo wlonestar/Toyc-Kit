@@ -22,9 +22,6 @@ private:
   Parser parser;
   IRCodegenVisitor visitor;
 
-private:
-  bool writeTo(std::string &dest);
-
 public:
   Compiler() : preprocessor(), parser(), visitor() {}
 
@@ -32,9 +29,9 @@ public:
    * @brief compile source code to byte code (IR)
    *
    * @param src source code filepath
-   * @param dest bytecode filepath
+   * @param os output stream
    */
-  void compile(std::string &src, std::string &dest);
+  void compile(std::string &src, llvm::raw_ostream &os);
 };
 
 } // namespace toyc

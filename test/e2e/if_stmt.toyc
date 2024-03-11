@@ -1,0 +1,19 @@
+#include std
+
+i64 foo(i64 a, i64 b) {
+  if (a == b) {
+    return a + b;
+  }
+  return -1;
+}
+
+i64 main() {
+  i64 a;
+  i64 b;
+  a = 1;
+  b = 1;
+  printi64ln(foo(a, b));
+  a = 2;
+  printi64ln(foo(a, b));
+  return 0;
+}

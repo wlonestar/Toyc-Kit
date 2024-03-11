@@ -1,0 +1,62 @@
+; ModuleID = 'test/e2e/recursive.toyc'
+source_filename = "test/e2e/recursive.toyc"
+target triple = "x86_64-pc-linux-gnu"
+
+declare i64 @println()
+
+declare i64 @printspace()
+
+declare i64 @printi64(i64)
+
+declare i64 @printi64ln(i64)
+
+declare i64 @printf64(double)
+
+declare i64 @printf64ln(double)
+
+define i64 @fib(i64 %0) {
+  %2 = alloca i64, align 8
+  store i64 %0, ptr %2, align 4
+  %3 = load i64, ptr %2, align 4
+  %4 = icmp sle i64 %3, 1
+  br i1 %4, label %then, label %after
+
+then:                                             ; preds = %1
+  %5 = load i64, ptr %2, align 4
+  ret i64 %5
+
+after:                                            ; preds = %1
+  %6 = load i64, ptr %2, align 4
+  %7 = sub nsw i64 %6, 1
+  %8 = call i64 @fib(i64 %7)
+  %9 = load i64, ptr %2, align 4
+  %10 = sub nsw i64 %9, 2
+  %11 = call i64 @fib(i64 %10)
+  %12 = add nsw i64 %8, %11
+  ret i64 %12
+}
+
+define i64 @main() {
+  %1 = alloca i64, align 8
+  store i64 0, ptr %1, align 4
+  %2 = alloca i64, align 8
+  store i64 0, ptr %2, align 4
+  br label %3
+
+3:                                                ; preds = %6, %0
+  %4 = load i64, ptr %2, align 4
+  %5 = icmp slt i64 %4, 10
+  br i1 %5, label %6, label %12
+
+6:                                                ; preds = %3
+  %7 = load i64, ptr %2, align 4
+  %8 = call i64 @fib(i64 %7)
+  %9 = call i64 @printi64ln(i64 %8)
+  %10 = load i64, ptr %2, align 4
+  %11 = add nsw i64 %10, 1
+  store i64 %11, ptr %2, align 4
+  br label %3
+
+12:                                               ; preds = %3
+  ret i64 0
+}

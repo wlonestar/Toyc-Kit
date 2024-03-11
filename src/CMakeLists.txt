@@ -1,8 +1,3 @@
-llvm_map_components_to_libnames(LLVM_LIBS_C
-  support
-  core
-)
-
 add_executable(toycc
   Compiler/toycc.cpp
   Compiler/Compiler.cpp

@@ -1,0 +1,15 @@
+#include std
+
+i64 fib(i64 n) {
+  if (n <= 1) {
+    return n;
+  }
+  return fib(n - 1) + fib(n - 2);
+}
+
+i64 main() {
+  for (i64 i = 0; i < 10; i++) {
+    printi64ln(fib(i));
+  }
+  return 0;
+}
