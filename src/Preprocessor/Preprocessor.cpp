@@ -1,7 +1,9 @@
 //! preprocessor implementation
 
+#include "Util.h"
 #include <Preprocessor/Preprocessor.h>
 
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -29,39 +31,43 @@ char Preprocessor::peekNext() {
 
 char Preprocessor::advance() { return input.at(current++); }
 
+void Preprocessor::backward() { current--; }
+
+void Preprocessor::skipLineComment() {
+  while (peek() != '\n' && !isEnd()) {
+    advance();
+  }
+  backward();
+  input.erase(start, current - start + 1);
+  current = start;
+}
+
 void Preprocessor::skipMutliComment() {
-  input[current] = ' ';
   advance();
+  size_t l = 0;
   while (!(peek() == '*' && peekNext() == '/') && !isEnd()) {
     if (peek() == '\n') {
       line++;
       col = 1;
-    } else {
-      input[current] = ' ';
+      l++;
     }
     advance();
   }
   if (isEnd()) {
     throwPreprocessorException("unterminated /* comment");
   }
-  input[current] = ' ';
   advance();
   if (peek() != '/') {
     throwPreprocessorException("unterminated /* comment");
   }
-  input[current] = ' ';
   advance();
-}
-
-bool Preprocessor::readFrom(std::string &src, std::string &input) {
-  std::ifstream file(src);
-  if (file.is_open() == false) {
-    return false;
-  }
-  input = std::string((std::istreambuf_iterator<char>(file)),
-                      std::istreambuf_iterator<char>());
-  file.close();
-  return true;
+  backward();
+  input.erase(start, current - start + 1);
+  /// add remove new line characters
+  std::string newl(l, '\n');
+  input.insert(start, newl);
+  start += l;
+  current = start;
 }
 
 void Preprocessor::importLib() {
@@ -72,29 +78,37 @@ void Preprocessor::importLib() {
   std::string _line = input.substr(start, current - start);
 
   if (_line.starts_with("#include ")) {
+    /// remove `include` macro
     input.erase(start, current - start);
-
+    /// find header file by name
     std::string libName = _line.substr(_line.find(" ") + 1);
-
-    auto execPath = fs::canonical(std::filesystem::path(arg0));
-    libName = execPath.parent_path().parent_path().string() + "/include/" +
+    std::string path = "toycc";
+    if (auto e = getenv("toycc")) {
+      path = std::string(e);
+    }
+    auto absolutePath = fs::canonical(std::filesystem::path(path));
+    libName = absolutePath.parent_path().parent_path().string() + "/include/" +
               libName + ".toyc";
 
+    /// read content from file
     std::string content;
-    if (readFrom(libName, content) == false) {
+    if (read_from(libName, content) == false) {
       std::cerr << fstr("failed to open file '{}'\n", libName);
       exit(EXIT_FAILURE);
     }
+    /// recursivly process include file
+    Preprocessor p;
+    p.setInput(content);
+    content = p.process();
 
+    /// insert content into current file and reset cursors
     input.insert(start, content);
     start += content.size() + 1;
     current = start;
-  } else {
-    return;
+    // } else {
+    // return;
   }
 }
-
-void Preprocessor::addInput(std::string &_input) { input = _input; }
 
 std::string Preprocessor::process() {
   while (peek() != '\0') {
@@ -102,16 +116,12 @@ std::string Preprocessor::process() {
     switch (c) {
     case '/':
       if (peekNext() == '/') {
-        input[current] = ' ';
-        while (peek() != '\n' && !isEnd()) {
-          input[current] = ' ';
-          advance();
-        }
+        skipLineComment();
       } else if (peekNext() == '*') {
         skipMutliComment();
       } else {
-        start = current;
         advance();
+        start = current;
         continue;
       }
     case '#':
@@ -119,13 +129,13 @@ std::string Preprocessor::process() {
       continue;
     case '\n':
       line++;
-      start = current;
       advance();
+      start = current;
       col = 0;
       break;
     default:
-      start = current;
       advance();
+      start = current;
       continue;
     }
   }

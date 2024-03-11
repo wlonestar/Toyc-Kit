@@ -23,11 +23,10 @@ private:
   IRCodegenVisitor visitor;
 
 private:
-  bool readFrom(std::string &src, std::string &input);
   bool writeTo(std::string &dest);
 
 public:
-  Compiler(char *arg0) : preprocessor(arg0), parser(), visitor() {}
+  Compiler() : preprocessor(), parser(), visitor() {}
 
   /**
    * @brief compile source code to byte code (IR)

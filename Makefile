@@ -21,12 +21,15 @@ build: config
 	@ninja -C $(BUILD_DIR)
 
 # compile toyc runtime (shared object)
-runtime:
+install:
 	@$(CLANG++) -fPIC -shared -lm -o $(LIB_DIR)/$(LIB_NAME).so $(LIB_DIR)/$(LIB_NAME).cpp
 	@sudo cp $(LIB_DIR)/$(LIB_NAME).so /usr/local/lib
 	@sudo ldconfig
 
-.PHONY: clean
+test-all:
+	@cd $(BUILD_DIR)/test && ctest
+
+.PHONY: clean test-all
 
 clean:
 	@rm -rf $(BUILD_DIR)

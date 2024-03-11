@@ -15,17 +15,6 @@
 
 namespace toyc {
 
-bool Compiler::readFrom(std::string &src, std::string &input) {
-  std::ifstream file(src);
-  if (file.is_open() == false) {
-    return false;
-  }
-  input = std::string((std::istreambuf_iterator<char>(file)),
-                      std::istreambuf_iterator<char>());
-  file.close();
-  return true;
-}
-
 bool Compiler::writeTo(std::string &dest) {
   int fd;
   std::error_code ec = llvm::sys::fs::openFileForWrite(
@@ -41,13 +30,13 @@ bool Compiler::writeTo(std::string &dest) {
 void Compiler::compile(std::string &src, std::string &dest) {
   /// read from src file
   std::string input;
-  if (readFrom(src, input) == false) {
+  if (read_from(src, input) == false) {
     std::cerr << fstr("failed to open file '{}'\n", src);
     exit(EXIT_FAILURE);
   }
 
   /// preprocessor
-  preprocessor.addInput(input);
+  preprocessor.setInput(input);
   try {
     input = preprocessor.process();
   } catch (PreprocessorException e) {

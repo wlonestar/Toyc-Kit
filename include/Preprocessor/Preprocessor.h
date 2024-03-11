@@ -33,6 +33,12 @@ public:
   const char *what() const noexcept override { return message.c_str(); }
 };
 
+/**
+ * @brief Toyc Preprocessor
+ *
+ * 1. remove comments
+ * 2. replace `#include` macros with its contents
+ */
 class Preprocessor {
 private:
   std::string input;
@@ -40,7 +46,6 @@ private:
   size_t current;
   size_t line;
   size_t col;
-  char *arg0;
 
 private:
   void throwPreprocessorException(std::string &&message) {
@@ -61,18 +66,30 @@ private:
   char peek();
   char peekNext();
   char advance();
-
+  void backward();
+  
+private:
+  void skipLineComment();
   void skipMutliComment();
-
-  bool readFrom(std::string &src, std::string &input);
   void importLib();
 
 public:
-  Preprocessor(char *_arg0)
-      : input(""), start(0), current(0), line(1), col(0), arg0(_arg0) {}
+  Preprocessor()
+      : input(""), start(0), current(0), line(1), col(0) {}
 
-  void addInput(std::string &_input);
+  void setInput(std::string &_input) { input = _input; }
+  void setInput(std::string &&_input) { input = _input; }
 
+  /**
+   * @brief Preprocessor main method
+   *
+   * 1. replace `#include` macro with its content
+   * 2. remove comments
+   *
+   * @notice: Lexer can not get correct error message line now
+   *
+   * @return processed content fom `input`
+   */
   std::string process();
 };
 

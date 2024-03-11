@@ -1,9 +1,14 @@
 #!/bin/bash
 
-TOYCC='build/bin/toycc'
-CLANG='clang-16'
-RED='\033[1;31m'
-RET='\033[0m'
+CLANG="clang-16"
+RED="\033[1;31m"
+RET="\033[0m"
+
+# find the shell script its absolute path
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TOYCC="${SCRIPT_DIR}/../build/bin/toycc"
+
+export toycc=$TOYCC
 
 # check if correct number of arguments are provided
 if [ "$#" -lt 1 ]; then
@@ -17,7 +22,7 @@ bc="${2:-a.ll}"
 exec="${3:-a.exe}"
 
 # build bytecode from source file
-$TOYCC "$src" "$bc"
+$toycc "$src" "$bc"
 if [ $? -ne 0 ]; then
   echo -e "${RED}error in running toyc frontend${RET}"
   exit 1
