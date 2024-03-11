@@ -2,17 +2,7 @@
 source_filename = "test/e2e/if_else_stmt.toyc"
 target triple = "x86_64-pc-linux-gnu"
 
-declare i64 @println()
-
-declare i64 @printspace()
-
-declare i64 @printi64(i64)
-
 declare i64 @printi64ln(i64)
-
-declare i64 @printf64(double)
-
-declare i64 @printf64ln(double)
 
 define i64 @foo(i64 %0) {
   %2 = alloca i64, align 8

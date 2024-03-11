@@ -664,6 +664,16 @@ void IRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
       throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
     }
   }
+
+  /// remove not used extern functions
+  auto functionList = &module->getFunctionList();
+  for (auto it = functionList->begin(), end = functionList->end(); it != end;) {
+    auto &f = *it++;
+    if (f.isDeclaration() && f.users().empty()) {
+      debug("remove extern function: {} (not used)", f.getName());
+      f.eraseFromParent();
+    }
+  }
 }
 
 } // namespace toyc
