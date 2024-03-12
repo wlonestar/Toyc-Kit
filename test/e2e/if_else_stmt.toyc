@@ -1,4 +1,4 @@
-#include std
+#include io
 
 i64 foo(i64 a) {
   if (a == 1) {

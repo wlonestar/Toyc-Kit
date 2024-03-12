@@ -1,4 +1,4 @@
-#include std
+#include io
 
 i64 fib(i64 n) {
   if (n <= 1) {

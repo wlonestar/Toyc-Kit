@@ -355,26 +355,30 @@ enum FuncKind {
   EXTERN_FUNC, // extern function
 };
 
-struct FunctionDecl : public Decl {
+struct FunctionProto {
   std::string name;
   std::string type;
   std::vector<std::unique_ptr<ParmVarDecl>> params;
+
+  FunctionProto(std::string &_name, std::string &_type,
+                std::vector<std::unique_ptr<ParmVarDecl>> &_params)
+      : name(_name), type(_type), params(std::move(_params)) {}
+
+  FunctionProto(std::string &&_name, std::string &&_type,
+                std::vector<std::unique_ptr<ParmVarDecl>> &&_params)
+      : name(std::move(_name)), type(std::move(_type)),
+        params(std::move(_params)) {}
+};
+
+struct FunctionDecl : public Decl {
+  std::unique_ptr<FunctionProto> proto;
   std::unique_ptr<Stmt> body;
   FuncKind kind;
 
-  FunctionDecl(std::string &_name, std::string &_type,
-               std::vector<std::unique_ptr<ParmVarDecl>> &_params,
+  FunctionDecl(std::unique_ptr<FunctionProto> _proto,
                std::unique_ptr<Stmt> _body = nullptr,
                FuncKind _kind = DEFINITION)
-      : name(_name), type(_type), params(std::move(_params)),
-        body(std::move(_body)), kind(_kind) {}
-
-  FunctionDecl(std::string &&_name, std::string &&_type,
-               std::vector<std::unique_ptr<ParmVarDecl>> &&_params,
-               std::unique_ptr<Stmt> _body = nullptr,
-               FuncKind _kind = DEFINITION)
-      : name(std::move(_name)), type(std::move(_type)),
-        params(std::move(_params)), body(std::move(_body)), kind(_kind) {}
+      : proto(std::move(_proto)), body(std::move(_body)), kind(_kind) {}
 
   FuncKind getKind() { return kind; }
 

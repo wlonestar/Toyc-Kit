@@ -1,4 +1,4 @@
-#include std
+#include io
 
 void foo() {
   if (1 == 2) {

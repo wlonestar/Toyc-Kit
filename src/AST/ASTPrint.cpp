@@ -234,14 +234,14 @@ void ParmVarDecl::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
 
 void FunctionDecl::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
   printASTLeader(os, _d, _s, _p);
-  os << fstr("{} {} {}{}\n", AST_DECL("FunctionDecl"), AST_LITERAL("{}", name),
-             AST_TYPE("'{}'", type), kind == EXTERN_FUNC ? " extern" : "");
+  os << fstr("{} {} {}{}\n", AST_DECL("FunctionDecl"), AST_LITERAL("{}", proto->name),
+             AST_TYPE("'{}'", proto->type), kind == EXTERN_FUNC ? " extern" : "");
   std::string leader = attachLeafLeader(_s, _p);
-  for (size_t i = 0; i < params.size(); i++) {
-    if (i == params.size() - 1 && body == nullptr) {
-      params[i]->dump(os, _d + 1, LEAF, leader);
+  for (size_t i = 0; i < proto->params.size(); i++) {
+    if (i == proto->params.size() - 1 && body == nullptr) {
+      proto->params[i]->dump(os, _d + 1, LEAF, leader);
     } else {
-      params[i]->dump(os, _d + 1, INTERNAL, leader + "|");
+      proto->params[i]->dump(os, _d + 1, INTERNAL, leader + "|");
     }
   }
   if (body != nullptr) {

@@ -92,22 +92,22 @@ void IRCodegenVisitor::setModuleID(std::string &name) {
 
 llvm::Function *IRCodegenVisitor::codegenFuncTy(const FunctionDecl &decl) {
   llvm::Type *resultTy;
-  if (decl.type.starts_with("void")) {
+  if (decl.proto->type.starts_with("void")) {
     resultTy = llvm::Type::getVoidTy(*context);
-  } else if (decl.type.starts_with("i64")) {
+  } else if (decl.proto->type.starts_with("i64")) {
     resultTy = llvm::Type::getInt64Ty(*context);
-  } else if (decl.type.starts_with("f64")) {
+  } else if (decl.proto->type.starts_with("f64")) {
     resultTy = llvm::Type::getDoubleTy(*context);
   }
 
   std::vector<llvm::Type *> params;
-  for (auto &param : decl.params) {
+  for (auto &param : decl.proto->params) {
     params.push_back(param->accept(*this));
   }
 
   llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
   llvm::Function *func = llvm::Function::Create(
-      funcTy, llvm::Function::ExternalLinkage, decl.name, *module);
+      funcTy, llvm::Function::ExternalLinkage, decl.proto->name, *module);
 
   return func;
 }
@@ -620,7 +620,7 @@ llvm::Function *IRCodegenVisitor::codegen(const FunctionDecl &decl) {
   clearVarEnv();
   for (auto &param : func->args()) {
     size_t idx = param.getArgNo();
-    std::string paramName = decl.params[idx]->name;
+    std::string paramName = decl.proto->params[idx]->name;
     llvm::Type *type = func->getFunctionType()->getParamType(idx);
     varEnv[paramName] = builder->CreateAlloca(type, nullptr);
     builder->CreateStore(&param, varEnv[paramName]);

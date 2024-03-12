@@ -127,9 +127,9 @@ llvm::Type *ParmVarDecl::accept(ASTVisitor &visitor) {
   return visitor.codegen(*this);
 }
 
-std::string FunctionDecl::getName() const { return name; }
+std::string FunctionDecl::getName() const { return proto->name; }
 
-std::string FunctionDecl::getType() const { return type; }
+std::string FunctionDecl::getType() const { return proto->type; }
 
 llvm::Function *FunctionDecl::accept(ASTVisitor &visitor) {
   return visitor.codegen(*this);

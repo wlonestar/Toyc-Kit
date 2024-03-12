@@ -1,4 +1,4 @@
-#include std
+#include io
 
 void test(i64 a, i64 b) {
   printi64(a);

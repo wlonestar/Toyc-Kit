@@ -38,6 +38,23 @@ public:
   const char *what() const noexcept override { return message.c_str(); }
 };
 
+struct FunctionParams {
+  std::string name;
+  std::string retType;
+  std::vector<std::string> params;
+
+  FunctionParams() {}
+
+  FunctionParams(std::string &_name, std::string &_retType,
+                 std::vector<std::string> &_params)
+      : name(_name), retType(_retType), params(_params) {}
+
+  FunctionParams(std::string &&_name, std::string &&_retType,
+                 std::vector<std::string> &&_params)
+      : name(std::move(_name)), retType(std::move(_retType)),
+        params(std::move(_params)) {}
+};
+
 class Parser {
 protected:
   Token current;
@@ -47,9 +64,9 @@ protected:
   std::map<std::string, std::string> globalVarTable;
   /// local variable: <name, type>
   std::map<std::string, std::string> varTable;
+
   /// function declaration: <name, pair<retType, [type]...>>
-  std::map<std::string, std::pair<std::string, std::vector<std::string>>>
-      funcTable;
+  std::map<std::string, FunctionParams> funcTable;
 
 protected:
   void throwParserException(std::string &&message) {
@@ -123,9 +140,9 @@ protected:
   std::string genFuncType(std::string &&retTy,
                           std::vector<std::unique_ptr<ParmVarDecl>> &params);
 
-  virtual std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
-                                                         std::string &name,
-                                                         VarScope scope);
+  std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
+                                                 std::string &name,
+                                                 VarScope scope);
   std::unique_ptr<Decl>
   parseFunctionDeclaration(std::string &type, std::string &name, bool isExtern);
   virtual std::unique_ptr<Decl> parseExternalDeclaration();
@@ -136,7 +153,7 @@ public:
   void addInput(std::string &_input) { lexer.addInput(_input); }
   std::string getInput() { return lexer.getInput(); }
 
-  virtual std::unique_ptr<TranslationUnitDecl> parse();
+  std::unique_ptr<TranslationUnitDecl> parse();
 };
 
 } // namespace toyc

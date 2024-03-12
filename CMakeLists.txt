@@ -46,6 +46,14 @@ llvm_map_components_to_libnames(LLVM_LIBS_C
   core
 )
 
+llvm_map_components_to_libnames(LLVM_LIBS_I
+  support
+  core
+  orcjit
+  native
+  # all
+)
+
 include_directories(include)
 add_subdirectory(lib)
 add_subdirectory(src)

@@ -21,7 +21,7 @@ namespace toyc {
  */
 #ifdef DEBUG
 #define debug(__fmt__, ...)                                                    \
-  std::clog << fstr("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n", __FILE__,  \
+  std::cerr << fstr("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n", __FILE__,  \
                     __LINE__, ##__VA_ARGS__)
 #else
 #define debug(__fmt__, ...) ((void)0)

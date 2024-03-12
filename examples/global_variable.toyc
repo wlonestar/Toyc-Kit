@@ -1,4 +1,4 @@
-#include std
+#include io
 
 i64 a = 2;
 i64 b = 4;

@@ -1,5 +1,5 @@
 #include math
-#include std
+#include io
 
 i64 main() {
   i64 a = _absi(-12);

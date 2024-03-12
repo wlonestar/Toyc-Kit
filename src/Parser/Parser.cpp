@@ -242,22 +242,23 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
       return std::make_unique<DeclRefExpr>(
           std::make_unique<VarDecl>(std::move(name), std::move(type)));
     } else { /// function call
-      type = funcTable[name].first;
+      auto fp = funcTable[name];
+      type = fp.retType;
       if (type == "") {
         throwParserException(
             fstr("implicit declaration of function '{}' is invalid", name));
       }
 
       std::string funcName = name;
-      std::string retType = funcTable[name].first;
+      std::string retType = funcTable[name].retType;
       std::vector<std::unique_ptr<ParmVarDecl>> params;
-      for (auto &param : funcTable[name].second) {
+      for (auto &param : funcTable[name].params) {
         std::string paramName = "";
         params.push_back(std::make_unique<ParmVarDecl>(paramName, param));
       }
 
-      return std::make_unique<DeclRefExpr>(
-          std::make_unique<FunctionDecl>(funcName, retType, params));
+      return std::make_unique<DeclRefExpr>(std::make_unique<FunctionDecl>(
+          std::make_unique<FunctionProto>(funcName, retType, params)));
     }
   }
   if (match(LP)) {
@@ -284,14 +285,14 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
     std::vector<std::unique_ptr<Expr>> args;
     if (!check(RP)) {
       do {
-        if (idx == f->params.size()) {
+        if (idx == f->proto->params.size()) {
           throwParserException(
               fstr("too many arguments to function call, expected {}",
-                   f->params.size()));
+                   f->proto->params.size()));
         }
         auto arg = parseExpression();
-        arg = std::make_unique<ImplicitCastExpr>(f->params[idx]->getType(),
-                                                 std::move(arg));
+        arg = std::make_unique<ImplicitCastExpr>(
+            f->proto->params[idx]->getType(), std::move(arg));
         idx++;
         args.push_back(std::move(arg));
       } while (match(COMMA));
@@ -669,7 +670,8 @@ std::unique_ptr<Decl> Parser::parseFunctionDeclaration(std::string &retTy,
   for (auto &param : params) {
     paramsTy.push_back(param->getType());
   }
-  funcTable[name] = std::make_pair(retTy, paramsTy);
+  FunctionParams fp(name, retTy, paramsTy);
+  funcTable[name] = fp;
 
   std::unique_ptr<Stmt> body = nullptr;
   /// if match SEMI, body in null, otherwise, parse the function body
@@ -678,9 +680,10 @@ std::unique_ptr<Decl> Parser::parseFunctionDeclaration(std::string &retTy,
   }
   FuncKind kind =
       (isExtern ? EXTERN_FUNC : (body == nullptr ? DECLARATION : DEFINITION));
-  return std::make_unique<FunctionDecl>(std::move(name), std::move(funcType),
-                                        std::move(params), std::move(body),
-                                        kind);
+  return std::make_unique<FunctionDecl>(
+      std::make_unique<FunctionProto>(std::move(name), std::move(funcType),
+                                      std::move(params)),
+      std::move(body), kind);
 }
 
 std::unique_ptr<Decl> Parser::parseExternalDeclaration() {

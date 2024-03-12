@@ -15,7 +15,7 @@ namespace toyc {
 class Interpreter {
 private:
   InterpreterParser parser;
-  InterpreterCodegenVisitor visitor;
+  InterpreterIRCodegenVisitor visitor;
 
 public:
   Interpreter() : parser(), visitor() {}

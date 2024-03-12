@@ -6,7 +6,7 @@
 
 int main(int argc, const char **argv) {
   if (argc < 2) {
-    std::cerr << "Usage: toyc <src> <bytcode>\n";
+    std::cerr << fstr("Usage: {} <src> <bytcode>\n", argv[0]);
     exit(-1);
   }
 

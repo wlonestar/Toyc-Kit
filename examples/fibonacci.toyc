@@ -1,4 +1,4 @@
-#include std
+#include io
 
 i64 fibonacci(i64 n) {
   if (n <= 1) {

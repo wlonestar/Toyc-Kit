@@ -1,4 +1,4 @@
-#include std
+#include io
 
 i64 main() {
   return 0;

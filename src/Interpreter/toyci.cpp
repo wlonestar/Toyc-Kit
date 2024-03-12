@@ -52,10 +52,6 @@ void run_prompt() {
 }
 
 int main(int argc, const char **argv) {
-  if (argc > 2) {
-    cerr << "Usage: toyc <src> <bytcode>\n";
-    exit(-1);
-  }
   run_prompt();
   return 0;
 }
