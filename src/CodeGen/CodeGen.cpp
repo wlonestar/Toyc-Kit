@@ -262,7 +262,11 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
 
   if (expr.op.type == EQUAL) {
     if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.left.get())) {
-      l = varEnv[_left->decl->getName()];
+      std::string varName = _left->decl->getName();
+      l = varEnv[varName];
+      if (l == nullptr) {
+        l = globalVarEnv[varName];
+      }
     }
     r = expr.right->accept(*this);
     return builder->CreateStore(r, l);
@@ -670,7 +674,7 @@ void IRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
   for (auto it = functionList->begin(), end = functionList->end(); it != end;) {
     auto &f = *it++;
     if (f.isDeclaration() && f.users().empty()) {
-      debug("remove extern function: {} (not used)", f.getName());
+      // debug("remove extern function: {} (not used)", f.getName());
       f.eraseFromParent();
     }
   }

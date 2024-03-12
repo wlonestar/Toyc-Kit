@@ -87,13 +87,14 @@ protected:
                                       std::unique_ptr<Expr> &left,
                                       std::unique_ptr<Expr> &right);
   std::string checkShiftOperatorType(TokenType type,
-                                      std::unique_ptr<Expr> &left,
-                                      std::unique_ptr<Expr> &right);
+                                     std::unique_ptr<Expr> &left,
+                                     std::unique_ptr<Expr> &right);
 
 protected:
   std::unique_ptr<Expr> parseIntegerLiteral();
   std::unique_ptr<Expr> parseFloatingLiteral();
 
+  std::unique_ptr<Expr> parseConstant();
   std::unique_ptr<Expr> parsePrimaryExpression();
   std::unique_ptr<Expr> parsePostfixExpression();
   std::unique_ptr<Expr> parseUnaryExpression();

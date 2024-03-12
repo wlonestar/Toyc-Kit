@@ -1,23 +1,12 @@
 //! Parser implementation
 
 #include <AST/AST.h>
-#include <CodeGen/CodeGen.h>
 #include <Lexer/Token.h>
 #include <Parser/Parser.h>
 #include <Util.h>
 
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Value.h>
-#include <llvm/Support/raw_ostream.h>
-
-#include <cstddef>
-#include <iostream>
 #include <memory>
-#include <sstream>
-#include <string>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 namespace toyc {
@@ -211,6 +200,17 @@ std::unique_ptr<Expr> Parser::parseFloatingLiteral() {
   auto value_str = previous().value;
   auto value = parseFloatingSuffix(value_str, 10);
   return std::make_unique<FloatingLiteral>(value, "f64");
+}
+
+std::unique_ptr<Expr> Parser::parseConstant() {
+  if (match(INTEGER)) {
+    return parseIntegerLiteral();
+  } else if (match(FLOATING)) {
+    return parseFloatingLiteral();
+  } else {
+    throwParserException(fstr("not implemented type!"));
+    return nullptr;
+  }
 }
 
 std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
@@ -623,20 +623,30 @@ Parser::genFuncType(std::string &&retTy,
 std::unique_ptr<Decl> Parser::parseVariableDeclaration(std::string &type,
                                                        std::string &name,
                                                        VarScope scope) {
+  std::unique_ptr<Expr> init;
   if (scope == GLOBAL) {
     if (globalVarTable.find(name) != globalVarTable.end()) {
       throwParserException(fstr("redefinition of '{}'", name));
     }
     globalVarTable[name] = type;
+    /// for global variable, set default value
+    std::unique_ptr<Expr> zero;
+    if (type == "i64") {
+      zero = std::make_unique<IntegerLiteral>(0, "i64");
+    } else if (type == "f64") {
+      zero = std::make_unique<FloatingLiteral>(0, "f64");
+    } else {
+      throwParserException("not supported type");
+    }
+    init = (match(EQUAL) ? parseConstant() : std::move(zero));
   } else {
     if (varTable.find(name) != varTable.end()) {
       throwParserException(fstr("redefinition of '{}'", name));
     }
     varTable[name] = type;
+    init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);
   }
 
-  std::unique_ptr<Expr> init =
-      (match(EQUAL) ? parseAssignmentExpression() : nullptr);
   if (init != nullptr && type != init->getType()) {
     init = std::make_unique<ImplicitCastExpr>(type, std::move(init));
   }
