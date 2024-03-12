@@ -1,6 +1,5 @@
 //! Interpreter implementation
 
-#include "AST/AST.h"
 #include <Interpreter/Interpreter.h>
 
 #include <cstdlib>
@@ -14,20 +13,33 @@ void Interpreter::compile(std::string &input) {
   /// support incremental parser
   parser.addInput(input);
   try {
-    using decl_t = std::unique_ptr<Decl>;
-    using stmt_t = std::unique_ptr<Stmt>;
-    using expr_t = std::unique_ptr<Expr>;
+    // using decl_t = std::unique_ptr<Decl>;
+    // using stmt_t = std::unique_ptr<Stmt>;
+    // using expr_t = std::unique_ptr<Expr>;
     auto unit = parser.parse();
+    std::cout << fstr("index={}\n", unit.index());
 
-    if (std::holds_alternative<decl_t>(unit) && !std::get<decl_t>(unit)) {
+    if (unit.index() == 0) {
+      debug("declaration");
       auto &decl = std::get<std::unique_ptr<Decl>>(unit);
-      decl->dump();
-    } else if (std::holds_alternative<stmt_t>(unit) && !std::get<stmt_t>(unit)) {
+      visitor.handleDeclaration(decl);
+    } else if (unit.index() == 1) {
+      debug("statement");
       auto &decl = std::get<std::unique_ptr<Stmt>>(unit);
-      decl->dump();
-    } else if (std::holds_alternative<expr_t>(unit) && !std::get<expr_t>(unit)) {
-      auto &decl = std::get<std::unique_ptr<Expr>>(unit);
-      decl->dump();
+    } else if (unit.index() == 2) {
+      debug("expression");
+      std::string type = std::get<std::unique_ptr<Expr>>(unit)->getType();
+      auto stmt = std::make_unique<ReturnStmt>(
+          std::move(std::get<std::unique_ptr<Expr>>(unit)));
+      auto proto = std::make_unique<FunctionProto>(
+          "__anon_expr", std::move(type),
+          std::vector<std::unique_ptr<ParmVarDecl>>{});
+      auto fn =
+          std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
+
+      visitor.handleExpression(fn);
+    } else {
+      throw CodeGenException("error");
     }
     // if (unit != nullptr) {
     //   visitor.codegen(*unit);

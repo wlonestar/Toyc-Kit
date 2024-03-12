@@ -1,9 +1,6 @@
 //! InterpreterParser implementation
 
-#include "Lexer/Token.h"
-#include <AST/AST.h>
 #include <Parser/InterpreterParser.h>
-#include <Util.h>
 
 #include <cstddef>
 #include <iostream>
@@ -718,7 +715,7 @@ InterpreterParser::parse_t InterpreterParser::parse() {
   parse_t translationUnit;
 
   advance();
-  // std::cout << fstr("parse {}\n", current.toString());
+  std::cout << fstr("parse {}\n", current.toString());
   std::string type, name;
   bool isExtern = false;
   if (match(EXTERN)) {
@@ -726,7 +723,7 @@ InterpreterParser::parse_t InterpreterParser::parse() {
   }
   /// declaration
   if (match({VOID, I64, F64})) {
-    // std::cout << fstr("parse declaration\n");
+    std::cout << fstr("parse declaration\n");
     type = previous().value;
     if (match(IDENTIFIER)) {
       name = previous().value;
@@ -734,24 +731,24 @@ InterpreterParser::parse_t InterpreterParser::parse() {
       throwInterParserException("invalid expression");
     }
     if (match(LP)) {
-      translationUnit = parseFunctionDeclaration(type, name, isExtern);
+      return parseFunctionDeclaration(type, name, isExtern);
     } else {
-      translationUnit = parseVariableDeclaration(type, name, LOCAL);
+      return parseVariableDeclaration(type, name, LOCAL);
     }
   } else if (check({IF, WHILE, FOR, LC})) {
-    // std::cout << fstr("parse statement\n");
-    translationUnit = parseStatement();
+    std::cout << fstr("parse statement\n");
+    return parseStatement();
   } else {
     auto [stmt, flag] = parseExpressionOrExpressionStatement();
     if (flag) {
-      // std::cout << fstr("parse expression statement\n");
-      translationUnit = std::move(stmt);
+      std::cout << fstr("parse expression statement\n");
+      return std::move(stmt);
     } else {
-      // std::cout << fstr("parse expression\n");
-      translationUnit = std::move(stmt->expr);
+      std::cout << fstr("parse expression\n");
+      return std::move(stmt->expr);
     }
   }
-  return translationUnit;
+  // return translationUnit;
 }
 
 } // namespace toyc

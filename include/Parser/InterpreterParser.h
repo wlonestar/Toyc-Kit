@@ -35,8 +35,8 @@ private:
   std::map<std::string, FunctionParams> funcTable;
 
 private:
-  using parse_t = std::variant<std::unique_ptr<Expr>, std::unique_ptr<Stmt>,
-                               std::unique_ptr<Decl>>;
+  using parse_t = std::variant<std::unique_ptr<Decl>, std::unique_ptr<Stmt>,
+                               std::unique_ptr<Expr>>;
 
 protected:
   void throwInterParserException(std::string &&msg) {

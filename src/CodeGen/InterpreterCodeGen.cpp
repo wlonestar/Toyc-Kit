@@ -688,4 +688,59 @@ void InterpreterIRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
   // }
 }
 
+void InterpreterIRCodegenVisitor::handleDeclaration(
+    std::unique_ptr<Decl> &decl) {
+  if (auto varDecl = dynamic_cast<VarDecl *>(decl.get())) {
+    varDecl->accept(*this);
+  } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(decl.get())) {
+    if (funcDecl->getKind() != DECLARATION) {
+      auto *fnIR = funcDecl->accept(*this);
+
+      // dump();
+      /// parse function definition
+      if (funcDecl->getKind() == DEFINITION) {
+        ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
+            std::move(module), std::move(context))));
+        initialize();
+      } else {
+        functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
+      }
+      delete fnIR;
+    }
+  } else {
+    throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
+  }
+}
+
+void InterpreterIRCodegenVisitor::handleExpression(
+    std::unique_ptr<FunctionDecl> &decl) {
+  if (decl->accept(*this)) {
+    // dump();
+    // Create a ResourceTracker to track JIT'd memory allocated to our
+    // anonymous expression -- that way we can free it after executing.
+    auto RT = JIT->getMainJITDylib().createResourceTracker();
+    auto TSM =
+        llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
+    ExitOnErr(JIT->addModule(std::move(TSM), RT));
+    initialize();
+    // Search the JIT for the __anon_expr symbol.
+    auto ExprSymbol = ExitOnErr(JIT->lookup("__anon_expr"));
+    // Get the symbol's address and cast it to the right type (takes no
+    // arguments, returns a double) so we can call it as a native function.
+    if (decl->getType() == "i64") {
+      int64_t (*FP)() = (int64_t(*)())(intptr_t)ExprSymbol.getAddress();
+      fprintf(stderr, "Evaluated to %ld\n", FP());
+    } else if (decl->getType() == "f64") {
+      double (*FP)() = (double (*)())(intptr_t)ExprSymbol.getAddress();
+      fprintf(stderr, "Evaluated to %lf\n", FP());
+    } else {
+      throw CodeGenException(fstr("not supported type '{}'", decl->getType()));
+    }
+    // Delete the anonymous expression module from the JIT.
+    ExitOnErr(RT->remove());
+  } else {
+    throw CodeGenException("generate anon function failed");
+  }
+}
+
 } // namespace toyc

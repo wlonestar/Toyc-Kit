@@ -107,6 +107,9 @@ public:
    */
 
   virtual void codegen(const TranslationUnitDecl &decl) override;
+
+  void handleDeclaration(std::unique_ptr<Decl> &decl);
+  void handleExpression(std::unique_ptr<FunctionDecl> &expr);
 };
 
 } // namespace toyc
