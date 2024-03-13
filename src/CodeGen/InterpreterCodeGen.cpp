@@ -660,7 +660,7 @@ llvm::Function *InterpreterIRCodegenVisitor::codegen(const FunctionDecl &decl) {
  */
 
 /// TODO: deprecated
-void InterpreterIRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {}
+// void InterpreterIRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {}
 
 void InterpreterIRCodegenVisitor::handleDeclaration(
     std::unique_ptr<Decl> &decl) {

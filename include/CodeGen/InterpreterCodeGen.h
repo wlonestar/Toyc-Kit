@@ -55,7 +55,6 @@ private:
   };
   std::map<std::string, std::unique_ptr<GlobalVar>> globalVarEnv;
   std::map<std::string, llvm::AllocaInst *> varEnv;
-
   /// store function prototype
   std::map<std::string, std::unique_ptr<FunctionProto>> functionEnv;
 
@@ -109,10 +108,8 @@ public:
   virtual llvm::Function *codegen(const FunctionDecl &decl) override;
 
   /**
-   * TranslationUnitDecl
+   * Top
    */
-
-  virtual void codegen(const TranslationUnitDecl &decl) override;
 
   void handleDeclaration(std::unique_ptr<Decl> &decl);
   void handleExpression(std::unique_ptr<Expr> &expr);

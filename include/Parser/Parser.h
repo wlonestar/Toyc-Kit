@@ -55,16 +55,16 @@ struct FunctionParams {
         params(std::move(_params)) {}
 };
 
-class Parser {
+class BaseParser {
 protected:
   Token current;
   Token prev;
   Lexer lexer;
+
   /// global variable: <name, type>
   std::map<std::string, std::string> globalVarTable;
   /// local variable: <name, type>
   std::map<std::string, std::string> varTable;
-
   /// function declaration: <name, pair<retType, [type]...>>
   std::map<std::string, FunctionParams> funcTable;
 
@@ -79,7 +79,7 @@ protected:
 protected:
   void clearVarTable() { varTable.clear(); }
 
-public:
+protected:
   Token peek() { return current; }
   Token previous() { return prev; }
   Token advance();
@@ -148,10 +148,15 @@ protected:
   virtual std::unique_ptr<Decl> parseExternalDeclaration();
 
 public:
-  Parser() : lexer(), current(), prev() {}
+  BaseParser() : lexer(), current(), prev() {}
 
   void addInput(std::string &_input) { lexer.addInput(_input); }
   std::string getInput() { return lexer.getInput(); }
+};
+
+class Parser : public BaseParser {
+public:
+  Parser() : BaseParser() {}
 
   std::unique_ptr<TranslationUnitDecl> parse();
 };

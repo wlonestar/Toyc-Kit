@@ -95,7 +95,7 @@ public:
    * TranslationUnitDecl
    */
 
-  virtual void codegen(const TranslationUnitDecl &decl) override;
+  void codegen(const TranslationUnitDecl &decl);
 };
 
 } // namespace toyc

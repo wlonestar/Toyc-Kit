@@ -139,8 +139,8 @@ llvm::Function *FunctionDecl::accept(ASTVisitor &visitor) {
  * TranslationUnitDecl
  */
 
-void TranslationUnitDecl::accept(ASTVisitor &visitor) {
-  visitor.codegen(*this);
-}
+// void TranslationUnitDecl::accept(ASTVisitor &visitor) {
+//   visitor.codegen(*this);
+// }
 
 } // namespace toyc
