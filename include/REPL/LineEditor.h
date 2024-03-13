@@ -18,16 +18,16 @@ private:
   size_t size;
 
 public:
-  LineEditor(std::string &str) : prompt(str), size(0) {}
+  LineEditor(std::string str) : prompt(str), size(0) {}
 
   ~LineEditor() { clearHistory(); }
 
 public:
-  void setPrompt(std::string &prompt) { prompt = prompt; }
+  void setPrompt(std::string _prompt) { prompt = _prompt; }
 
   std::string readLine() { return std::string(readline(prompt.c_str())); }
 
-  void addHistory(std::string &str) {
+  void addHistory(std::string str) {
     add_history(str.c_str());
     size++;
   }

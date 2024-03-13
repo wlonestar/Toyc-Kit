@@ -28,7 +28,6 @@ InterpreterParser::expr_or_stmt_t InterpreterParser::parseExprOrExprStmt() {
 InterpreterParser::parse_t InterpreterParser::parse() {
   parse_t translationUnit;
 
-  advance();
   std::string type, name;
   bool isExtern = false;
   if (match(EXTERN)) {
@@ -36,7 +35,6 @@ InterpreterParser::parse_t InterpreterParser::parse() {
   }
   /// declaration
   if (match({VOID, I64, F64})) {
-    std::cout << fstr("parse declaration\n");
     type = previous().value;
     if (match(IDENTIFIER)) {
       name = previous().value;
@@ -49,15 +47,12 @@ InterpreterParser::parse_t InterpreterParser::parse() {
       return parseVariableDeclaration(type, name, GLOBAL);
     }
   } else if (check({IF, WHILE, FOR, LC})) {
-    std::cout << fstr("parse statement\n");
     return parseStatement();
   } else {
     auto [stmt, flag] = parseExprOrExprStmt();
     if (flag) {
-      std::cout << fstr("parse statement\n");
       return std::move(stmt);
     } else {
-      std::cout << fstr("parse expression\n");
       return std::move(stmt->expr);
     }
   }

@@ -64,6 +64,7 @@ public:
 public:
   virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
   virtual llvm::Value *codegen(const CallExpr &expr) override;
+  virtual llvm::Value *codegen(const UnaryOperator &expr) override;
   virtual llvm::Value *codegen(const BinaryOperator &expr) override;
 
 public:

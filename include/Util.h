@@ -35,7 +35,7 @@ namespace toyc {
  * @return true if read and write successfully
  * @return false if file can not open
  */
-static bool read_from(std::string &src, std::string &input) {
+static bool read_from(std::string src, std::string &input) {
   std::ifstream file(src);
   if (file.is_open() == false) {
     return false;
@@ -54,7 +54,7 @@ static bool read_from(std::string &src, std::string &input) {
  * @return true if write into file successfully
  * @return false if file can not open
  */
-static bool write_to(std::string &dest, std::string &output) {
+static bool write_to(std::string dest, std::string &output) {
   std::ofstream file(dest);
   if (file.is_open() == false) {
     return false;

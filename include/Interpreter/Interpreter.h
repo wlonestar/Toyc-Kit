@@ -20,7 +20,7 @@ private:
 public:
   Interpreter() : parser(), visitor() {}
 
-  void compile(std::string &input);
+  void compile(std::string input);
 };
 
 } // namespace toyc

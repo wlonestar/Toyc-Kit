@@ -1,31 +1,42 @@
-# Toyc - A Compiler Frontend for a C Language Subset
+# Toyc - A C Subset Compiler, Interpreter and REPL
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
-Toyc is a compiler frontend for a subset of the C language. It's designed for learning compilation principles and understanding LLVM Intermediate Representation (**IR**). The project includes hand-written lexical and syntax analysis, with a focus on simplicity and understanding. Currently, only a small portion of the C language syntax is implemented.
+Toyc is a project focused on simplifying the complexities of the C programming language while providing a platform for learning about compiler construction principles and delving into LLVM Intermediate Representation (**LLVM IR**). It offers a compiler, an interpreter and a REPL tailored to the needs of learners and enthusiasts in the field.
 
 ## Features
 
-- **Lexical Analysis**: Hand-written lexer with regex used for integer and floating-point number parsing.
-- **Syntax Parsing**: Single-pass compilation with nested lexical analysis.
-- **Semantic Analysis**: Combined with syntax parsing, includes type checking, implicit casting, and AST tree construction.
-- **Code Generation**: Generates LLVM IR.
-- **Error Handling**: Basic error handling; exits on error.
-- **Optimization**: Not implemented yet.
+- **Simplified C Subset**: Toyc presents a subset of the C language, making it more approachable for beginners while still covering essential concepts.
+- **Hands-on Learning**: The project emphasizes hand-written lexical and syntax analysis, promoting a deeper understanding of compiler internals.
+- **Focus on Simplicity**: With simplicity as a core tenet, toyc's design aims to be transparent and easy yo comprehend, making it an ideal tool for educational purposes.
+- **Incremental Implementation**: Although currently covering only a small portion of the C language syntax, the project is open to expansion and improvement by contributors.
+
+## Components
+
+- **Compiler**: Converts toyc source code into LLVM IR, facilitating exploration of compilation stages and LLVM's capabilities.
+- **Interpreter**: Executes toyc source code line by line directly, offering immediate feedback and enabling experimentation with language features.
+- **REPL**: An interactive programming environment.
 
 ## Getting Started
 
 ### Prerequisites
 
-Before using Toyc, make sure you have **CMake**, **Ninja**, **Clang**, **LLVM** (version >= 15, recommended version 16), and other dependencies installed. On Debian or Ubuntu, you can install them with:
+Before using Toyc, make sure you have the following dependencies installed:
+
+- CMake
+- Ninja
+- Clang (version >= 15)
+- LLVM (version >= 15, recommended version 16)
+- libzstd-dev
+- libfmt-dev
+- libreadline-dev
+
+You can install them on Debian or Ubuntu using the following command:
 
 ```
-sudo apt install \
-  cmake ninja-build \
-  clang-16 libclang-16-dev llvm-16 llvm-16-dev \
-  libzstd-dev libfmt-dev libreadline-dev
+sudo apt install cmake ninja-build clang-16 libclang-16-dev llvm-16 llvm-16-dev libzstd-dev libfmt-dev libreadline-dev
 ```
 
 ### Installation
@@ -39,18 +50,22 @@ git clone https:://github.com/wlonestar/toyc.git
 2. Compile the frontend:
 
 ```
-make TYPE=Release # or just type make
+make TYPE=Release 
+# (Optional) Debug mode
+# make
 ```
 
-3. Compile essential runtime (if you want to see some print out):
+1. Compile essential runtime:
 
 ```
 make install
 ```
 
-You need have enough permission.
+You need to have enough permission.
 
 ### Usage
+
+#### Compiler
 
 To compile examples, use the provided `toycc.sh` script:
 
@@ -60,11 +75,11 @@ To compile examples, use the provided `toycc.sh` script:
 
 This command will compile the specified example source file(`simple.toyc`) using the script.
 
-If compiled in **Release** mode, bytecode and executable files (a.ll and a.exe) will be generated. In **Debug** mode, colored AST tree dump and generated IR will be shown.
+If compiled in **Release** mode, bytecode and executable files (`a.ll` and `a.exe`) will be generated. In **Debug** mode, colored AST tree dump and generated IR will be shown.
 
 ![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-07_21-04-24.jpg)
 
-### Running the Frontend Separately
+**Running the Frontend Separately**
 
 If you want to run the frontend separately, you can use the `toycc` binary directly. Before it you need to set environment variable `toycc`.
 
@@ -72,6 +87,26 @@ If you want to run the frontend separately, you can use the `toycc` binary direc
 export toycc=build/bin/toycc
 build/bin/toycc <source_file> <bytecode_file>
 ```
+
+#### Interpreter
+
+To use Interpreter, use the provided `toyci.sh` script:
+
+```
+./scripts/toyci.sh examples/repl_test.toyc
+```
+
+The Interpreter allows you to execute Toyc source code line by line, providing immediate feedback. This is particularly useful for experimenting with language features and exploring code behavior interactively.
+
+#### REPL
+
+To launch the REPL, execute the following command:
+
+````
+./script/toyc-repl.sh
+````
+
+The REPL (Read-Eval-Print Loop) provides an interactive programming environment where you can enter Toyc expressions or statements, which are then immediately evaluated, and the results are displayed back to you. This is a convenient way to test code snippets, explore language features, and prototype algorithms interactively.
 
 ## Running Tests
 
@@ -111,7 +146,6 @@ Thank you for considering contributing to Toyc!
 
 Here are some ideas for future improvements and features:
 
-- **REPL**: Expanding project to include an interpreter for toyc along with a Read-Eval-Print Loop (REPL).
 - **Optimization**: Implement optimization passes to improve generated code efficiency.
 
 ## References

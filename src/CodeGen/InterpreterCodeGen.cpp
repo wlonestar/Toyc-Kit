@@ -126,6 +126,71 @@ llvm::Value *InterpreterIRVisitor::codegen(const CallExpr &expr) {
   return builder->CreateCall(callee, argVals);
 }
 
+llvm::Value *InterpreterIRVisitor::codegen(const UnaryOperator &expr) {
+  auto *e = expr.expr->accept(*this);
+  if (e == nullptr) {
+    throw CodeGenException("[UnaryOperator] the operand is null");
+  }
+
+  /// prepare for INC_OP and DEC_OP
+  llvm::Value *oneVal;
+  if (expr.type == "i64") {
+    oneVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1);
+  } else {
+    oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
+  }
+  llvm::Value *var;
+  if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
+    std::string varName = _left->decl->getName();
+    var = varEnv[varName];
+    if (var == nullptr) {
+      var = getGlobalVar(varName);
+    }
+  }
+
+  switch (expr.op.type) {
+  case NOT:
+    return builder->CreateNot(e);
+  case SUB:
+    if (expr.type == "i64") {
+      return builder->CreateNeg(e);
+    } else {
+      return builder->CreateFNeg(e);
+    }
+  case INC_OP: {
+    llvm::Value *updated;
+    if (expr.type == "i64") {
+      updated = builder->CreateNSWAdd(e, oneVal);
+    } else {
+      updated = builder->CreateFAdd(e, oneVal);
+    }
+    builder->CreateStore(updated, var);
+    if (expr.side == POSTFIX) {
+      return e;
+    } else {
+      return updated;
+    }
+  }
+  case DEC_OP: {
+    llvm::Value *updated;
+    if (expr.type == "i64") {
+      updated = builder->CreateNSWSub(e, oneVal);
+    } else {
+      updated = builder->CreateFSub(e, oneVal);
+    }
+    builder->CreateStore(updated, var);
+    if (expr.side == POSTFIX) {
+      return e;
+    } else {
+      return updated;
+    }
+  }
+  default:
+    throw CodeGenException(fstr(
+        "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
+  }
+}
+
 llvm::Value *InterpreterIRVisitor::codegen(const BinaryOperator &expr) {
   llvm::Value *l, *r;
 
@@ -254,7 +319,7 @@ void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
   if (auto varDecl = dynamic_cast<VarDecl *>(decl.get())) {
     /// for variable declaration, all see as global variable
     varDecl->accept(*this);
-    dump();
+    // dump();
     ExitOnErr(JIT->addModule(
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context))));
     initialize();
@@ -263,7 +328,7 @@ void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
     if (funcDecl->getKind() != DECLARATION) {
       funcDecl->accept(*this);
       if (funcDecl->getKind() == DEFINITION) {
-        dump();
+        // dump();
         ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
             std::move(module), std::move(context))));
         initialize();
@@ -283,7 +348,7 @@ void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
   auto funcDecl =
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
   if (funcDecl->accept(*this)) {
-    dump();
+    // dump();
     auto resTracker = JIT->getMainJITDylib().createResourceTracker();
     auto tsm =
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
@@ -306,7 +371,6 @@ void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
 }
 
 void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
-
   std::string type = expr->getType();
   auto stmt = std::make_unique<ReturnStmt>(std::move(expr));
   auto proto = std::make_unique<FunctionProto>(
@@ -316,7 +380,7 @@ void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
 
   if (funcDecl->accept(*this)) {
-    dump();
+    // dump();
     auto resTracker = JIT->getMainJITDylib().createResourceTracker();
     auto tsm =
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context));

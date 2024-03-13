@@ -1,7 +1,14 @@
-i64 add(i64 a, i64 b) {
-  return a + b;
-}
-
 i64 a = 0;
-
-void foo() { if (1 == 2) { a = 1; } a = 2; }
+a
+a = a++ + a++;
+a
+i64 b = 0;
+b
+b = ++b + ++b;
+b
+f64 c = 1.132e2;
+c
+i64 x = 1024;
+x = -x;
+x = x >> 2;
+x

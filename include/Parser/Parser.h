@@ -70,7 +70,7 @@ protected:
 protected:
   void clearVarTable() { varTable.clear(); }
 
-protected:
+public:
   Token peek() { return current; }
   Token previous() { return prev; }
   Token advance();

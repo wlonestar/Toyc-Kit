@@ -10,21 +10,24 @@
 
 namespace toyc {
 
-void Interpreter::compile(std::string &input) {
+void Interpreter::compile(std::string input) {
   parser.addInput(input);
   try {
-    auto unit = parser.parse();
-    if (unit.index() == 0) {
-      auto &decl = std::get<std::unique_ptr<Decl>>(unit);
-      visitor.handleDeclaration(decl);
-    } else if (unit.index() == 1) {
-      auto &stmt = std::get<std::unique_ptr<Stmt>>(unit);
-      visitor.handleStatement(stmt);
-    } else if (unit.index() == 2) {
-      auto &expr = std::get<std::unique_ptr<Expr>>(unit);
-      visitor.handleExpression(expr);
-    } else {
-      throw CodeGenException("error");
+    parser.advance();
+    while (parser.peek().type != _EOF) {
+      auto unit = parser.parse();
+      if (unit.index() == 0) {
+        auto &decl = std::get<std::unique_ptr<Decl>>(unit);
+        visitor.handleDeclaration(decl);
+      } else if (unit.index() == 1) {
+        auto &stmt = std::get<std::unique_ptr<Stmt>>(unit);
+        visitor.handleStatement(stmt);
+      } else if (unit.index() == 2) {
+        auto &expr = std::get<std::unique_ptr<Expr>>(unit);
+        visitor.handleExpression(expr);
+      } else {
+        throw CodeGenException("error");
+      }
     }
   } catch (LexerException e1) {
     std::cerr << e1.what() << "\n";

@@ -3,6 +3,7 @@ add_subdirectory(Lexer)
 add_subdirectory(AST)
 add_subdirectory(Parser)
 add_subdirectory(CodeGen)
+add_subdirectory(Interpreter)
 
 add_executable(toycc
   Compiler/toycc.cpp
@@ -37,6 +38,25 @@ target_link_libraries(toyci
   InterpreterParser
   CodeGen
   InterpreterCodeGen
+  fmt
+  ${LLVM_LIBS_I}
+)
+
+add_executable(toyc-repl
+  REPL/ToycREPL.cpp
+)
+target_compile_definitions(toyc-repl PRIVATE
+  $<$<CONFIG:Debug>:DEBUG>
+)
+target_link_libraries(toyc-repl
+  Prepprocessor
+  Lexer
+  AST
+  Parser
+  InterpreterParser
+  CodeGen
+  InterpreterCodeGen
+  Interpreter
   fmt
   readline
   ${LLVM_LIBS_I}

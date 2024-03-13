@@ -644,6 +644,7 @@ std::unique_ptr<Decl> BaseParser::parseVariableDeclaration(std::string &type,
     } else {
       throwParserException("not supported type");
     }
+    /// TODO: support parse minus number
     init = (match(EQUAL) ? parseConstant() : std::move(zero));
   } else {
     if (varTable.find(name) != varTable.end()) {

@@ -137,67 +137,6 @@ llvm::Value *BaseIRVisitor::codegen(const ParenExpr &expr) {
   return expr.expr->accept(*this);
 }
 
-llvm::Value *BaseIRVisitor::codegen(const UnaryOperator &expr) {
-  auto *e = expr.expr->accept(*this);
-  if (e == nullptr) {
-    throw CodeGenException("[UnaryOperator] the operand is null");
-  }
-
-  /// prepare for INC_OP and DEC_OP
-  llvm::Value *oneVal;
-  if (expr.type == "i64") {
-    oneVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1);
-  } else {
-    oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
-  }
-  llvm::Value *var;
-  if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
-    var = varEnv[_left->decl->getName()];
-  }
-
-  switch (expr.op.type) {
-  case NOT:
-    return builder->CreateNot(e);
-  case SUB:
-    if (expr.type == "i64") {
-      return builder->CreateNeg(e);
-    } else {
-      return builder->CreateFNeg(e);
-    }
-  case INC_OP: {
-    llvm::Value *updated;
-    if (expr.type == "i64") {
-      updated = builder->CreateNSWAdd(e, oneVal);
-    } else {
-      updated = builder->CreateFAdd(e, oneVal);
-    }
-    builder->CreateStore(updated, var);
-    if (expr.side == POSTFIX) {
-      return e;
-    } else {
-      return updated;
-    }
-  }
-  case DEC_OP: {
-    llvm::Value *updated;
-    if (expr.type == "i64") {
-      updated = builder->CreateNSWSub(e, oneVal);
-    } else {
-      updated = builder->CreateFSub(e, oneVal);
-    }
-    builder->CreateStore(updated, var);
-    if (expr.side == POSTFIX) {
-      return e;
-    } else {
-      return updated;
-    }
-  }
-  default:
-    throw CodeGenException(fstr(
-        "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
-  }
-}
-
 /**
  * Stmt
  */
@@ -541,6 +480,71 @@ llvm::Value *CompilerIRVisitor::codegen(const CallExpr &expr) {
     argVals.push_back(argVal);
   }
   return builder->CreateCall(callee, argVals);
+}
+
+llvm::Value *CompilerIRVisitor::codegen(const UnaryOperator &expr) {
+  auto *e = expr.expr->accept(*this);
+  if (e == nullptr) {
+    throw CodeGenException("[UnaryOperator] the operand is null");
+  }
+
+  /// prepare for INC_OP and DEC_OP
+  llvm::Value *oneVal;
+  if (expr.type == "i64") {
+    oneVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1);
+  } else {
+    oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
+  }
+  llvm::Value *var;
+  if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
+    std::string varName = _left->decl->getName();
+    var = varEnv[varName];
+    if (var == nullptr) {
+      var = globalVarEnv[varName];
+    }
+  }
+
+  switch (expr.op.type) {
+  case NOT:
+    return builder->CreateNot(e);
+  case SUB:
+    if (expr.type == "i64") {
+      return builder->CreateNeg(e);
+    } else {
+      return builder->CreateFNeg(e);
+    }
+  case INC_OP: {
+    llvm::Value *updated;
+    if (expr.type == "i64") {
+      updated = builder->CreateNSWAdd(e, oneVal);
+    } else {
+      updated = builder->CreateFAdd(e, oneVal);
+    }
+    builder->CreateStore(updated, var);
+    if (expr.side == POSTFIX) {
+      return e;
+    } else {
+      return updated;
+    }
+  }
+  case DEC_OP: {
+    llvm::Value *updated;
+    if (expr.type == "i64") {
+      updated = builder->CreateNSWSub(e, oneVal);
+    } else {
+      updated = builder->CreateFSub(e, oneVal);
+    }
+    builder->CreateStore(updated, var);
+    if (expr.side == POSTFIX) {
+      return e;
+    } else {
+      return updated;
+    }
+  }
+  default:
+    throw CodeGenException(fstr(
+        "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
+  }
 }
 
 llvm::Value *CompilerIRVisitor::codegen(const BinaryOperator &expr) {

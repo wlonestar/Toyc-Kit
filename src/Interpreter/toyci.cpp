@@ -1,10 +1,9 @@
 //! entry point of toyc
 
-#include <Config.h>
 #include <Interpreter/Interpreter.h>
-#include <Interpreter/LineEditor.h>
 
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -13,46 +12,14 @@
 using namespace toyc;
 using namespace std;
 
-void run_prompt() {
-  string input;
-  Interpreter interpreter;
-  LineEditor editor(PROMPT);
-  while (true) {
-    /// line buffer
-    string line = editor.readLine();
-    trim(line);
-
-    /// only compile non-empty string
-    if (line.size() > 0) {
-      editor.addHistory(line);
-      /// deal with options (now only support quit)
-      if (line == R"(.quit)") {
-        /// quit
-        cout << "bye~" << endl;
-        break;
-      }
-      /// normal statements
-      if (line.ends_with("\\")) {
-        /// multiple input
-        line.pop_back();
-        input += line;
-        editor.setPrompt(MULTI_PROMPT);
-        continue;
-      } else {
-        /// single input
-        editor.setPrompt(PROMPT);
-        input += line;
-
-        interpreter.compile(input);
-
-        /// clear buffer
-        input = "";
-      }
-    }
-  }
-}
-
 int main(int argc, const char **argv) {
-  run_prompt();
+  if (argc < 2) {
+    std::cerr << fstr("Usage: {} <src>\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
+  Interpreter interpreter;
+  std::string input;
+  read_from(argv[1], input);
+  interpreter.compile(input);
   return 0;
 }
