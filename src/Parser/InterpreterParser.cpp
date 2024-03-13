@@ -715,7 +715,7 @@ InterpreterParser::parse_t InterpreterParser::parse() {
   parse_t translationUnit;
 
   advance();
-  std::cout << fstr("parse {}\n", current.toString());
+  // std::cout << fstr("parse {}\n", current.toString());
   std::string type, name;
   bool isExtern = false;
   if (match(EXTERN)) {
@@ -733,7 +733,7 @@ InterpreterParser::parse_t InterpreterParser::parse() {
     if (match(LP)) {
       return parseFunctionDeclaration(type, name, isExtern);
     } else {
-      return parseVariableDeclaration(type, name, LOCAL);
+      return parseVariableDeclaration(type, name, GLOBAL);
     }
   } else if (check({IF, WHILE, FOR, LC})) {
     std::cout << fstr("parse statement\n");

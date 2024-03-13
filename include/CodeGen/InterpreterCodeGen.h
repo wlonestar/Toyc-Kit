@@ -14,6 +14,7 @@
 #include <llvm/ADT/APInt.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
@@ -45,16 +46,21 @@ private:
   std::unique_ptr<llvm::StandardInstrumentations> SI;
 
   llvm::ExitOnError ExitOnErr;
-  std::map<std::string, llvm::GlobalVariable *> globalVarEnv;
+
+  struct GlobalVar {
+    std::string name;
+    std::string type;
+    GlobalVar(std::string _name, std::string _type)
+        : name(_name), type(_type) {}
+  };
+  std::map<std::string, std::unique_ptr<GlobalVar>> globalVarEnv;
   std::map<std::string, llvm::AllocaInst *> varEnv;
+
   /// store function prototype
   std::map<std::string, std::unique_ptr<FunctionProto>> functionEnv;
 
 private:
   void initialize();
-
-  // void printGlobalVarEnv();
-  // void printVarEnv();
   void clearVarEnv() { varEnv.clear(); }
 
 public:
@@ -62,9 +68,9 @@ public:
 
   virtual void dump(llvm::raw_ostream &os = llvm::errs());
   virtual bool verifyModule(llvm::raw_ostream &os = llvm::errs());
-  // virtual void setModuleID(std::string &name);
 
 public:
+  llvm::GlobalVariable *getGlobalVar(std::string name);
   llvm::Function *getFunction(const FunctionDecl &proto);
 
 public:
@@ -109,7 +115,7 @@ public:
   virtual void codegen(const TranslationUnitDecl &decl) override;
 
   void handleDeclaration(std::unique_ptr<Decl> &decl);
-  void handleExpression(std::unique_ptr<FunctionDecl> &expr);
+  void handleExpression(std::unique_ptr<Expr> &expr);
 };
 
 } // namespace toyc

@@ -12,8 +12,8 @@
 
 namespace toyc {
 
-static std::string PROMPT = "toyc> ";
-static std::string MULTI_PROMPT = "..... ";
+static std::string PROMPT = "toyci> ";
+static std::string MULTI_PROMPT = "...... ";
 
 class LineEditor {
 private:

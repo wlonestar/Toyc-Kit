@@ -5,7 +5,6 @@
 #include <Parser/InterpreterParser.h>
 #include <Util.h>
 
-#include <llvm-16/llvm/IR/Value.h>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
@@ -13,11 +12,13 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
@@ -34,16 +35,6 @@
 #include <vector>
 
 namespace toyc {
-
-#ifdef _WIN32
-#define DLLEXPORT __declspec(dllexport)
-#else
-#define DLLEXPORT
-#endif
-
-extern "C" DLLEXPORT void printi64(int64_t x) { fprintf(stderr, "%ld\n", x); }
-
-extern "C" DLLEXPORT void printf64(double x) { fprintf(stderr, "%lf\n", x); }
 
 void InterpreterIRCodegenVisitor::initialize() {
   context = std::make_unique<llvm::LLVMContext>();
@@ -84,6 +75,20 @@ bool InterpreterIRCodegenVisitor::verifyModule(llvm::raw_ostream &os) {
   }
 }
 
+llvm::GlobalVariable *
+InterpreterIRCodegenVisitor::getGlobalVar(std::string name) {
+  llvm::GlobalVariable *var = nullptr;
+  if (auto &gvar = globalVarEnv[name]) {
+    llvm::Type *varTy =
+        (gvar->type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
+
+    var = new llvm::GlobalVariable(*module, varTy, false,
+                                   llvm::GlobalVariable::ExternalLinkage,
+                                   nullptr, name);
+  }
+  return var;
+}
+
 llvm::Function *
 InterpreterIRCodegenVisitor::getFunction(const FunctionDecl &decl) {
   llvm::Type *resultTy;
@@ -101,10 +106,8 @@ InterpreterIRCodegenVisitor::getFunction(const FunctionDecl &decl) {
   }
 
   llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
-  llvm::Function *func = llvm::Function::Create(
-      funcTy, llvm::Function::ExternalLinkage, decl.proto->name, *module);
-
-  return func;
+  return llvm::Function::Create(funcTy, llvm::Function::ExternalLinkage,
+                                decl.proto->name, *module);
 }
 
 /**
@@ -125,19 +128,19 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const DeclRefExpr &expr) {
   if (id != nullptr) {
     auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("[1] identifier '{}' not load", varName));
+      throw CodeGenException(fstr("identifier '{}' not load", varName));
     }
     return idVal;
   }
-  auto *gid = globalVarEnv[varName];
+  llvm::GlobalVariable *gid = getGlobalVar(varName);
   if (gid != nullptr) {
     auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("[2] identifier '{}' not load", varName));
+      throw CodeGenException(fstr("identifier '{}' not load", varName));
     }
     return idVal;
   }
-  throw CodeGenException(fstr("[3] identifier '{}' not found", varName));
+  throw CodeGenException(fstr("identifier '{}' not found", varName));
 }
 
 llvm::Value *
@@ -176,7 +179,6 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const ParenExpr &expr) {
 }
 
 llvm::Value *InterpreterIRCodegenVisitor::codegen(const CallExpr &expr) {
-  // llvm::Function *callee = module->getFunction(expr.callee->decl->getName());
   llvm::Function *callee =
       getFunction((const FunctionDecl &)*expr.callee->decl);
   if (callee == nullptr) {
@@ -264,7 +266,8 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const BinaryOperator &expr) {
       std::string varName = _left->decl->getName();
       l = varEnv[varName];
       if (l == nullptr) {
-        l = globalVarEnv[varName];
+        // l = globalVarEnv[varName];
+        l = getGlobalVar(varName);
       }
     }
     r = expr.right->accept(*this);
@@ -583,7 +586,7 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const VarDecl &decl) {
     llvm::GlobalVariable *var = new llvm::GlobalVariable(
         *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
         initializer, decl.name);
-    globalVarEnv[decl.name] = var;
+    globalVarEnv[decl.name] = std::make_unique<GlobalVar>(decl.name, decl.type);
     return var;
   } else {
     llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
@@ -656,48 +659,21 @@ llvm::Function *InterpreterIRCodegenVisitor::codegen(const FunctionDecl &decl) {
  * TranslationUnitDecl
  */
 
-void InterpreterIRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
-  for (auto &d : decl.decls) {
-    if (auto varDecl = dynamic_cast<VarDecl *>(d.get())) {
-      varDecl->accept(*this);
-    } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(d.get())) {
-      if (funcDecl->getKind() != DECLARATION) {
-        auto *fnIR = funcDecl->accept(*this);
-        /// parse function definition
-        if (funcDecl->getKind() == DEFINITION) {
-          ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
-              std::move(module), std::move(context))));
-          initialize();
-        } else {
-          functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
-        }
-      }
-    } else {
-      throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
-    }
-  }
-
-  /// remove not used extern functions
-  // auto functionList = &module->getFunctionList();
-  // for (auto it = functionList->begin(), end = functionList->end(); it !=
-  // end;) {
-  //   auto &f = *it++;
-  //   if (f.isDeclaration() && f.users().empty()) {
-  //     f.eraseFromParent();
-  //   }
-  // }
-}
+/// TODO: deprecated
+void InterpreterIRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {}
 
 void InterpreterIRCodegenVisitor::handleDeclaration(
     std::unique_ptr<Decl> &decl) {
   if (auto varDecl = dynamic_cast<VarDecl *>(decl.get())) {
+    /// for variable declaration, all see as global variable
     varDecl->accept(*this);
+    ExitOnErr(JIT->addModule(
+        llvm::orc::ThreadSafeModule(std::move(module), std::move(context))));
+    initialize();
   } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(decl.get())) {
+    /// for function definition
     if (funcDecl->getKind() != DECLARATION) {
-      auto *fnIR = funcDecl->accept(*this);
-
-      // dump();
-      /// parse function definition
+      funcDecl->accept(*this);
       if (funcDecl->getKind() == DEFINITION) {
         ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
             std::move(module), std::move(context))));
@@ -705,7 +681,6 @@ void InterpreterIRCodegenVisitor::handleDeclaration(
       } else {
         functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
       }
-      delete fnIR;
     }
   } else {
     throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
@@ -713,31 +688,33 @@ void InterpreterIRCodegenVisitor::handleDeclaration(
 }
 
 void InterpreterIRCodegenVisitor::handleExpression(
-    std::unique_ptr<FunctionDecl> &decl) {
+    std::unique_ptr<Expr> &expr) {
+
+  std::string type = expr->getType();
+  auto stmt = std::make_unique<ReturnStmt>(std::move(expr));
+  auto proto = std::make_unique<FunctionProto>(
+      "__anon_expr__", std::move(type),
+      std::vector<std::unique_ptr<ParmVarDecl>>{});
+  auto decl = std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
+
   if (decl->accept(*this)) {
-    // dump();
-    // Create a ResourceTracker to track JIT'd memory allocated to our
-    // anonymous expression -- that way we can free it after executing.
-    auto RT = JIT->getMainJITDylib().createResourceTracker();
-    auto TSM =
+    auto resTracker = JIT->getMainJITDylib().createResourceTracker();
+    auto tsm =
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
-    ExitOnErr(JIT->addModule(std::move(TSM), RT));
+    ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
     initialize();
-    // Search the JIT for the __anon_expr symbol.
-    auto ExprSymbol = ExitOnErr(JIT->lookup("__anon_expr"));
-    // Get the symbol's address and cast it to the right type (takes no
-    // arguments, returns a double) so we can call it as a native function.
+
+    auto exprSym = ExitOnErr(JIT->lookup("__anon_expr__"));
     if (decl->getType() == "i64") {
-      int64_t (*FP)() = (int64_t(*)())(intptr_t)ExprSymbol.getAddress();
-      fprintf(stderr, "Evaluated to %ld\n", FP());
+      int64_t (*FP)() = (int64_t(*)())(intptr_t)exprSym.getAddress();
+      fprintf(stderr, "--> %ld\n", FP());
     } else if (decl->getType() == "f64") {
-      double (*FP)() = (double (*)())(intptr_t)ExprSymbol.getAddress();
-      fprintf(stderr, "Evaluated to %lf\n", FP());
+      double (*FP)() = (double (*)())(intptr_t)exprSym.getAddress();
+      fprintf(stderr, "--> %lf\n", FP());
     } else {
       throw CodeGenException(fstr("not supported type '{}'", decl->getType()));
     }
-    // Delete the anonymous expression module from the JIT.
-    ExitOnErr(RT->remove());
+    ExitOnErr(resTracker->remove());
   } else {
     throw CodeGenException("generate anon function failed");
   }
