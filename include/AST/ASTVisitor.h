@@ -46,12 +46,6 @@ public:
   virtual llvm::Value *codegen(const VarDecl &decl) = 0;
   virtual llvm::Type *codegen(const ParmVarDecl &decl) = 0;
   virtual llvm::Function *codegen(const FunctionDecl &decl) = 0;
-
-  // /**
-  //  * TranslationUnitDecl
-  //  */
-
-  // virtual void codegen(const TranslationUnitDecl &decl) = 0;
 };
 
 } // namespace toyc

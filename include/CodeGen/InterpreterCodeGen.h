@@ -27,15 +27,8 @@
 
 namespace toyc {
 
-/**
- * @brief Codegen Visitor for interpreter
- *
- */
-class InterpreterIRCodegenVisitor : public ASTVisitor {
+class InterpreterIRCodegenVisitor : public BaseIRVisitor {
 private:
-  std::unique_ptr<llvm::LLVMContext> context;
-  std::unique_ptr<llvm::Module> module;
-  std::unique_ptr<llvm::IRBuilder<>> builder;
   std::unique_ptr<ToycJIT> JIT;
   std::unique_ptr<llvm::legacy::FunctionPassManager> FPM;
   std::unique_ptr<llvm::LoopAnalysisManager> LAM;
@@ -53,63 +46,41 @@ private:
     GlobalVar(std::string _name, std::string _type)
         : name(_name), type(_type) {}
   };
+
   std::map<std::string, std::unique_ptr<GlobalVar>> globalVarEnv;
-  std::map<std::string, llvm::AllocaInst *> varEnv;
-  /// store function prototype
   std::map<std::string, std::unique_ptr<FunctionProto>> functionEnv;
 
 private:
   void initialize();
-  void clearVarEnv() { varEnv.clear(); }
 
 public:
   InterpreterIRCodegenVisitor();
 
-  virtual void dump(llvm::raw_ostream &os = llvm::errs());
-  virtual bool verifyModule(llvm::raw_ostream &os = llvm::errs());
-
 public:
   llvm::GlobalVariable *getGlobalVar(std::string name);
-  llvm::Function *getFunction(const FunctionDecl &proto);
 
 public:
   /**
    * Expr
    */
 
-  virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
-  virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
+  // virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
+  // virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
-  virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
-  virtual llvm::Value *codegen(const CastExpr &expr) override;
-  virtual llvm::Value *codegen(const ParenExpr &expr) override;
-  virtual llvm::Value *codegen(const CallExpr &expr) override;
-  virtual llvm::Value *codegen(const UnaryOperator &expr) override;
+  // virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
+  // virtual llvm::Value *codegen(const CastExpr &expr) override;
+  // virtual llvm::Value *codegen(const ParenExpr &expr) override;
+  // virtual llvm::Value *codegen(const CallExpr &expr) override;
+  // virtual llvm::Value *codegen(const UnaryOperator &expr) override;
   virtual llvm::Value *codegen(const BinaryOperator &expr) override;
-
-  /**
-   * Stmt
-   */
-
-  virtual llvm::Value *codegen(const CompoundStmt &stmt) override;
-  virtual llvm::Value *codegen(const ExprStmt &stmt) override;
-  virtual llvm::Value *codegen(const DeclStmt &stmt) override;
-  virtual llvm::Value *codegen(const IfStmt &stmt) override;
-  virtual llvm::Value *codegen(const WhileStmt &stmt) override;
-  virtual llvm::Value *codegen(const ForStmt &stmt) override;
-  virtual llvm::Value *codegen(const ReturnStmt &stmt) override;
 
   /**
    * Decl
    */
 
   virtual llvm::Value *codegen(const VarDecl &decl) override;
-  virtual llvm::Type *codegen(const ParmVarDecl &decl) override;
-  virtual llvm::Function *codegen(const FunctionDecl &decl) override;
-
-  /**
-   * Top
-   */
+  // virtual llvm::Type *codegen(const ParmVarDecl &decl) override;
+  // virtual llvm::Function *codegen(const FunctionDecl &decl) override;
 
   void handleDeclaration(std::unique_ptr<Decl> &decl);
   void handleExpression(std::unique_ptr<Expr> &expr);
