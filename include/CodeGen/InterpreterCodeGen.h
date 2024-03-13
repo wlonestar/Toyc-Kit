@@ -27,7 +27,7 @@
 
 namespace toyc {
 
-class InterpreterIRCodegenVisitor : public BaseIRVisitor {
+class InterpreterIRVisitor : public BaseIRVisitor {
 private:
   std::unique_ptr<ToycJIT> JIT;
   std::unique_ptr<llvm::legacy::FunctionPassManager> FPM;
@@ -43,8 +43,9 @@ private:
   struct GlobalVar {
     std::string name;
     std::string type;
-    GlobalVar(std::string _name, std::string _type)
-        : name(_name), type(_type) {}
+    size_t refered;
+    GlobalVar(std::string _name, std::string _type, size_t _refered)
+        : name(_name), type(_type), refered(_refered) {}
   };
 
   std::map<std::string, std::unique_ptr<GlobalVar>> globalVarEnv;
@@ -52,37 +53,25 @@ private:
 
 private:
   void initialize();
+  void resetReferGlobalVar();
 
 public:
-  InterpreterIRCodegenVisitor();
+  InterpreterIRVisitor();
 
 public:
   llvm::GlobalVariable *getGlobalVar(std::string name);
 
 public:
-  /**
-   * Expr
-   */
-
-  // virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
-  // virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
-  // virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
-  // virtual llvm::Value *codegen(const CastExpr &expr) override;
-  // virtual llvm::Value *codegen(const ParenExpr &expr) override;
-  // virtual llvm::Value *codegen(const CallExpr &expr) override;
-  // virtual llvm::Value *codegen(const UnaryOperator &expr) override;
+  virtual llvm::Value *codegen(const CallExpr &expr) override;
   virtual llvm::Value *codegen(const BinaryOperator &expr) override;
 
-  /**
-   * Decl
-   */
-
+public:
   virtual llvm::Value *codegen(const VarDecl &decl) override;
-  // virtual llvm::Type *codegen(const ParmVarDecl &decl) override;
-  // virtual llvm::Function *codegen(const FunctionDecl &decl) override;
 
+public:
   void handleDeclaration(std::unique_ptr<Decl> &decl);
+  void handleStatement(std::unique_ptr<Stmt> &stmt);
   void handleExpression(std::unique_ptr<Expr> &expr);
 };
 

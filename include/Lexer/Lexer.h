@@ -21,13 +21,7 @@ private:
   std::string message;
 
 public:
-  LexerException(size_t _line, size_t _col, std::string &_message)
-      : line(_line), col(_col),
-        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
-                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                     _line, _col, _message)) {}
-
-  LexerException(size_t _line, size_t _col, std::string &&_message)
+  LexerException(size_t _line, size_t _col, std::string _message)
       : line(_line), col(_col),
         message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
@@ -57,10 +51,7 @@ private:
   size_t col;
 
 private:
-  void throwLexerException(std::string &&message) {
-    throw LexerException(line, col, std::move(message));
-  }
-  void throwLexerException(std::string &message) {
+  void throwLexerException(std::string message) {
     throw LexerException(line, col, message);
   }
 

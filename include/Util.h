@@ -64,6 +64,23 @@ static bool write_to(std::string &dest, std::string &output) {
   return true;
 }
 
+static void trim(std::string &str) {
+  /// erase leading whitespaces
+  size_t start = str.find_first_not_of(" \t\n\r\f\v");
+  if (start != std::string::npos) {
+    str.erase(0, start);
+  } else {
+    /// string is all whitespace
+    str.clear();
+    return;
+  }
+  /// erase trailing whitespaces
+  size_t end = str.find_last_not_of(" \t\n\r\f\v");
+  if (end != std::string::npos) {
+    str.erase(end + 1);
+  }
+}
+
 } // namespace toyc
 
 #endif

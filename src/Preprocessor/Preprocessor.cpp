@@ -105,8 +105,6 @@ void Preprocessor::importLib() {
     input.insert(start, content);
     start += content.size() + 1;
     current = start;
-    // } else {
-    // return;
   }
 }
 

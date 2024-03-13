@@ -21,20 +21,22 @@ private:
   std::string message;
 
 public:
-  CodeGenException(std::string &_msg)
-      : message(fstr("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
-  CodeGenException(std::string &&_msg)
+  CodeGenException(std::string _msg)
       : message(fstr("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };
+
+/**
+ * Base IR visitor
+ */
 
 class BaseIRVisitor : public ASTVisitor {
 protected:
   std::unique_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::Module> module;
   std::unique_ptr<llvm::IRBuilder<>> builder;
-
+  /// local variable table
   std::map<std::string, llvm::AllocaInst *> varEnv;
 
 protected:
@@ -51,24 +53,14 @@ public:
   virtual llvm::Function *getFunction(const FunctionDecl &decl);
 
 public:
-  /**
-   * Expr
-   */
-
   virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
   virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
-  // virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
   virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
   virtual llvm::Value *codegen(const CastExpr &expr) override;
   virtual llvm::Value *codegen(const ParenExpr &expr) override;
-  virtual llvm::Value *codegen(const CallExpr &expr) override;
   virtual llvm::Value *codegen(const UnaryOperator &expr) override;
-  // virtual llvm::Value *codegen(const BinaryOperator &expr) override;
 
-  /**
-   * Stmt
-   */
-
+public:
   virtual llvm::Value *codegen(const CompoundStmt &stmt) override;
   virtual llvm::Value *codegen(const ExprStmt &stmt) override;
   virtual llvm::Value *codegen(const DeclStmt &stmt) override;
@@ -77,50 +69,33 @@ public:
   virtual llvm::Value *codegen(const ForStmt &stmt) override;
   virtual llvm::Value *codegen(const ReturnStmt &stmt) override;
 
-  /**
-   * Decl
-   */
-
-  // virtual llvm::Value *codegen(const VarDecl &decl) override;
+public:
   virtual llvm::Type *codegen(const ParmVarDecl &decl) override;
   virtual llvm::Function *codegen(const FunctionDecl &decl) override;
 };
 
-class IRCodegenVisitor : public BaseIRVisitor {
+class CompilerIRVisitor : public BaseIRVisitor {
 private:
+  /// global variable table
   std::map<std::string, llvm::GlobalVariable *> globalVarEnv;
 
 private:
   void printGlobalVarEnv();
 
 public:
-  IRCodegenVisitor();
+  CompilerIRVisitor();
 
   void setModuleID(std::string &name);
 
 public:
-  /**
-   * Expr
-   */
-
-  // virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
-  // virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
-  // virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
-  // virtual llvm::Value *codegen(const CastExpr &expr) override;
-  // virtual llvm::Value *codegen(const ParenExpr &expr) override;
-  // virtual llvm::Value *codegen(const CallExpr &expr) override;
-  // virtual llvm::Value *codegen(const UnaryOperator &expr) override;
+  virtual llvm::Value *codegen(const CallExpr &expr) override;
   virtual llvm::Value *codegen(const BinaryOperator &expr) override;
 
-  /**
-   * Decl
-   */
-
+public:
   virtual llvm::Value *codegen(const VarDecl &decl) override;
-  // virtual llvm::Type *codegen(const ParmVarDecl &decl) override;
-  // virtual llvm::Function *codegen(const FunctionDecl &decl) override;
 
+public:
   void codegen(const TranslationUnitDecl &decl);
 };
 

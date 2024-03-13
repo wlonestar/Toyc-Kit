@@ -18,13 +18,7 @@ private:
   std::string message;
 
 public:
-  PreprocessorException(size_t _line, size_t _col, std::string &_message)
-      : line(_line), col(_col),
-        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
-                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                     _line, _col, _message)) {}
-
-  PreprocessorException(size_t _line, size_t _col, std::string &&_message)
+  PreprocessorException(size_t _line, size_t _col, std::string _message)
       : line(_line), col(_col),
         message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
@@ -48,10 +42,7 @@ private:
   size_t col;
 
 private:
-  void throwPreprocessorException(std::string &&message) {
-    throw PreprocessorException(line, col, std::move(message));
-  }
-  void throwPreprocessorException(std::string &message) {
+  void throwPreprocessorException(std::string message) {
     throw PreprocessorException(line, col, message);
   }
 
@@ -67,15 +58,14 @@ private:
   char peekNext();
   char advance();
   void backward();
-  
+
 private:
   void skipLineComment();
   void skipMutliComment();
   void importLib();
 
 public:
-  Preprocessor()
-      : input(""), start(0), current(0), line(1), col(0) {}
+  Preprocessor() : input(""), start(0), current(0), line(1), col(0) {}
 
   void setInput(std::string &_input) { input = _input; }
   void setInput(std::string &&_input) { input = _input; }

@@ -25,7 +25,6 @@ Token BaseParser::advance() {
     }
     throwParserException("error at parse");
   }
-  // debug("prev:{}, curent:{}", prev.toString(), current.toString());
   return prev;
 }
 
@@ -703,8 +702,7 @@ std::unique_ptr<Decl> BaseParser::parseExternalDeclaration() {
 }
 
 /**
- * @brief Parser parse method
- *
+ * Parser
  */
 
 std::unique_ptr<TranslationUnitDecl> Parser::parse() {

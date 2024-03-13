@@ -1,5 +1,6 @@
 //! entry point of toyc
 
+#include <Config.h>
 #include <Interpreter/Interpreter.h>
 #include <Interpreter/LineEditor.h>
 

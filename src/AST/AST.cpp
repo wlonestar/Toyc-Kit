@@ -135,12 +135,4 @@ llvm::Function *FunctionDecl::accept(ASTVisitor &visitor) {
   return visitor.codegen(*this);
 }
 
-/**
- * TranslationUnitDecl
- */
-
-// void TranslationUnitDecl::accept(ASTVisitor &visitor) {
-//   visitor.codegen(*this);
-// }
-
 } // namespace toyc

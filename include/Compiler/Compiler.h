@@ -20,7 +20,7 @@ class Compiler {
 private:
   Preprocessor preprocessor;
   Parser parser;
-  IRCodegenVisitor visitor;
+  CompilerIRVisitor visitor;
 
 public:
   Compiler() : preprocessor(), parser(), visitor() {}

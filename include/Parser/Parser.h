@@ -23,13 +23,7 @@ private:
   std::string message;
 
 public:
-  ParserException(size_t _line, size_t _col, std::string &_message)
-      : line(_line), col(_col),
-        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
-                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                     _line, _col, _message)) {}
-
-  ParserException(size_t _line, size_t _col, std::string &&_message)
+  ParserException(size_t _line, size_t _col, std::string _message)
       : line(_line), col(_col),
         message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
@@ -69,11 +63,8 @@ protected:
   std::map<std::string, FunctionParams> funcTable;
 
 protected:
-  void throwParserException(std::string &&message) {
+  void throwParserException(std::string message) {
     throw ParserException(current.line, current.col, std::move(message));
-  }
-  void throwParserException(std::string &message) {
-    throw ParserException(current.line, current.col, message);
   }
 
 protected:

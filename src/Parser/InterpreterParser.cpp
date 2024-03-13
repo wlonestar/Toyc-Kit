@@ -29,7 +29,6 @@ InterpreterParser::parse_t InterpreterParser::parse() {
   parse_t translationUnit;
 
   advance();
-  // std::cout << fstr("parse {}\n", current.toString());
   std::string type, name;
   bool isExtern = false;
   if (match(EXTERN)) {
@@ -55,14 +54,13 @@ InterpreterParser::parse_t InterpreterParser::parse() {
   } else {
     auto [stmt, flag] = parseExprOrExprStmt();
     if (flag) {
-      std::cout << fstr("parse expression statement\n");
+      std::cout << fstr("parse statement\n");
       return std::move(stmt);
     } else {
       std::cout << fstr("parse expression\n");
       return std::move(stmt->expr);
     }
   }
-  // return translationUnit;
 }
 
 } // namespace toyc

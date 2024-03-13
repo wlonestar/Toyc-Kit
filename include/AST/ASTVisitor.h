@@ -13,10 +13,6 @@ namespace toyc {
 
 class ASTVisitor {
 public:
-  /**
-   * Expr
-   */
-
   virtual llvm::Value *codegen(const IntegerLiteral &expr) = 0;
   virtual llvm::Value *codegen(const FloatingLiteral &expr) = 0;
   virtual llvm::Value *codegen(const DeclRefExpr &expr) = 0;
@@ -27,10 +23,6 @@ public:
   virtual llvm::Value *codegen(const UnaryOperator &expr) = 0;
   virtual llvm::Value *codegen(const BinaryOperator &expr) = 0;
 
-  /**
-   * Stmt
-   */
-
   virtual llvm::Value *codegen(const CompoundStmt &stmt) = 0;
   virtual llvm::Value *codegen(const ExprStmt &stmt) = 0;
   virtual llvm::Value *codegen(const DeclStmt &stmt) = 0;
@@ -38,10 +30,6 @@ public:
   virtual llvm::Value *codegen(const WhileStmt &stmt) = 0;
   virtual llvm::Value *codegen(const ForStmt &stmt) = 0;
   virtual llvm::Value *codegen(const ReturnStmt &stmt) = 0;
-
-  /**
-   * Decl
-   */
 
   virtual llvm::Value *codegen(const VarDecl &decl) = 0;
   virtual llvm::Type *codegen(const ParmVarDecl &decl) = 0;

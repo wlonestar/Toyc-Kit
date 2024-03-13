@@ -14,16 +14,13 @@ void Interpreter::compile(std::string &input) {
   parser.addInput(input);
   try {
     auto unit = parser.parse();
-    // std::cout << fstr("index={}\n", unit.index());
     if (unit.index() == 0) {
-      debug("declaration");
       auto &decl = std::get<std::unique_ptr<Decl>>(unit);
       visitor.handleDeclaration(decl);
     } else if (unit.index() == 1) {
-      debug("statement");
-      auto &decl = std::get<std::unique_ptr<Stmt>>(unit);
+      auto &stmt = std::get<std::unique_ptr<Stmt>>(unit);
+      visitor.handleStatement(stmt);
     } else if (unit.index() == 2) {
-      debug("expression");
       auto &expr = std::get<std::unique_ptr<Expr>>(unit);
       visitor.handleExpression(expr);
     } else {

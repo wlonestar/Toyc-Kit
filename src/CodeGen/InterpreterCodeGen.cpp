@@ -36,7 +36,7 @@
 
 namespace toyc {
 
-void InterpreterIRCodegenVisitor::initialize() {
+void InterpreterIRVisitor::initialize() {
   context = std::make_unique<llvm::LLVMContext>();
   module = std::make_unique<llvm::Module>("toyc jit", *context);
   module->setDataLayout(JIT->getDataLayout());
@@ -50,7 +50,13 @@ void InterpreterIRCodegenVisitor::initialize() {
   FPM->doInitialization();
 }
 
-InterpreterIRCodegenVisitor::InterpreterIRCodegenVisitor() {
+void InterpreterIRVisitor::resetReferGlobalVar() {
+  for (auto &var : globalVarEnv) {
+    var.second->refered = 0;
+  }
+}
+
+InterpreterIRVisitor::InterpreterIRVisitor() {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
@@ -59,16 +65,20 @@ InterpreterIRCodegenVisitor::InterpreterIRCodegenVisitor() {
   initialize();
 }
 
-llvm::GlobalVariable *
-InterpreterIRCodegenVisitor::getGlobalVar(std::string name) {
+llvm::GlobalVariable *InterpreterIRVisitor::getGlobalVar(std::string name) {
   llvm::GlobalVariable *var = nullptr;
   if (auto &gvar = globalVarEnv[name]) {
     llvm::Type *varTy =
         (gvar->type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
 
-    var = new llvm::GlobalVariable(*module, varTy, false,
-                                   llvm::GlobalVariable::ExternalLinkage,
-                                   nullptr, name);
+    if (gvar->refered == 0) {
+      var = new llvm::GlobalVariable(*module, varTy, false,
+                                     llvm::GlobalVariable::ExternalLinkage,
+                                     nullptr, name);
+      gvar->refered++;
+    } else {
+      var = module->getGlobalVariable(name);
+    }
   }
   return var;
 }
@@ -77,7 +87,7 @@ InterpreterIRCodegenVisitor::getGlobalVar(std::string name) {
  * Expr
  */
 
-llvm::Value *InterpreterIRCodegenVisitor::codegen(const DeclRefExpr &expr) {
+llvm::Value *InterpreterIRVisitor::codegen(const DeclRefExpr &expr) {
   std::string varName = expr.decl->getName();
   auto *id = varEnv[varName];
   if (id != nullptr) {
@@ -98,7 +108,25 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const DeclRefExpr &expr) {
   throw CodeGenException(fstr("identifier '{}' not found", varName));
 }
 
-llvm::Value *InterpreterIRCodegenVisitor::codegen(const BinaryOperator &expr) {
+llvm::Value *InterpreterIRVisitor::codegen(const CallExpr &expr) {
+  llvm::Function *callee =
+      getFunction((const FunctionDecl &)*expr.callee->decl);
+  if (callee == nullptr) {
+    throw CodeGenException(
+        fstr("function '{}' not declared", expr.callee->decl->getName()));
+  }
+  std::vector<llvm::Value *> argVals;
+  for (auto &arg : expr.args) {
+    llvm ::Value *argVal = arg->accept(*this);
+    if (argVal == nullptr) {
+      throw CodeGenException("params not exists");
+    }
+    argVals.push_back(argVal);
+  }
+  return builder->CreateCall(callee, argVals);
+}
+
+llvm::Value *InterpreterIRVisitor::codegen(const BinaryOperator &expr) {
   llvm::Value *l, *r;
 
   if (expr.op.type == EQUAL) {
@@ -106,7 +134,6 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const BinaryOperator &expr) {
       std::string varName = _left->decl->getName();
       l = varEnv[varName];
       if (l == nullptr) {
-        // l = globalVarEnv[varName];
         l = getGlobalVar(varName);
       }
     }
@@ -195,7 +222,7 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const BinaryOperator &expr) {
  * Decl
  */
 
-llvm::Value *InterpreterIRCodegenVisitor::codegen(const VarDecl &decl) {
+llvm::Value *InterpreterIRVisitor::codegen(const VarDecl &decl) {
   llvm::Type *varTy =
       (decl.type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
   llvm::Constant *initializer =
@@ -206,7 +233,8 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const VarDecl &decl) {
     llvm::GlobalVariable *var = new llvm::GlobalVariable(
         *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
         initializer, decl.name);
-    globalVarEnv[decl.name] = std::make_unique<GlobalVar>(decl.name, decl.type);
+    globalVarEnv[decl.name] =
+        std::make_unique<GlobalVar>(decl.name, decl.type, 0);
     return var;
   } else {
     llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
@@ -218,11 +246,15 @@ llvm::Value *InterpreterIRCodegenVisitor::codegen(const VarDecl &decl) {
   }
 }
 
-void InterpreterIRCodegenVisitor::handleDeclaration(
-    std::unique_ptr<Decl> &decl) {
+/**
+ * Top
+ */
+
+void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
   if (auto varDecl = dynamic_cast<VarDecl *>(decl.get())) {
     /// for variable declaration, all see as global variable
     varDecl->accept(*this);
+    dump();
     ExitOnErr(JIT->addModule(
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context))));
     initialize();
@@ -231,9 +263,11 @@ void InterpreterIRCodegenVisitor::handleDeclaration(
     if (funcDecl->getKind() != DECLARATION) {
       funcDecl->accept(*this);
       if (funcDecl->getKind() == DEFINITION) {
+        dump();
         ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
             std::move(module), std::move(context))));
         initialize();
+        resetReferGlobalVar();
       } else {
         functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
       }
@@ -243,32 +277,63 @@ void InterpreterIRCodegenVisitor::handleDeclaration(
   }
 }
 
-void InterpreterIRCodegenVisitor::handleExpression(
-    std::unique_ptr<Expr> &expr) {
+void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
+  auto proto = std::make_unique<FunctionProto>(
+      "__anon_stmt__", "void", std::vector<std::unique_ptr<ParmVarDecl>>{});
+  auto funcDecl =
+      std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
+  if (funcDecl->accept(*this)) {
+    dump();
+    auto resTracker = JIT->getMainJITDylib().createResourceTracker();
+    auto tsm =
+        llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
+    ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
+    initialize();
+    resetReferGlobalVar();
+
+    auto exprSym = ExitOnErr(JIT->lookup("__anon_stmt__"));
+    if (funcDecl->getType() == "void") {
+      void (*FP)() = (void (*)())(intptr_t)exprSym.getAddress();
+      FP();
+    } else {
+      throw CodeGenException(
+          fstr("not supported type '{}'", funcDecl->getType()));
+    }
+    ExitOnErr(resTracker->remove());
+  } else {
+    throw CodeGenException("generate anon function failed");
+  }
+}
+
+void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
 
   std::string type = expr->getType();
   auto stmt = std::make_unique<ReturnStmt>(std::move(expr));
   auto proto = std::make_unique<FunctionProto>(
       "__anon_expr__", std::move(type),
       std::vector<std::unique_ptr<ParmVarDecl>>{});
-  auto decl = std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
+  auto funcDecl =
+      std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
 
-  if (decl->accept(*this)) {
+  if (funcDecl->accept(*this)) {
+    dump();
     auto resTracker = JIT->getMainJITDylib().createResourceTracker();
     auto tsm =
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
     ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
     initialize();
+    resetReferGlobalVar();
 
     auto exprSym = ExitOnErr(JIT->lookup("__anon_expr__"));
-    if (decl->getType() == "i64") {
+    if (funcDecl->getType() == "i64") {
       int64_t (*FP)() = (int64_t(*)())(intptr_t)exprSym.getAddress();
-      fprintf(stderr, "--> %ld\n", FP());
-    } else if (decl->getType() == "f64") {
+      fprintf(stderr, "==> %ld\n", FP());
+    } else if (funcDecl->getType() == "f64") {
       double (*FP)() = (double (*)())(intptr_t)exprSym.getAddress();
-      fprintf(stderr, "--> %lf\n", FP());
+      fprintf(stderr, "==> %lf\n", FP());
     } else {
-      throw CodeGenException(fstr("not supported type '{}'", decl->getType()));
+      throw CodeGenException(
+          fstr("not supported type '{}'", funcDecl->getType()));
     }
     ExitOnErr(resTracker->remove());
   } else {

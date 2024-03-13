@@ -68,6 +68,7 @@ bool BaseIRVisitor::verifyModule(llvm::raw_ostream &os) {
 }
 
 llvm::Function *BaseIRVisitor::getFunction(const FunctionDecl &decl) {
+  /// function return type
   llvm::Type *resultTy;
   if (decl.proto->type.starts_with("void")) {
     resultTy = llvm::Type::getVoidTy(*context);
@@ -77,15 +78,16 @@ llvm::Function *BaseIRVisitor::getFunction(const FunctionDecl &decl) {
     resultTy = llvm::Type::getDoubleTy(*context);
   }
 
+  /// function parameters
   std::vector<llvm::Type *> params;
   for (auto &param : decl.proto->params) {
     params.push_back(param->accept(*this));
   }
 
+  /// create function
   llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
   llvm::Function *func = llvm::Function::Create(
       funcTy, llvm::Function::ExternalLinkage, decl.proto->name, *module);
-
   return func;
 }
 
@@ -133,23 +135,6 @@ llvm::Value *BaseIRVisitor::codegen(const CastExpr &expr) {
 
 llvm::Value *BaseIRVisitor::codegen(const ParenExpr &expr) {
   return expr.expr->accept(*this);
-}
-
-llvm::Value *BaseIRVisitor::codegen(const CallExpr &expr) {
-  llvm::Function *callee = module->getFunction(expr.callee->decl->getName());
-  if (callee == nullptr) {
-    throw CodeGenException(
-        fstr("function '{}' not declared", expr.callee->decl->getName()));
-  }
-  std::vector<llvm::Value *> argVals;
-  for (auto &arg : expr.args) {
-    llvm ::Value *argVal = arg->accept(*this);
-    if (argVal == nullptr) {
-      throw CodeGenException("params not exists");
-    }
-    argVals.push_back(argVal);
-  }
-  return builder->CreateCall(callee, argVals);
 }
 
 llvm::Value *BaseIRVisitor::codegen(const UnaryOperator &expr) {
@@ -392,7 +377,6 @@ llvm::Value *BaseIRVisitor::codegen(const WhileStmt &stmt) {
 
 llvm::Value *BaseIRVisitor::codegen(const ForStmt &stmt) {
   llvm::Value *init = stmt.init->accept(*this);
-
   llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
   llvm::Type *retTy = parentFunc->getReturnType();
 
@@ -403,7 +387,6 @@ llvm::Value *BaseIRVisitor::codegen(const ForStmt &stmt) {
   llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "", parentFunc);
   builder->CreateBr(condB);
   builder->SetInsertPoint(condB);
-
   /// condition check
   auto cmp = stmt.cond->accept(*this);
   llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
@@ -413,11 +396,9 @@ llvm::Value *BaseIRVisitor::codegen(const ForStmt &stmt) {
   /// loop body
   builder->SetInsertPoint(bodyB);
   stmt.body->accept(*this);
-
   /// update loop
   stmt.update->accept(*this);
   builder->CreateBr(condB);
-
   /// exit
   builder->SetInsertPoint(exitB);
   varEnv.erase(stmt.init->decl->getName());
@@ -467,13 +448,13 @@ llvm::Function *BaseIRVisitor::codegen(const FunctionDecl &decl) {
     builder->CreateStore(&param, varEnv[paramName]);
   }
 
+  /// return type
   llvm::Value *retVal = nullptr;
   if (decl.body != nullptr) {
     if (auto ret = decl.body->accept(*this)) {
       retVal = ret;
     }
   }
-
   /// create void return if function type is void
   if (func->getReturnType()->isVoidTy()) {
     builder->CreateRetVoid();
@@ -494,10 +475,10 @@ llvm::Function *BaseIRVisitor::codegen(const FunctionDecl &decl) {
 }
 
 /**
- * IRCodegenVisitor
+ * CompilerIRVisitor
  */
 
-void IRCodegenVisitor::printGlobalVarEnv() {
+void CompilerIRVisitor::printGlobalVarEnv() {
   std::cout << "\033[1;32mGlobalVarEnv:\n";
   for (auto &[first, second] : globalVarEnv) {
     std::string valueStr;
@@ -512,25 +493,25 @@ void IRCodegenVisitor::printGlobalVarEnv() {
   std::cout << "\033[0m\n";
 }
 
-IRCodegenVisitor::IRCodegenVisitor() {
+CompilerIRVisitor::CompilerIRVisitor() {
   context = std::make_unique<llvm::LLVMContext>();
   builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*context));
   module = std::make_unique<llvm::Module>("toycc", *context);
   module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
-void IRCodegenVisitor::setModuleID(std::string &name) {
+void CompilerIRVisitor::setModuleID(std::string &name) {
   module->setModuleIdentifier(name);
   module->setSourceFileName(name);
 }
 
-llvm::Value *IRCodegenVisitor::codegen(const DeclRefExpr &expr) {
+llvm::Value *CompilerIRVisitor::codegen(const DeclRefExpr &expr) {
   std::string varName = expr.decl->getName();
   auto *id = varEnv[varName];
   if (id != nullptr) {
     auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("[1] identifier '{}' not load", varName));
+      throw CodeGenException(fstr("identifier '{}' not load", varName));
     }
     return idVal;
   }
@@ -538,14 +519,31 @@ llvm::Value *IRCodegenVisitor::codegen(const DeclRefExpr &expr) {
   if (gid != nullptr) {
     auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("[2] identifier '{}' not load", varName));
+      throw CodeGenException(fstr("identifier '{}' not load", varName));
     }
     return idVal;
   }
-  throw CodeGenException(fstr("[3] identifier '{}' not found", varName));
+  throw CodeGenException(fstr("identifier '{}' not found", varName));
 }
 
-llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
+llvm::Value *CompilerIRVisitor::codegen(const CallExpr &expr) {
+  llvm::Function *callee = module->getFunction(expr.callee->decl->getName());
+  if (callee == nullptr) {
+    throw CodeGenException(
+        fstr("function '{}' not declared", expr.callee->decl->getName()));
+  }
+  std::vector<llvm::Value *> argVals;
+  for (auto &arg : expr.args) {
+    llvm ::Value *argVal = arg->accept(*this);
+    if (argVal == nullptr) {
+      throw CodeGenException("params not exists");
+    }
+    argVals.push_back(argVal);
+  }
+  return builder->CreateCall(callee, argVals);
+}
+
+llvm::Value *CompilerIRVisitor::codegen(const BinaryOperator &expr) {
   llvm::Value *l, *r;
 
   if (expr.op.type == EQUAL) {
@@ -637,7 +635,7 @@ llvm::Value *IRCodegenVisitor::codegen(const BinaryOperator &expr) {
   throw CodeGenException("[BinaryOperator] unimplemented binary operation");
 }
 
-llvm::Value *IRCodegenVisitor::codegen(const VarDecl &decl) {
+llvm::Value *CompilerIRVisitor::codegen(const VarDecl &decl) {
   llvm::Type *varTy =
       (decl.type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
   llvm::Constant *initializer =
@@ -664,7 +662,7 @@ llvm::Value *IRCodegenVisitor::codegen(const VarDecl &decl) {
  * TranslationUnitDecl
  */
 
-void IRCodegenVisitor::codegen(const TranslationUnitDecl &decl) {
+void CompilerIRVisitor::codegen(const TranslationUnitDecl &decl) {
   for (auto &d : decl.decls) {
     if (auto varDecl = dynamic_cast<VarDecl *>(d.get())) {
       varDecl->accept(*this);
