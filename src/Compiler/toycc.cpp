@@ -1,18 +1,21 @@
 //! compiler for toyc
 
 #include <Compiler/Compiler.h>
-
-#include <fstream>
+#include <Config.h>
 
 int main(int argc, const char **argv) {
   if (argc < 2) {
     std::cerr << fstr("Usage: {} <src> <bytcode>\n", argv[0]);
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   toyc::Compiler compiler;
   /// wrap parameters
   std::string src = argv[1];
+  if (!src.ends_with(toyc::ext)) {
+    std::cerr << fstr("incorrect file extension\n");
+    exit(EXIT_FAILURE);
+  }
   std::string dest = (argc == 3) ? argv[2] : "a.ll";
 
   /// redirect to string first

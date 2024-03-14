@@ -261,8 +261,9 @@ std::unique_ptr<Expr> BaseParser::parsePrimaryExpression() {
         params.push_back(std::make_unique<ParmVarDecl>(paramName, param));
       }
 
-      return std::make_unique<DeclRefExpr>(std::make_unique<FunctionDecl>(
-          std::make_unique<FunctionProto>(funcName, retType, params)));
+      return std::make_unique<DeclRefExpr>(
+          std::make_unique<FunctionDecl>(std::make_unique<FunctionProto>(
+              funcName, retType, std::move(params), 0)));
     }
   }
   if (match(LP)) {
@@ -688,7 +689,7 @@ std::unique_ptr<Decl> BaseParser::parseFunctionDeclaration(std::string &retTy,
       (isExtern ? EXTERN_FUNC : (body == nullptr ? DECLARATION : DEFINITION));
   return std::make_unique<FunctionDecl>(
       std::make_unique<FunctionProto>(std::move(name), std::move(funcType),
-                                      std::move(params)),
+                                      std::move(params), 0),
       std::move(body), kind);
 }
 

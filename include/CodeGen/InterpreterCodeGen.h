@@ -54,12 +54,14 @@ private:
 private:
   void initialize();
   void resetReferGlobalVar();
+  void resetReferFunctionProto();
 
 public:
   InterpreterIRVisitor();
 
 public:
   llvm::GlobalVariable *getGlobalVar(std::string name);
+  virtual llvm::Function *getFunction(const FunctionDecl &decl) override;
 
 public:
   virtual llvm::Value *codegen(const DeclRefExpr &expr) override;

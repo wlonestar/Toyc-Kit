@@ -47,8 +47,8 @@ struct IntegerLiteral : public Literal {
   int64_t value;
   std::string type;
 
-  IntegerLiteral(int64_t _value, std::string &&_type)
-      : value(_value), type(std::move(_type)) {}
+  IntegerLiteral(int64_t _value, std::string _type)
+      : value(_value), type(_type) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -60,8 +60,8 @@ struct FloatingLiteral : public Literal {
   double value;
   std::string type;
 
-  FloatingLiteral(double _value, std::string &&_type)
-      : value(_value), type(std::move(_type)) {}
+  FloatingLiteral(double _value, std::string _type)
+      : value(_value), type(_type) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -85,8 +85,8 @@ struct StringLiteral : public Literal {
   std::string value;
   std::string type;
 
-  StringLiteral(std::string &&_value, std::string &&_type)
-      : value(std::move(_value)), type(std::move(_type)) {}
+  StringLiteral(std::string _value, std::string _type)
+      : value(_value), type(_type) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -111,11 +111,8 @@ struct ImplicitCastExpr : public Expr {
   std::string type;
   std::unique_ptr<Expr> expr;
 
-  ImplicitCastExpr(std::string &_type, std::unique_ptr<Expr> _expr)
+  ImplicitCastExpr(std::string _type, std::unique_ptr<Expr> _expr)
       : type(_type), expr(std::move(_expr)) {}
-
-  ImplicitCastExpr(std::string &&_type, std::unique_ptr<Expr> _expr)
-      : type(std::move(_type)), expr(std::move(_expr)) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -127,11 +124,8 @@ struct CastExpr : public Expr {
   std::string type;
   std::unique_ptr<Expr> expr;
 
-  CastExpr(std::string &_type, std::unique_ptr<Expr> _expr)
+  CastExpr(std::string _type, std::unique_ptr<Expr> _expr)
       : type(_type), expr(std::move(_expr)) {}
-
-  CastExpr(std::string &&_type, std::unique_ptr<Expr> _expr)
-      : type(std::move(_type)), expr(std::move(_expr)) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -175,9 +169,9 @@ struct UnaryOperator : public Expr {
   std::string type;
   UnarySide side;
 
-  UnaryOperator(Token _op, std::unique_ptr<Expr> _expr, std::string &&_type,
+  UnaryOperator(Token _op, std::unique_ptr<Expr> _expr, std::string _type,
                 UnarySide _side)
-      : op(_op), expr(std::move(_expr)), type(std::move(_type)), side(_side) {}
+      : op(_op), expr(std::move(_expr)), type(_type), side(_side) {}
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -192,9 +186,9 @@ struct BinaryOperator : public Expr {
   std::string type;
 
   BinaryOperator(Token _op, std::unique_ptr<Expr> _left,
-                 std::unique_ptr<Expr> _right, std::string &&_type)
-      : op(_op), left(std::move(_left)), right(std::move(_right)),
-        type(std::move(_type)) {}
+                 std::unique_ptr<Expr> _right, std::string _type)
+      : op(_op), left(std::move(_left)), right(std::move(_right)), type(_type) {
+  }
 
   std::string getType() const override;
   llvm::Value *accept(ASTVisitor &visitor) override;
@@ -319,14 +313,9 @@ struct VarDecl : public Decl {
   std::unique_ptr<Expr> init;
   VarScope scope;
 
-  VarDecl(std::string &_name, std::string &_type,
+  VarDecl(std::string _name, std::string _type,
           std::unique_ptr<Expr> _init = nullptr, VarScope _scope = LOCAL)
       : name(_name), type(_type), init(std::move(_init)), scope(_scope) {}
-
-  VarDecl(std::string &&_name, std::string &&_type,
-          std::unique_ptr<Expr> _init = nullptr, VarScope _scope = LOCAL)
-      : name(std::move(_name)), type(std::move(_type)), init(std::move(_init)),
-        scope(_scope) {}
 
   std::string getName() const override;
   std::string getType() const override;
@@ -336,11 +325,8 @@ struct VarDecl : public Decl {
 };
 
 struct ParmVarDecl : public VarDecl {
-  ParmVarDecl(std::string &_name, std::string &_type)
+  ParmVarDecl(std::string _name, std::string _type)
       : VarDecl(_name, _type, nullptr, LOCAL) {}
-
-  ParmVarDecl(std::string &&_name, std::string &&_type)
-      : VarDecl(std::move(_name), std::move(_type), nullptr, LOCAL) {}
 
   std::string getName() const override;
   std::string getType() const override;
@@ -359,15 +345,13 @@ struct FunctionProto {
   std::string name;
   std::string type;
   std::vector<std::unique_ptr<ParmVarDecl>> params;
+  size_t refered;
 
-  FunctionProto(std::string &_name, std::string &_type,
-                std::vector<std::unique_ptr<ParmVarDecl>> &_params)
-      : name(_name), type(_type), params(std::move(_params)) {}
-
-  FunctionProto(std::string &&_name, std::string &&_type,
-                std::vector<std::unique_ptr<ParmVarDecl>> &&_params)
-      : name(std::move(_name)), type(std::move(_type)),
-        params(std::move(_params)) {}
+  FunctionProto(std::string _name, std::string _type,
+                std::vector<std::unique_ptr<ParmVarDecl>> _params,
+                size_t _refered)
+      : name(_name), type(_type), params(std::move(_params)),
+        refered(_refered) {}
 };
 
 struct FunctionDecl : public Decl {

@@ -56,6 +56,14 @@ void InterpreterIRVisitor::resetReferGlobalVar() {
   }
 }
 
+void InterpreterIRVisitor::resetReferFunctionProto() {
+  for (auto &func : functionEnv) {
+    if (auto &f = func.second) {
+      f->refered = 0;
+    }
+  }
+}
+
 InterpreterIRVisitor::InterpreterIRVisitor() {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
@@ -81,6 +89,40 @@ llvm::GlobalVariable *InterpreterIRVisitor::getGlobalVar(std::string name) {
     }
   }
   return var;
+}
+
+/// override getFunction
+llvm::Function *InterpreterIRVisitor::getFunction(const FunctionDecl &decl) {
+  std::string funcName = decl.getName();
+  if (auto &fn = functionEnv[funcName]) {
+    if (fn->refered != 0) {
+      return module->getFunction(funcName);
+    } else {
+      fn->refered++;
+    }
+  }
+
+  /// function return type
+  llvm::Type *resultTy;
+  if (decl.proto->type.starts_with("void")) {
+    resultTy = llvm::Type::getVoidTy(*context);
+  } else if (decl.proto->type.starts_with("i64")) {
+    resultTy = llvm::Type::getInt64Ty(*context);
+  } else if (decl.proto->type.starts_with("f64")) {
+    resultTy = llvm::Type::getDoubleTy(*context);
+  }
+
+  /// function parameters
+  std::vector<llvm::Type *> params;
+  for (auto &param : decl.proto->params) {
+    params.push_back(param->accept(*this));
+  }
+
+  /// create function
+  llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
+  llvm::Function *func = llvm::Function::Create(
+      funcTy, llvm::Function::ExternalLinkage, decl.proto->name, *module);
+  return func;
 }
 
 /**
@@ -323,18 +365,19 @@ void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
     ExitOnErr(JIT->addModule(
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context))));
     initialize();
+    resetReferGlobalVar();
   } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(decl.get())) {
     /// for function definition
     if (funcDecl->getKind() != DECLARATION) {
       funcDecl->accept(*this);
+      functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
       if (funcDecl->getKind() == DEFINITION) {
         // dump();
         ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
             std::move(module), std::move(context))));
         initialize();
         resetReferGlobalVar();
-      } else {
-        functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
+        resetReferFunctionProto();
       }
     }
   } else {
@@ -344,7 +387,7 @@ void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
 
 void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
   auto proto = std::make_unique<FunctionProto>(
-      "__anon_stmt__", "void", std::vector<std::unique_ptr<ParmVarDecl>>{});
+      "__anon_stmt__", "void", std::vector<std::unique_ptr<ParmVarDecl>>{}, 0);
   auto funcDecl =
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
   if (funcDecl->accept(*this)) {
@@ -355,11 +398,12 @@ void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
     ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
     initialize();
     resetReferGlobalVar();
+    // resetReferFunctionProto();
 
     auto exprSym = ExitOnErr(JIT->lookup("__anon_stmt__"));
     if (funcDecl->getType() == "void") {
-      void (*FP)() = (void (*)())(intptr_t)exprSym.getAddress();
-      FP();
+      void (*functionPtr)() = (void (*)())(intptr_t)exprSym.getAddress();
+      functionPtr();
     } else {
       throw CodeGenException(
           fstr("not supported type '{}'", funcDecl->getType()));
@@ -375,7 +419,7 @@ void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
   auto stmt = std::make_unique<ReturnStmt>(std::move(expr));
   auto proto = std::make_unique<FunctionProto>(
       "__anon_expr__", std::move(type),
-      std::vector<std::unique_ptr<ParmVarDecl>>{});
+      std::vector<std::unique_ptr<ParmVarDecl>>{}, 0);
   auto funcDecl =
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
 
@@ -387,14 +431,15 @@ void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
     ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
     initialize();
     resetReferGlobalVar();
+    resetReferFunctionProto();
 
     auto exprSym = ExitOnErr(JIT->lookup("__anon_expr__"));
     if (funcDecl->getType() == "i64") {
-      int64_t (*FP)() = (int64_t(*)())(intptr_t)exprSym.getAddress();
-      fprintf(stderr, "==> %ld\n", FP());
+      int64_t (*functionPtr)() = (int64_t(*)())(intptr_t)exprSym.getAddress();
+      std::cout << fstr("{}\n", functionPtr());
     } else if (funcDecl->getType() == "f64") {
-      double (*FP)() = (double (*)())(intptr_t)exprSym.getAddress();
-      fprintf(stderr, "==> %lf\n", FP());
+      double (*functionPtr)() = (double (*)())(intptr_t)exprSym.getAddress();
+      std::cout << fstr("{}\n", functionPtr());
     } else {
       throw CodeGenException(
           fstr("not supported type '{}'", funcDecl->getType()));

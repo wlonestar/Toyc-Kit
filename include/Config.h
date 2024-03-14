@@ -11,6 +11,8 @@ namespace toyc {
 
 static std::string PROMPT = "toyc> ";
 static std::string MULTI_PROMPT = "..... ";
+static std::string ext = ".toyc";
+static std::string script_ext = ".toycs";
 
 } // namespace toyc
 
