@@ -26,8 +26,6 @@ InterpreterParser::expr_or_stmt_t InterpreterParser::parseExprOrExprStmt() {
 }
 
 InterpreterParser::parse_t InterpreterParser::parse() {
-  parse_t translationUnit;
-
   std::string type, name;
   bool isExtern = false;
   if (match(EXTERN)) {

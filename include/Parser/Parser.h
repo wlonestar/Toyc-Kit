@@ -23,11 +23,11 @@ private:
   std::string message;
 
 public:
-  ParserException(size_t _line, size_t _col, std::string _message)
+  ParserException(size_t _line, size_t _col, std::string _msg)
       : line(_line), col(_col),
         message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                     _line, _col, _message)) {}
+                     _line, _col, _msg)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };
@@ -39,14 +39,9 @@ struct FunctionParams {
 
   FunctionParams() {}
 
-  FunctionParams(std::string &_name, std::string &_retType,
+  FunctionParams(std::string _name, std::string _retType,
                  std::vector<std::string> &_params)
       : name(_name), retType(_retType), params(_params) {}
-
-  FunctionParams(std::string &&_name, std::string &&_retType,
-                 std::vector<std::string> &&_params)
-      : name(std::move(_name)), retType(std::move(_retType)),
-        params(std::move(_params)) {}
 };
 
 class BaseParser {
@@ -55,6 +50,7 @@ protected:
   Token prev;
   Lexer lexer;
 
+protected:
   /// global variable: <name, type>
   std::map<std::string, std::string> globalVarTable;
   /// local variable: <name, type>
@@ -101,12 +97,10 @@ protected:
 protected:
   std::unique_ptr<Expr> parseIntegerLiteral();
   std::unique_ptr<Expr> parseFloatingLiteral();
-
   std::unique_ptr<Expr> parseConstant();
   std::unique_ptr<Expr> parsePrimaryExpression();
   std::unique_ptr<Expr> parsePostfixExpression();
   std::unique_ptr<Expr> parseUnaryExpression();
-  std::unique_ptr<Expr> parseCastExpression();
   std::unique_ptr<Expr> parseMultiplicativeExpression();
   std::unique_ptr<Expr> parseAdditiveExpression();
   std::unique_ptr<Expr> parseShiftExpression();
@@ -117,6 +111,7 @@ protected:
   std::unique_ptr<Expr> parseAssignmentExpression();
   std::unique_ptr<Expr> parseExpression();
 
+public:
   std::unique_ptr<Stmt> parseExpressionStatement();
   std::unique_ptr<Stmt> parseReturnStatement();
   std::unique_ptr<Stmt> parseIterationStatement();
@@ -125,12 +120,14 @@ protected:
   std::unique_ptr<Stmt> parseCompoundStatement();
   std::unique_ptr<Stmt> parseStatement();
 
+public:
   std::pair<std::string, bool> parseDeclarationSpecifiers();
   std::string parseDeclarator();
   std::vector<std::unique_ptr<ParmVarDecl>> parseFunctionParameters();
   std::string genFuncType(std::string &&retTy,
                           std::vector<std::unique_ptr<ParmVarDecl>> &params);
 
+public:
   std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
                                                  std::string &name,
                                                  VarScope scope);
@@ -141,6 +138,7 @@ protected:
 public:
   BaseParser() : lexer(), current(), prev() {}
 
+public:
   void addInput(std::string &_input) { lexer.addInput(_input); }
   std::string getInput() { return lexer.getInput(); }
 };
@@ -149,6 +147,7 @@ class Parser : public BaseParser {
 public:
   Parser() : BaseParser() {}
 
+public:
   std::unique_ptr<TranslationUnitDecl> parse();
 };
 

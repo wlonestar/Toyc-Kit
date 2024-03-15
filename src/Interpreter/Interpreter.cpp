@@ -10,40 +10,45 @@
 
 namespace toyc {
 
-void Interpreter::compile(std::string input) {
+void Interpreter::execute(InterpreterParser::parse_t &unit) {
+  if (unit.index() == 0) {
+    auto &decl = std::get<std::unique_ptr<Decl>>(unit);
+    visitor.handleDeclaration(decl);
+  } else if (unit.index() == 1) {
+    auto &stmt = std::get<std::unique_ptr<Stmt>>(unit);
+    visitor.handleStatement(stmt);
+  } else if (unit.index() == 2) {
+    auto &expr = std::get<std::unique_ptr<Expr>>(unit);
+    visitor.handleExpression(expr);
+  } else {
+    throw CodeGenException("error");
+  }
+}
+
+void Interpreter::parseAndExecute(std::string input) {
   parser.addInput(input);
-  try {
-    parser.advance();
-    while (parser.peek().type != _EOF) {
+
+  parser.advance();
+  while (parser.peek().type != _EOF) {
+    try {
       auto unit = parser.parse();
-      if (unit.index() == 0) {
-        auto &decl = std::get<std::unique_ptr<Decl>>(unit);
-        visitor.handleDeclaration(decl);
-      } else if (unit.index() == 1) {
-        auto &stmt = std::get<std::unique_ptr<Stmt>>(unit);
-        visitor.handleStatement(stmt);
-      } else if (unit.index() == 2) {
-        auto &expr = std::get<std::unique_ptr<Expr>>(unit);
-        visitor.handleExpression(expr);
-      } else {
-        throw CodeGenException("error");
-      }
-    }
-  } catch (LexerException e1) {
-    std::cerr << e1.what() << "\n";
-    exit(EXIT_FAILURE);
-  } catch (ParserException e2) {
-    std::cerr << e2.what() << "\n";
-    exit(EXIT_FAILURE);
-  } catch (CodeGenException e3) {
-    std::cerr << e3.what() << "\n";
-    exit(EXIT_FAILURE);
+      execute(unit); /// When catching error, report error resons and continue
+    } catch (LexerException e1) {
+      std::cerr << e1.what() << "\n";
+      parser.advance();
+    } catch (ParserException e2) {
+      std::cerr << e2.what() << "\n";
+      parser.advance();
+    } catch (CodeGenException e3) {
+      std::cerr << e3.what() << "\n";
+      parser.advance();
 #ifndef DEBUG
-  } catch (...) {
-    /// catch error for release version
-    std::cerr << "there is something wrong in compiler inner\n";
-    exit(EXIT_FAILURE);
+    } catch (...) {
+      /// If an unexpected error occurs, quit the program
+      std::cerr << "there is something wrong in compiler inner\n";
+      exit(EXIT_FAILURE);
 #endif
+    }
   }
 }
 

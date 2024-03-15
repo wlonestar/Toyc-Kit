@@ -52,7 +52,9 @@ void InterpreterIRVisitor::initialize() {
 
 void InterpreterIRVisitor::resetReferGlobalVar() {
   for (auto &var : globalVarEnv) {
-    var.second->refered = 0;
+    if (auto &f = var.second) {
+      f->refered = 0;
+    }
   }
 }
 
@@ -191,6 +193,8 @@ llvm::Value *InterpreterIRVisitor::codegen(const UnaryOperator &expr) {
   }
 
   switch (expr.op.type) {
+  case ADD:
+    return e;
   case NOT:
     return builder->CreateNot(e);
   case SUB:

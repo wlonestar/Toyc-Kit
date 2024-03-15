@@ -9,6 +9,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 namespace toyc {
 
@@ -123,118 +124,125 @@ enum TokenType {
 };
 
 #define _stringify_(name) #name
-#define _map_(name)                                                            \
-  { name, _stringify_(name) }
 
-static std::map<TokenType, std::string> TokenTypeTable = {
+/**
+ * @brief Mapping from enumeration to string using vector
+ *
+ * @notice: Do not change the order of types
+ */
+static std::vector<std::string> TokenTypeTable = {
     // keywords
-    _map_(AUTO),          // auto
-    _map_(BREAK),         // break
-    _map_(CASE),          // case
-    _map_(CHAR),          // char
-    _map_(CONST),         // const
-    _map_(CONTINUE),      // continue
-    _map_(DEFAULT),       // default
-    _map_(DO),            // do
-    _map_(DOUBLE),        // double
-    _map_(ELSE),          // else
-    _map_(ENUM),          // enum
-    _map_(EXTERN),        // extern
-    _map_(F64),           // f64
-    _map_(FLOAT),         // float
-    _map_(FOR),           // for
-    _map_(GOTO),          // goto
-    _map_(I64),           // i64
-    _map_(IF),            // if
-    _map_(INLINE),        // inline
-    _map_(INT),           // int
-    _map_(LONG),          // long
-    _map_(REGISTER),      // register
-    _map_(RESTRICT),      // restrict
-    _map_(RETURN),        // return
-    _map_(SHORT),         // short
-    _map_(SIGNED),        // signed
-    _map_(SIZEOF),        // sizeof
-    _map_(STATIC),        // static
-    _map_(STRUCT),        // struct
-    _map_(SWITCH),        // switch
-    _map_(TYPEDEF),       // typedef
-    _map_(UNION),         // union
-    _map_(UNSIGNED),      // unsigned
-    _map_(VOID),          // void
-    _map_(VOLATILE),      // volatile
-    _map_(WHILE),         // while
-    _map_(ALIGNAS),       // _Alignas
-    _map_(ALIGNOF),       // _Alignof
-    _map_(ATOMIC),        // _Atomic
-    _map_(BOOL),          // _Bool
-    _map_(COMPLEX),       // _Complex
-    _map_(GENERIC),       // _Generic
-    _map_(IMAGINARY),     // _Imaginary
-    _map_(NORETURN),      // _Noreturn
-    _map_(STATIC_ASSERT), // _Static_assert
-    _map_(THREAD_LOCAL),  // _Thread_local
-    _map_(FUNC_NAME),     // __func__
+    _stringify_(AUTO),          // auto
+    _stringify_(BREAK),         // break
+    _stringify_(CASE),          // case
+    _stringify_(CHAR),          // char
+    _stringify_(CONST),         // const
+    _stringify_(CONTINUE),      // continue
+    _stringify_(DEFAULT),       // default
+    _stringify_(DO),            // do
+    _stringify_(DOUBLE),        // double
+    _stringify_(ELSE),          // else
+    _stringify_(ENUM),          // enum
+    _stringify_(EXTERN),        // extern
+    _stringify_(F64),           // f64
+    _stringify_(FLOAT),         // float
+    _stringify_(FOR),           // for
+    _stringify_(GOTO),          // goto
+    _stringify_(I64),           // i64
+    _stringify_(IF),            // if
+    _stringify_(INLINE),        // inline
+    _stringify_(INT),           // int
+    _stringify_(LONG),          // long
+    _stringify_(REGISTER),      // register
+    _stringify_(RESTRICT),      // restrict
+    _stringify_(RETURN),        // return
+    _stringify_(SHORT),         // short
+    _stringify_(SIGNED),        // signed
+    _stringify_(SIZEOF),        // sizeof
+    _stringify_(STATIC),        // static
+    _stringify_(STRUCT),        // struct
+    _stringify_(SWITCH),        // switch
+    _stringify_(TYPEDEF),       // typedef
+    _stringify_(UNION),         // union
+    _stringify_(UNSIGNED),      // unsigned
+    _stringify_(VOID),          // void
+    _stringify_(VOLATILE),      // volatile
+    _stringify_(WHILE),         // while
+    _stringify_(ALIGNAS),       // _Alignas
+    _stringify_(ALIGNOF),       // _Alignof
+    _stringify_(ATOMIC),        // _Atomic
+    _stringify_(BOOL),          // _Bool
+    _stringify_(COMPLEX),       // _Complex
+    _stringify_(GENERIC),       // _Generic
+    _stringify_(IMAGINARY),     // _Imaginary
+    _stringify_(NORETURN),      // _Noreturn
+    _stringify_(STATIC_ASSERT), // _Static_assert
+    _stringify_(THREAD_LOCAL),  // _Thread_local
+    _stringify_(FUNC_NAME),     // __func__
 
-    _map_(IDENTIFIER),           // identifier
-    _map_(TYPEDEF_NAME),         // typedef_name
-    _map_(ENUMERATION_CONSTANT), // enumeration_constant
-    _map_(INTEGER),              // integer
-    _map_(FLOATING),             // floating
-    _map_(STRING),               // string
+    _stringify_(IDENTIFIER),           // identifier
+    _stringify_(TYPEDEF_NAME),         // typedef_name
+    _stringify_(ENUMERATION_CONSTANT), // enumeration_constant
+    _stringify_(INTEGER),              // integer
+    _stringify_(FLOATING),             // floating
+    _stringify_(STRING),               // string
 
     // sign
-    _map_(ELLIPSIS),     // ...
-    _map_(RIGHT_ASSIGN), // >>=
-    _map_(LEFT_ASSIGN),  // <<=
-    _map_(ADD_ASSIGN),   // +=
-    _map_(SUB_ASSIGN),   // -=
-    _map_(MUL_ASSIGN),   // *=
-    _map_(DIV_ASSIGN),   // /=
-    _map_(MOD_ASSIGN),   // %=
-    _map_(AND_ASSIGN),   // &=
-    _map_(XOR_ASSIGN),   // ^=
-    _map_(OR_ASSIGN),    // |=
-    _map_(RIGHT_OP),     // >>
-    _map_(LEFT_OP),      // <<
-    _map_(INC_OP),       // ++
-    _map_(DEC_OP),       // --
-    _map_(PTR_OP),       // ->
-    _map_(AND_OP),       // &&
-    _map_(OR_OP),        // ||
-    _map_(LE_OP),        // <=
-    _map_(GE_OP),        // >=
-    _map_(EQ_OP),        // ==
-    _map_(NE_OP),        // !=
-    _map_(SEMI),         // ;
-    _map_(LC),           // { | <%
-    _map_(RC),           // } | %>
-    _map_(COMMA),        // ,
-    _map_(COLON),        // :
-    _map_(EQUAL),        // =
-    _map_(LP),           // (
-    _map_(RP),           // )
-    _map_(LB),           // [ | <:
-    _map_(RB),           // ] | :>
-    _map_(DOT),          // .
-    _map_(AND),          // &
-    _map_(NOT),          // !
-    _map_(SIM),          // ~
-    _map_(SUB),          // -
-    _map_(ADD),          // +
-    _map_(MUL),          // *
-    _map_(DIV),          // /
-    _map_(MOD),          // %
-    _map_(LA),           // <
-    _map_(RA),           // >
-    _map_(XOR),          // ^
-    _map_(OR),           // |
-    _map_(QUE),          // ?
+    _stringify_(ELLIPSIS),     // ...
+    _stringify_(RIGHT_ASSIGN), // >>=
+    _stringify_(LEFT_ASSIGN),  // <<=
+    _stringify_(ADD_ASSIGN),   // +=
+    _stringify_(SUB_ASSIGN),   // -=
+    _stringify_(MUL_ASSIGN),   // *=
+    _stringify_(DIV_ASSIGN),   // /=
+    _stringify_(MOD_ASSIGN),   // %=
+    _stringify_(AND_ASSIGN),   // &=
+    _stringify_(XOR_ASSIGN),   // ^=
+    _stringify_(OR_ASSIGN),    // |=
+    _stringify_(RIGHT_OP),     // >>
+    _stringify_(LEFT_OP),      // <<
+    _stringify_(INC_OP),       // ++
+    _stringify_(DEC_OP),       // --
+    _stringify_(PTR_OP),       // ->
+    _stringify_(AND_OP),       // &&
+    _stringify_(OR_OP),        // ||
+    _stringify_(LE_OP),        // <=
+    _stringify_(GE_OP),        // >=
+    _stringify_(EQ_OP),        // ==
+    _stringify_(NE_OP),        // !=
+    _stringify_(SEMI),         // ;
+    _stringify_(LC),           // { | <%
+    _stringify_(RC),           // } | %>
+    _stringify_(COMMA),        // ,
+    _stringify_(COLON),        // :
+    _stringify_(EQUAL),        // =
+    _stringify_(LP),           // (
+    _stringify_(RP),           // )
+    _stringify_(LB),           // [ | <:
+    _stringify_(RB),           // ] | :>
+    _stringify_(DOT),          // .
+    _stringify_(AND),          // &
+    _stringify_(NOT),          // !
+    _stringify_(SIM),          // ~
+    _stringify_(SUB),          // -
+    _stringify_(ADD),          // +
+    _stringify_(MUL),          // *
+    _stringify_(DIV),          // /
+    _stringify_(MOD),          // %
+    _stringify_(LA),           // <
+    _stringify_(RA),           // >
+    _stringify_(XOR),          // ^
+    _stringify_(OR),           // |
+    _stringify_(QUE),          // ?
 
-    _map_(ERROR), // error
-    _map_(_EOF),  // end of file
+    _stringify_(ERROR), // error
+    _stringify_(_EOF),  // end of file
 };
 
+/**
+ * @brief Mapping from string to enumeration using map
+ *
+ */
 static std::map<std::string, TokenType> KeywordTable = {
     {"auto", AUTO},                    // auto
     {"break", BREAK},                  // break
@@ -292,12 +300,11 @@ public:
   size_t line, col;
 
   Token() : type(EMPTY), value(""), line(1), col(0) {}
-  Token(TokenType _type, std::string &&_value, size_t _line = 1,
-        size_t _col = 0)
-      : type(_type), value(std::move(_value)), line(_line), col(_col) {}
+  Token(TokenType _type, std::string _value, size_t _line = 1, size_t _col = 0)
+      : type(_type), value(_value), line(_line), col(_col) {}
 
   std::string toString() const {
-    return fstr("Token({}:{} {} -> '{}')", line, col, TokenTypeTable[type],
+    return fstr("token({}:{} {} -> '{}')", line, col, TokenTypeTable[type],
                 value);
   }
 };

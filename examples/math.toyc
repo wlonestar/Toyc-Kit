@@ -10,5 +10,7 @@ i64 main() {
   printf64ln(c);
   f64 d = _sin(a);
   printf64ln(d);
+  printf64ln(_pow(1 + _sqrt(2), 29));
+  printf64ln(_pow(1 + _sqrt(2), 30));
   return 0;
 }

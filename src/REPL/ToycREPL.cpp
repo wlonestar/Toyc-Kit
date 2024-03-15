@@ -43,7 +43,7 @@ void run_prompt() {
         editor.setPrompt(PROMPT);
         input += line;
 
-        interpreter.compile(input);
+        interpreter.parseAndExecute(input);
 
         /// clear buffer
         input = "";

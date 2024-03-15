@@ -28,6 +28,6 @@ int main(int argc, const char **argv) {
   }
 
   read_from(src, input);
-  interpreter.compile(input);
+  interpreter.parseAndExecute(input);
   return 0;
 }

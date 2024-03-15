@@ -5,34 +5,40 @@
 
 #pragma once
 
-#include <AST/AST.h>
-#include <Lexer/Lexer.h>
 #include <Parser/Parser.h>
-#include <Util.h>
 
-#include <cstddef>
-#include <exception>
-#include <initializer_list>
-#include <map>
 #include <memory>
-#include <string>
-#include <tuple>
 #include <variant>
-#include <vector>
 
 namespace toyc {
 
+/**
+ * @brief Inherited from `BaseParser`
+ *
+ */
 class InterpreterParser : public BaseParser {
 private:
-  using parse_t = std::variant<std::unique_ptr<Decl>, std::unique_ptr<Stmt>,
-                               std::unique_ptr<Expr>>;
   using expr_or_stmt_t = std::pair<std::unique_ptr<ExprStmt>, bool>;
 
+public:
+  using parse_t = std::variant<std::unique_ptr<Decl>, std::unique_ptr<Stmt>,
+                               std::unique_ptr<Expr>>;
+
+private:
   expr_or_stmt_t parseExprOrExprStmt();
 
 public:
   InterpreterParser() : BaseParser() {}
 
+public:
+  /**
+   * @brief Interpreter parse entry, support expressions, statements and
+   * declarations
+   *
+   * @notice: Variable declarations are all global variable
+   *
+   * @return parse_t - A variant of three types
+   */
   parse_t parse();
 };
 

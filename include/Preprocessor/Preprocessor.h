@@ -18,11 +18,11 @@ private:
   std::string message;
 
 public:
-  PreprocessorException(size_t _line, size_t _col, std::string _message)
+  PreprocessorException(size_t _line, size_t _col, std::string _msg)
       : line(_line), col(_col),
         message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                     _line, _col, _message)) {}
+                     _line, _col, _msg)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };
@@ -67,6 +67,7 @@ private:
 public:
   Preprocessor() : input(""), start(0), current(0), line(1), col(0) {}
 
+public:
   void setInput(std::string &_input) { input = _input; }
   void setInput(std::string &&_input) { input = _input; }
 

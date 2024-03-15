@@ -12,15 +12,33 @@
 
 namespace toyc {
 
+/**
+ * @brief Toyc Interpreter class
+ *
+ */
 class Interpreter {
 private:
   InterpreterParser parser;
   InterpreterIRVisitor visitor;
 
+private:
+  /**
+   * @brief For each type, use different function to handle
+   *
+   * @param unit - a variant of Expr, Stmt and Decl
+   */
+  void execute(InterpreterParser::parse_t &unit);
+
 public:
   Interpreter() : parser(), visitor() {}
 
-  void compile(std::string input);
+public:
+  /**
+   * @brief Parse `input` and execute using JIT
+   *
+   * @param input - input toyc script
+   */
+  void parseAndExecute(std::string input);
 };
 
 } // namespace toyc

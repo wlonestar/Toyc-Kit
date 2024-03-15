@@ -118,21 +118,6 @@ llvm::Value *BaseIRVisitor::codegen(const ImplicitCastExpr &expr) {
   }
 }
 
-llvm::Value *BaseIRVisitor::codegen(const CastExpr &expr) {
-  if (expr.type == expr.expr->getType()) {
-    return expr.expr->accept(*this);
-  } else {
-    auto *value = expr.expr->accept(*this);
-    if (expr.type == "f64" && expr.expr->getType() == "i64") {
-      return builder->CreateSIToFP(value, llvm::Type::getDoubleTy(*context));
-    } else if (expr.type == "i64" && expr.expr->getType() == "f64") {
-      return builder->CreateFPToSI(value, llvm::Type::getInt64Ty(*context));
-    } else {
-      throw CodeGenException("not implemented!");
-    }
-  }
-}
-
 llvm::Value *BaseIRVisitor::codegen(const ParenExpr &expr) {
   return expr.expr->accept(*this);
 }
@@ -505,6 +490,8 @@ llvm::Value *CompilerIRVisitor::codegen(const UnaryOperator &expr) {
   }
 
   switch (expr.op.type) {
+  case ADD:
+    return e;
   case NOT:
     return builder->CreateNot(e);
   case SUB:

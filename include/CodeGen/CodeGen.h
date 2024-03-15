@@ -36,6 +36,8 @@ protected:
   std::unique_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::Module> module;
   std::unique_ptr<llvm::IRBuilder<>> builder;
+
+protected:
   /// local variable table
   std::map<std::string, llvm::AllocaInst *> varEnv;
 
@@ -46,6 +48,7 @@ protected:
 public:
   BaseIRVisitor() {}
 
+public:
   virtual void dump(llvm::raw_ostream &os = llvm::errs());
   virtual bool verifyModule(llvm::raw_ostream &os = llvm::errs());
 
@@ -56,7 +59,6 @@ public:
   virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
   virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
   virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
-  virtual llvm::Value *codegen(const CastExpr &expr) override;
   virtual llvm::Value *codegen(const ParenExpr &expr) override;
 
 public:
@@ -84,6 +86,7 @@ private:
 public:
   CompilerIRVisitor();
 
+public:
   void setModuleID(std::string &name);
 
 public:

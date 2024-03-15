@@ -36,6 +36,8 @@ struct Expr;
 struct Expr {
   virtual ~Expr() = default;
   virtual std::string getType() const = 0;
+  virtual bool assignable() const = 0;
+  virtual bool isConstant() const = 0;
   virtual llvm::Value *accept(ASTVisitor &visitor) = 0;
   virtual void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
                     std::string _p = "") = 0;
@@ -50,7 +52,9 @@ struct IntegerLiteral : public Literal {
   IntegerLiteral(int64_t _value, std::string _type)
       : value(_value), type(_type) {}
 
-  std::string getType() const override;
+  std::string getType() const override { return type; }
+  bool assignable() const override { return false; }
+  bool isConstant() const override { return true; };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -63,7 +67,9 @@ struct FloatingLiteral : public Literal {
   FloatingLiteral(double _value, std::string _type)
       : value(_value), type(_type) {}
 
-  std::string getType() const override;
+  std::string getType() const override { return type; }
+  bool assignable() const override { return false; }
+  bool isConstant() const override { return true; };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -75,7 +81,9 @@ struct CharacterLiteral : public Literal {
 
   CharacterLiteral(int _value) : value(_value), type("i64") {}
 
-  std::string getType() const override;
+  std::string getType() const override { return "i64"; }
+  bool assignable() const override { return false; }
+  bool isConstant() const override { return true; };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -88,7 +96,9 @@ struct StringLiteral : public Literal {
   StringLiteral(std::string _value, std::string _type)
       : value(_value), type(_type) {}
 
-  std::string getType() const override;
+  std::string getType() const override { return type; }
+  bool assignable() const override { return false; }
+  bool isConstant() const override { return true; };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -98,10 +108,11 @@ struct DeclRefExpr : public Expr {
   std::unique_ptr<Decl> decl;
 
   DeclRefExpr(std::unique_ptr<Decl> _decl) : decl(std::move(_decl)) {}
-
   DeclRefExpr(DeclRefExpr *expr) : decl(std::move(expr->decl)) {}
 
   std::string getType() const override;
+  bool assignable() const override { return true; }
+  bool isConstant() const override { return false; };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -114,20 +125,9 @@ struct ImplicitCastExpr : public Expr {
   ImplicitCastExpr(std::string _type, std::unique_ptr<Expr> _expr)
       : type(_type), expr(std::move(_expr)) {}
 
-  std::string getType() const override;
-  llvm::Value *accept(ASTVisitor &visitor) override;
-  void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
-            std::string _p = "") override;
-};
-
-struct CastExpr : public Expr {
-  std::string type;
-  std::unique_ptr<Expr> expr;
-
-  CastExpr(std::string _type, std::unique_ptr<Expr> _expr)
-      : type(_type), expr(std::move(_expr)) {}
-
-  std::string getType() const override;
+  std::string getType() const override { return type; }
+  bool assignable() const override { return expr->assignable(); }
+  bool isConstant() const override { return expr->isConstant(); };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -138,7 +138,9 @@ struct ParenExpr : public Expr {
 
   ParenExpr(std::unique_ptr<Expr> _expr) : expr(std::move(_expr)) {}
 
-  std::string getType() const override;
+  std::string getType() const override { return expr->getType(); }
+  bool assignable() const override { return expr->assignable(); }
+  bool isConstant() const override { return expr->isConstant(); };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -152,7 +154,9 @@ struct CallExpr : public Expr {
            std::vector<std::unique_ptr<Expr>> _args)
       : callee(std::move(_callee)), args(std::move(_args)) {}
 
-  std::string getType() const override;
+  std::string getType() const override { return callee->getType(); }
+  bool assignable() const override { return false; }
+  bool isConstant() const override { return false; };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -173,7 +177,9 @@ struct UnaryOperator : public Expr {
                 UnarySide _side)
       : op(_op), expr(std::move(_expr)), type(_type), side(_side) {}
 
-  std::string getType() const override;
+  std::string getType() const override { return type; }
+  bool assignable() const override { return expr->assignable(); }
+  bool isConstant() const override { return expr->isConstant(); };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -190,7 +196,11 @@ struct BinaryOperator : public Expr {
       : op(_op), left(std::move(_left)), right(std::move(_right)), type(_type) {
   }
 
-  std::string getType() const override;
+  std::string getType() const override { return type; }
+  bool assignable() const override { return false; }
+  bool isConstant() const override {
+    return left->isConstant() && right->isConstant();
+  };
   llvm::Value *accept(ASTVisitor &visitor) override;
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -317,8 +327,8 @@ struct VarDecl : public Decl {
           std::unique_ptr<Expr> _init = nullptr, VarScope _scope = LOCAL)
       : name(_name), type(_type), init(std::move(_init)), scope(_scope) {}
 
-  std::string getName() const override;
-  std::string getType() const override;
+  std::string getName() const override { return name; }
+  std::string getType() const override { return type; }
   llvm::Value *accept(ASTVisitor &visitor);
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -328,8 +338,8 @@ struct ParmVarDecl : public VarDecl {
   ParmVarDecl(std::string _name, std::string _type)
       : VarDecl(_name, _type, nullptr, LOCAL) {}
 
-  std::string getName() const override;
-  std::string getType() const override;
+  std::string getName() const override { return name; }
+  std::string getType() const override { return type; }
   llvm::Type *accept(ASTVisitor &visitor);
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;
@@ -366,8 +376,8 @@ struct FunctionDecl : public Decl {
 
   FuncKind getKind() { return kind; }
 
-  std::string getName() const override;
-  std::string getType() const override;
+  std::string getName() const override { return proto->name; }
+  std::string getType() const override { return proto->type; }
   llvm::Function *accept(ASTVisitor &visitor);
   void dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
             std::string _p = "") override;

@@ -30,7 +30,7 @@ private:
   llvm::orc::MangleAndInterner mangle;
   llvm::orc::RTDyldObjectLinkingLayer objectLayer;
   llvm::orc::IRCompileLayer compileLayer;
-  llvm::orc::JITDylib &mainJd;
+  llvm::orc::JITDylib &mainlib;
 
 public:
   ToycJIT(std::unique_ptr<llvm::orc::ExecutionSession> _es,
@@ -44,8 +44,8 @@ public:
         compileLayer(*this->executionSession, objectLayer,
                      std::make_unique<llvm::orc::ConcurrentIRCompiler>(
                          std::move(_jtmb))),
-        mainJd(this->executionSession->createBareJITDylib("<main>")) {
-    mainJd.addGenerator(llvm::cantFail(
+        mainlib(this->executionSession->createBareJITDylib("<main>")) {
+    mainlib.addGenerator(llvm::cantFail(
         llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
             dataLayout.getGlobalPrefix())));
     if (_jtmb.getTargetTriple().isOSBinFormatCOFF()) {
@@ -81,18 +81,18 @@ public:
 
   const llvm::DataLayout &getDataLayout() const { return dataLayout; }
 
-  llvm::orc::JITDylib &getMainJITDylib() { return mainJd; }
+  llvm::orc::JITDylib &getMainJITDylib() { return mainlib; }
 
   llvm::Error addModule(llvm::orc::ThreadSafeModule tsm,
                         llvm::orc::ResourceTrackerSP rt = nullptr) {
     if (!rt) {
-      rt = mainJd.getDefaultResourceTracker();
+      rt = mainlib.getDefaultResourceTracker();
     }
     return compileLayer.add(rt, std::move(tsm));
   }
 
   llvm::Expected<llvm::JITEvaluatedSymbol> lookup(std::string name) {
-    return executionSession->lookup({&mainJd}, mangle(name));
+    return executionSession->lookup({&mainlib}, mangle(name));
   }
 };
 

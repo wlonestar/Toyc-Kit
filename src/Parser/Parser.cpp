@@ -306,6 +306,9 @@ std::unique_ptr<Expr> BaseParser::parsePostfixExpression() {
     return std::make_unique<CallExpr>(std::move(func), std::move(args));
   }
   if (match({INC_OP, DEC_OP})) {
+    if (expr->assignable() == false) {
+      throwParserException("expression is not assignable");
+    }
     auto op = previous();
     auto type = checkUnaryOperatorType(op.type, expr.get());
     return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
@@ -315,16 +318,21 @@ std::unique_ptr<Expr> BaseParser::parsePostfixExpression() {
 }
 
 std::unique_ptr<Expr> BaseParser::parseUnaryExpression() {
+  /// prefix unary operator
   if (match({ADD, NOT, SUB})) {
     auto op = previous();
-    auto expr = parseCastExpression();
+    auto expr = parseUnaryExpression();
     auto type = checkUnaryOperatorType(op.type, expr.get());
     return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
                                            PREFIX);
   }
+  /// prefix unary operator (assignable)
   if (match({INC_OP, DEC_OP})) {
     auto op = previous();
     auto expr = parseUnaryExpression();
+    if (expr->assignable() == false) {
+      throwParserException("expression is not assignable");
+    }
     auto type = checkUnaryOperatorType(op.type, expr.get());
     return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
                                            PREFIX);
@@ -332,24 +340,11 @@ std::unique_ptr<Expr> BaseParser::parseUnaryExpression() {
   return parsePostfixExpression();
 }
 
-std::unique_ptr<Expr> BaseParser::parseCastExpression() {
-  if (match(LP)) {
-    if (match({I64, F64})) {
-      auto type = previous().value;
-      consume(RP, "expected ')'");
-      auto expr = parseCastExpression();
-      return std::make_unique<CastExpr>(type, std::move(expr));
-    }
-    throwParserException("support cast expression only type 'i64' and 'f64'");
-  }
-  return parseUnaryExpression();
-}
-
 std::unique_ptr<Expr> BaseParser::parseMultiplicativeExpression() {
-  auto expr = parseCastExpression();
+  auto expr = parseUnaryExpression();
   while (match({MUL, DIV, MOD})) {
     auto op = previous();
-    auto right = parseCastExpression();
+    auto right = parseUnaryExpression();
     auto type = checkBinaryOperatorType(op.type, expr, right);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
@@ -646,7 +641,11 @@ std::unique_ptr<Decl> BaseParser::parseVariableDeclaration(std::string &type,
       throwParserException("not supported type");
     }
     /// TODO: support parse minus number
-    init = (match(EQUAL) ? parseConstant() : std::move(zero));
+    init = (match(EQUAL) ? parseAssignmentExpression() : std::move(zero));
+    if (!init->isConstant()) {
+      throwParserException(
+          "initializer element is not a compile-time constant");
+    }
   } else {
     if (varTable.find(name) != varTable.end()) {
       throwParserException(fstr("redefinition of '{}'", name));

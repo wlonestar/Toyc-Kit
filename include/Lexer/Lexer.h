@@ -21,11 +21,11 @@ private:
   std::string message;
 
 public:
-  LexerException(size_t _line, size_t _col, std::string _message)
+  LexerException(size_t _line, size_t _col, std::string _msg)
       : line(_line), col(_col),
         message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                     _line, _col, _message)) {}
+                     _line, _col, _msg)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };
@@ -76,8 +76,6 @@ private:
 
 public:
   char peekNext();
-
-private:
   char previous();
 
 private:
