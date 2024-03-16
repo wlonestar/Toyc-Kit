@@ -25,7 +25,6 @@ target_link_libraries(toycc PRIVATE
 
 add_executable(toyci
   Interpreter/toyci.cpp
-  Interpreter/Interpreter.cpp
 )
 target_compile_definitions(toyci PRIVATE
   $<$<CONFIG:Debug>:DEBUG>
@@ -36,6 +35,7 @@ target_link_libraries(toyci
   AST
   Parser
   InterpreterParser
+  Interpreter
   CodeGen
   InterpreterCodeGen
   fmt

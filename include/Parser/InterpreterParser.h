@@ -27,6 +27,10 @@ public:
 private:
   expr_or_stmt_t parseExprOrExprStmt();
 
+  virtual std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
+                                                 std::string &name,
+                                                 VarScope scope) override;
+
 public:
   InterpreterParser() : BaseParser() {}
 

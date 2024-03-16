@@ -133,19 +133,19 @@ llvm::Function *InterpreterIRVisitor::getFunction(const FunctionDecl &decl) {
 
 llvm::Value *InterpreterIRVisitor::codegen(const DeclRefExpr &expr) {
   std::string varName = expr.decl->getName();
-  auto *id = varEnv[varName];
+  llvm::AllocaInst *id = varEnv[varName];
   if (id != nullptr) {
-    auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
+    llvm::LoadInst *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("identifier '{}' not load", varName));
+      throw CodeGenException(fstr("local identifier '{}' not load", varName));
     }
     return idVal;
   }
   llvm::GlobalVariable *gid = getGlobalVar(varName);
   if (gid != nullptr) {
-    auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
+    llvm::LoadInst *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("identifier '{}' not load", varName));
+      throw CodeGenException(fstr("global identifier '{}' not load", varName));
     }
     return idVal;
   }
@@ -171,7 +171,7 @@ llvm::Value *InterpreterIRVisitor::codegen(const CallExpr &expr) {
 }
 
 llvm::Value *InterpreterIRVisitor::codegen(const UnaryOperator &expr) {
-  auto *e = expr.expr->accept(*this);
+  llvm::Value *e = expr.expr->accept(*this);
   if (e == nullptr) {
     throw CodeGenException("[UnaryOperator] the operand is null");
   }
@@ -184,7 +184,7 @@ llvm::Value *InterpreterIRVisitor::codegen(const UnaryOperator &expr) {
     oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
   }
   llvm::Value *var;
-  if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
+  if (DeclRefExpr *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
     std::string varName = _left->decl->getName();
     var = varEnv[varName];
     if (var == nullptr) {
@@ -259,7 +259,7 @@ llvm::Value *InterpreterIRVisitor::codegen(const BinaryOperator &expr) {
   }
 
   /// logical operation (no matter types)
-  auto opTy = expr.op.type;
+  TokenType opTy = expr.op.type;
   if (opTy == AND_OP) {
     return builder->CreateAnd(l, r);
   }
@@ -362,21 +362,72 @@ llvm::Value *InterpreterIRVisitor::codegen(const VarDecl &decl) {
  */
 
 void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
-  if (auto varDecl = dynamic_cast<VarDecl *>(decl.get())) {
+  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(decl.get())) {
     /// for variable declaration, all see as global variable
-    varDecl->accept(*this);
-    // dump();
+    llvm::Type *varTy = (varDecl->getType() == "i64" ? builder->getInt64Ty()
+                                                     : builder->getDoubleTy());
+    llvm::Value *zeroVal;
+    if (varDecl->getType() == "i64") {
+      zeroVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+    } else {
+      zeroVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
+    }
+    llvm::Constant *initializer =
+        (varDecl->init != nullptr && varDecl->init->isConstant()
+             ? (llvm::Constant *)varDecl->init->accept(*this)
+             : (llvm::Constant *)zeroVal);
+
+    /// variable definition
+    llvm::GlobalVariable *var = new llvm::GlobalVariable(
+        *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
+        initializer, varDecl->getName());
+    globalVarEnv[varDecl->getName()] =
+        std::make_unique<GlobalVar>(varDecl->getName(), varDecl->getType(), 0);
+
     ExitOnErr(JIT->addModule(
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context))));
     initialize();
     resetReferGlobalVar();
-  } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(decl.get())) {
+
+    /// assign in function
+    if (varDecl->init != nullptr && !varDecl->init->isConstant()) {
+      auto declRef = std::make_unique<DeclRefExpr>(
+          std::make_unique<VarDecl>(varDecl->getName(), varDecl->getType()));
+      auto assignExpr = std::make_unique<BinaryOperator>(
+          Token(EQUAL, "="), std::move(declRef), std::move(varDecl->init),
+          varDecl->getType());
+      auto stmt = std::make_unique<ExprStmt>(std::move(assignExpr));
+      auto proto = std::make_unique<FunctionProto>(
+          "__wrapped__var_init__", "void",
+          std::vector<std::unique_ptr<ParmVarDecl>>{}, 0);
+      auto funcDecl =
+          std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
+      funcDecl->accept(*this);
+
+      auto resTracker = JIT->getMainJITDylib().createResourceTracker();
+      auto tsm =
+          llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
+      ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
+      initialize();
+      resetReferGlobalVar();
+
+      auto exprSym = ExitOnErr(JIT->lookup("__wrapped__var_init__"));
+      if (funcDecl->getType() == "void") {
+        void (*functionPtr)() = (void (*)())(intptr_t)exprSym.getAddress();
+        functionPtr();
+      } else {
+        throw CodeGenException(
+            fstr("not supported type '{}'", funcDecl->getType()));
+      }
+      ExitOnErr(resTracker->remove());
+    }
+  } else if (FunctionDecl *funcDecl =
+                 dynamic_cast<FunctionDecl *>(decl.get())) {
     /// for function definition
     if (funcDecl->getKind() != DECLARATION) {
       funcDecl->accept(*this);
       functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
       if (funcDecl->getKind() == DEFINITION) {
-        // dump();
         ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
             std::move(module), std::move(context))));
         initialize();
@@ -391,11 +442,11 @@ void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
 
 void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
   auto proto = std::make_unique<FunctionProto>(
-      "__anon_stmt__", "void", std::vector<std::unique_ptr<ParmVarDecl>>{}, 0);
+      "__wrapped__stmt__", "void", std::vector<std::unique_ptr<ParmVarDecl>>{},
+      0);
   auto funcDecl =
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
   if (funcDecl->accept(*this)) {
-    // dump();
     auto resTracker = JIT->getMainJITDylib().createResourceTracker();
     auto tsm =
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
@@ -404,7 +455,7 @@ void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
     resetReferGlobalVar();
     // resetReferFunctionProto();
 
-    auto exprSym = ExitOnErr(JIT->lookup("__anon_stmt__"));
+    auto exprSym = ExitOnErr(JIT->lookup("__wrapped__stmt__"));
     if (funcDecl->getType() == "void") {
       void (*functionPtr)() = (void (*)())(intptr_t)exprSym.getAddress();
       functionPtr();
@@ -422,13 +473,12 @@ void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
   std::string type = expr->getType();
   auto stmt = std::make_unique<ReturnStmt>(std::move(expr));
   auto proto = std::make_unique<FunctionProto>(
-      "__anon_expr__", std::move(type),
+      "__wrapped__expr__", std::move(type),
       std::vector<std::unique_ptr<ParmVarDecl>>{}, 0);
   auto funcDecl =
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
 
   if (funcDecl->accept(*this)) {
-    // dump();
     auto resTracker = JIT->getMainJITDylib().createResourceTracker();
     auto tsm =
         llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
@@ -437,7 +487,7 @@ void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
     resetReferGlobalVar();
     resetReferFunctionProto();
 
-    auto exprSym = ExitOnErr(JIT->lookup("__anon_expr__"));
+    auto exprSym = ExitOnErr(JIT->lookup("__wrapped__expr__"));
     if (funcDecl->getType() == "i64") {
       int64_t (*functionPtr)() = (int64_t(*)())(intptr_t)exprSym.getAddress();
       std::cout << fstr("{}\n", functionPtr());

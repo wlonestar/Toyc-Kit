@@ -55,7 +55,7 @@ public:
   }
 
   ~ToycJIT() {
-    if (auto err = executionSession->endSession()) {
+    if (llvm::Error err = executionSession->endSession()) {
       executionSession->reportError(std::move(err));
     }
   }
@@ -70,7 +70,7 @@ public:
     llvm::orc::JITTargetMachineBuilder jtmb(
         es->getExecutorProcessControl().getTargetTriple());
 
-    auto dl = jtmb.getDefaultDataLayoutForTarget();
+    llvm::Expected<llvm::DataLayout> dl = jtmb.getDefaultDataLayoutForTarget();
     if (!dl) {
       return dl.takeError();
     }

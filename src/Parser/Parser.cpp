@@ -630,7 +630,6 @@ std::unique_ptr<Decl> BaseParser::parseVariableDeclaration(std::string &type,
     if (globalVarTable.find(name) != globalVarTable.end()) {
       throwParserException(fstr("redefinition of '{}'", name));
     }
-    globalVarTable[name] = type;
     /// for global variable, set default value
     std::unique_ptr<Expr> zero;
     if (type == "i64") {
@@ -646,6 +645,7 @@ std::unique_ptr<Decl> BaseParser::parseVariableDeclaration(std::string &type,
       throwParserException(
           "initializer element is not a compile-time constant");
     }
+    globalVarTable[name] = type;
   } else {
     if (varTable.find(name) != varTable.end()) {
       throwParserException(fstr("redefinition of '{}'", name));

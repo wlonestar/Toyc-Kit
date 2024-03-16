@@ -107,7 +107,7 @@ llvm::Value *BaseIRVisitor::codegen(const ImplicitCastExpr &expr) {
   if (expr.type == expr.expr->getType()) {
     return expr.expr->accept(*this);
   } else {
-    auto *value = expr.expr->accept(*this);
+    llvm::Value *value = expr.expr->accept(*this);
     if (expr.type == "f64" && expr.expr->getType() == "i64") {
       return builder->CreateSIToFP(value, llvm::Type::getDoubleTy(*context));
     } else if (expr.type == "i64" && expr.expr->getType() == "f64") {
@@ -129,7 +129,7 @@ llvm::Value *BaseIRVisitor::codegen(const ParenExpr &expr) {
 llvm::Value *BaseIRVisitor::codegen(const CompoundStmt &stmt) {
   llvm::Value *retVal = nullptr;
   for (auto &stmt : stmt.stmts) {
-    if (auto ret = stmt->accept(*this)) {
+    if (llvm::Value *ret = stmt->accept(*this)) {
       retVal = ret;
     }
   }
@@ -141,7 +141,7 @@ llvm::Value *BaseIRVisitor::codegen(const ExprStmt &stmt) {
 }
 
 llvm::Value *BaseIRVisitor::codegen(const DeclStmt &stmt) {
-  if (auto var = dynamic_cast<VarDecl *>(stmt.decl.get())) {
+  if (VarDecl *var = dynamic_cast<VarDecl *>(stmt.decl.get())) {
     return var->accept(*this);
   }
   throw CodeGenException("invalid declaration statement");
@@ -312,7 +312,7 @@ llvm::Value *BaseIRVisitor::codegen(const ForStmt &stmt) {
   builder->CreateBr(condB);
   builder->SetInsertPoint(condB);
   /// condition check
-  auto cmp = stmt.cond->accept(*this);
+  llvm::Value *cmp = stmt.cond->accept(*this);
   llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
   llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context, "", parentFunc);
   builder->CreateCondBr(cmp, bodyB, exitB);
@@ -375,7 +375,7 @@ llvm::Function *BaseIRVisitor::codegen(const FunctionDecl &decl) {
   /// return type
   llvm::Value *retVal = nullptr;
   if (decl.body != nullptr) {
-    if (auto ret = decl.body->accept(*this)) {
+    if (llvm::Value *ret = decl.body->accept(*this)) {
       retVal = ret;
     }
   }
@@ -431,7 +431,7 @@ void CompilerIRVisitor::setModuleID(std::string &name) {
 
 llvm::Value *CompilerIRVisitor::codegen(const DeclRefExpr &expr) {
   std::string varName = expr.decl->getName();
-  auto *id = varEnv[varName];
+  llvm::AllocaInst *id = varEnv[varName];
   if (id != nullptr) {
     auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
@@ -439,7 +439,7 @@ llvm::Value *CompilerIRVisitor::codegen(const DeclRefExpr &expr) {
     }
     return idVal;
   }
-  auto *gid = globalVarEnv[varName];
+  llvm::GlobalVariable *gid = globalVarEnv[varName];
   if (gid != nullptr) {
     auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
@@ -468,7 +468,7 @@ llvm::Value *CompilerIRVisitor::codegen(const CallExpr &expr) {
 }
 
 llvm::Value *CompilerIRVisitor::codegen(const UnaryOperator &expr) {
-  auto *e = expr.expr->accept(*this);
+  llvm::Value *e = expr.expr->accept(*this);
   if (e == nullptr) {
     throw CodeGenException("[UnaryOperator] the operand is null");
   }
@@ -481,7 +481,7 @@ llvm::Value *CompilerIRVisitor::codegen(const UnaryOperator &expr) {
     oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
   }
   llvm::Value *var;
-  if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
+  if (DeclRefExpr *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
     std::string varName = _left->decl->getName();
     var = varEnv[varName];
     if (var == nullptr) {
@@ -556,7 +556,7 @@ llvm::Value *CompilerIRVisitor::codegen(const BinaryOperator &expr) {
   }
 
   /// logical operation (no matter types)
-  auto opTy = expr.op.type;
+  TokenType opTy = expr.op.type;
   if (opTy == AND_OP) {
     return builder->CreateAnd(l, r);
   }
@@ -655,9 +655,9 @@ llvm::Value *CompilerIRVisitor::codegen(const VarDecl &decl) {
 
 void CompilerIRVisitor::codegen(const TranslationUnitDecl &decl) {
   for (auto &d : decl.decls) {
-    if (auto varDecl = dynamic_cast<VarDecl *>(d.get())) {
+    if (VarDecl *varDecl = dynamic_cast<VarDecl *>(d.get())) {
       varDecl->accept(*this);
-    } else if (auto funcDecl = dynamic_cast<FunctionDecl *>(d.get())) {
+    } else if (FunctionDecl *funcDecl = dynamic_cast<FunctionDecl *>(d.get())) {
       if (funcDecl->getKind() != DECLARATION) {
         funcDecl->accept(*this);
       }

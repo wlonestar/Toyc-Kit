@@ -25,6 +25,34 @@ InterpreterParser::expr_or_stmt_t InterpreterParser::parseExprOrExprStmt() {
   return {std::make_unique<ExprStmt>(std::move(expr)), isStmt};
 }
 
+std::unique_ptr<Decl>
+InterpreterParser::parseVariableDeclaration(std::string &type,
+                                            std::string &name, VarScope scope) {
+  std::unique_ptr<Expr> init;
+  if (scope == GLOBAL) {
+    if (globalVarTable.find(name) != globalVarTable.end()) {
+      throwParserException(fstr("redefinition of '{}'", name));
+    }
+    init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);
+    globalVarTable[name] = type;
+  } else {
+    if (varTable.find(name) != varTable.end()) {
+      throwParserException(fstr("redefinition of '{}'", name));
+    }
+    varTable[name] = type;
+    init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);
+  }
+
+  if (init != nullptr && type != init->getType()) {
+    init = std::make_unique<ImplicitCastExpr>(type, std::move(init));
+  }
+  std::unique_ptr<VarDecl> decl = std::make_unique<VarDecl>(
+      std::move(name), std::move(type), std::move(init), scope);
+  consume(SEMI, "expected ';' after declaration");
+
+  return decl;
+}
+
 InterpreterParser::parse_t InterpreterParser::parse() {
   std::string type, name;
   bool isExtern = false;

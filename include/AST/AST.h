@@ -327,6 +327,10 @@ struct VarDecl : public Decl {
           std::unique_ptr<Expr> _init = nullptr, VarScope _scope = LOCAL)
       : name(_name), type(_type), init(std::move(_init)), scope(_scope) {}
 
+  VarDecl(VarDecl *decl)
+      : name(decl->name), type(decl->type), init(std::move(decl->init)),
+        scope(decl->scope) {}
+
   std::string getName() const override { return name; }
   std::string getType() const override { return type; }
   llvm::Value *accept(ASTVisitor &visitor);

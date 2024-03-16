@@ -128,12 +128,13 @@ public:
                           std::vector<std::unique_ptr<ParmVarDecl>> &params);
 
 public:
-  std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
-                                                 std::string &name,
-                                                 VarScope scope);
+  virtual std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
+                                                         std::string &name,
+                                                         VarScope scope);
   std::unique_ptr<Decl>
   parseFunctionDeclaration(std::string &type, std::string &name, bool isExtern);
-  virtual std::unique_ptr<Decl> parseExternalDeclaration();
+
+  std::unique_ptr<Decl> parseExternalDeclaration();
 
 public:
   BaseParser() : lexer(), current(), prev() {}
