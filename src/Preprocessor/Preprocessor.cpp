@@ -1,13 +1,10 @@
-//! preprocessor implementation
+//! Toyc Preprocessor implementation
 
-#include "Util.h"
 #include <Preprocessor/Preprocessor.h>
 
-#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <string>
 
 namespace toyc {
 
@@ -33,23 +30,25 @@ char Preprocessor::advance() { return input.at(current++); }
 
 void Preprocessor::backward() { current--; }
 
-void Preprocessor::skipLineComment() {
+void Preprocessor::removeLineComment() {
   while (peek() != '\n' && !isEnd()) {
     advance();
   }
   backward();
+  /// erase comment
   input.erase(start, current - start + 1);
   current = start;
 }
 
-void Preprocessor::skipMutliComment() {
+void Preprocessor::removeMutliComment() {
   advance();
-  size_t l = 0;
+  /// line number the comment cross
+  size_t lineCnt = 0;
   while (!(peek() == '*' && peekNext() == '/') && !isEnd()) {
     if (peek() == '\n') {
       line++;
       col = 1;
-      l++;
+      lineCnt++;
     }
     advance();
   }
@@ -63,10 +62,11 @@ void Preprocessor::skipMutliComment() {
   advance();
   backward();
   input.erase(start, current - start + 1);
-  /// add remove new line characters
-  std::string newl(l, '\n');
-  input.insert(start, newl);
-  start += l;
+  /// removed new line characters
+  std::string newLine(lineCnt, '\n');
+  /// insert new line characters again
+  input.insert(start, newLine);
+  start += lineCnt;
   current = start;
 }
 
@@ -75,18 +75,21 @@ void Preprocessor::importLib() {
   while (peek() != '\n' && !isEnd()) {
     advance();
   }
+  /// peek out line start with `#`
   std::string _line = input.substr(start, current - start);
-
   if (_line.starts_with("#include ")) {
     /// remove `include` macro
     input.erase(start, current - start);
     /// find header file by name
     std::string libName = _line.substr(_line.find(" ") + 1);
-    std::string path = "toycc";
+    std::string path = "(not specified path)";
+    /// get toycc path from environment variable
     if (auto e = getenv("toycc")) {
       path = std::string(e);
     }
+    /// get absolute path of toycc
     auto absolutePath = fs::canonical(std::filesystem::path(path));
+    /// find standard library files
     libName = absolutePath.parent_path().parent_path().string() + "/include/" +
               libName + ".toyc";
 
@@ -100,7 +103,6 @@ void Preprocessor::importLib() {
     Preprocessor p;
     p.setInput(content);
     content = p.process();
-
     /// insert content into current file and reset cursors
     input.insert(start, content);
     start += content.size() + 1;
@@ -108,15 +110,17 @@ void Preprocessor::importLib() {
   }
 }
 
+void Preprocessor::setInput(std::string _input) { input = _input; }
+
 std::string Preprocessor::process() {
   while (peek() != '\0') {
     char c = peek();
     switch (c) {
     case '/':
       if (peekNext() == '/') {
-        skipLineComment();
+        removeLineComment();
       } else if (peekNext() == '*') {
-        skipMutliComment();
+        removeMutliComment();
       } else {
         advance();
         start = current;

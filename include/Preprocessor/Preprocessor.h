@@ -1,4 +1,4 @@
-//! preprocessor
+//! Toyc Preprocessor
 
 #ifndef PREPROCESSOR_H
 #define PREPROCESSOR_H
@@ -6,8 +6,6 @@
 #pragma once
 
 #include <Util.h>
-
-#include <string>
 
 namespace toyc {
 
@@ -48,28 +46,40 @@ private:
 
 private:
   bool isEnd();
-  bool isD(char c) { return (c >= '0' && c <= '9'); }
-  bool isL(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-  }
-  bool isA(char c) { return isL(c) || isD(c); }
-
   char peek();
   char peekNext();
   char advance();
   void backward();
 
 private:
-  void skipLineComment();
-  void skipMutliComment();
+  /**
+   * @brief Scan and remove single line comment
+   *
+   */
+  void removeLineComment();
+
+  /**
+   * @brief Scan and remove multi line comment
+   *
+   */
+  void removeMutliComment();
+
+  /**
+   * @brief replace `#include` macro with its file content
+   *
+   */
   void importLib();
 
 public:
   Preprocessor() : input(""), start(0), current(0), line(1), col(0) {}
 
 public:
-  void setInput(std::string &_input) { input = _input; }
-  void setInput(std::string &&_input) { input = _input; }
+  /**
+   * @brief Set the `input`
+   *
+   * @param _input
+   */
+  void setInput(std::string _input);
 
   /**
    * @brief Preprocessor main method
@@ -77,7 +87,7 @@ public:
    * 1. replace `#include` macro with its content
    * 2. remove comments
    *
-   * @notice: Lexer can not get correct error message line now
+   * @notice: Lexer can not get correct error line now
    *
    * @return processed content fom `input`
    */

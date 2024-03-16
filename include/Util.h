@@ -28,6 +28,13 @@ namespace toyc {
 // #define debug(__fmt__, ...) ((void)0)
 // #endif
 
+static bool isDigit(char c) { return (c >= '0' && c <= '9'); }
+static bool isNonZero(char c) { return (c >= '1' && c <= '9'); }
+static bool isLetter(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+static bool isAlpha(char c) { return isLetter(c) || isDigit(c); }
+
 /**
  * @brief read file content from `src` and write into string `input`
  *

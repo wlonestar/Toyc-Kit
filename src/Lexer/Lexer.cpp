@@ -1,7 +1,6 @@
-//! Lexer implementation
+//! Toyc lexical analyzer implementation
 
 #include <Lexer/Lexer.h>
-#include <Lexer/Token.h>
 
 #include <iostream>
 #include <regex>
@@ -54,6 +53,14 @@ char Lexer::previous() {
     return '\0';
   }
   return input.at(current - 1);
+}
+
+Token Lexer::makeToken(TokenType type) {
+  return Token(type, input.substr(start, current - start), line, col);
+}
+
+Token Lexer::makeToken(TokenType type, std::string value) {
+  return Token(type, std::move(value), line, col);
 }
 
 void Lexer::skipWhitespace() {
@@ -154,11 +161,11 @@ Token Lexer::scanNumber() {
   std::regex int44(
       R"(\'([^'\\\n]|(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+)))+\')");
 
-  if (isHP(previous(), peek())) { // {HP}
+  if (isHexPreifx(previous(), peek())) { // {HP}
     iter = std::sregex_iterator(_str.begin(), _str.end(), float6);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
@@ -168,7 +175,7 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), float5);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
@@ -178,7 +185,7 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), float4);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
@@ -188,13 +195,13 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), int1);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
       return makeToken(INTEGER);
     }
-  } else if (isNZ(previous())) { // {NZ}
+  } else if (isNonZero(previous())) { // {NZ}
     iter = std::sregex_iterator(_str.begin(), _str.end(), int2);
     if (iter != end) {
       forward(iter->str().size() - 1);
@@ -204,18 +211,18 @@ Token Lexer::scanNumber() {
         goto DIGIT;
       }
       ///---------- !!! trivial !!! ----------///
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
       return makeToken(INTEGER);
     }
-  } else if (isD(previous())) { // {D}
+  } else if (isDigit(previous())) { // {D}
   DIGIT:
     iter = std::sregex_iterator(_str.begin(), _str.end(), float2);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
@@ -225,7 +232,7 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), float3);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
@@ -235,7 +242,7 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), float1);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
@@ -246,7 +253,7 @@ Token Lexer::scanNumber() {
       iter = std::sregex_iterator(_str.begin(), _str.end(), int3);
       if (iter != end) {
         forward(iter->str().size() - 1);
-        if (isA(peek())) {
+        if (isAlpha(peek())) {
           forward(1);
           throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
         }
@@ -257,17 +264,17 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), float22);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_FLOATING_SUFFIX]);
       }
       return makeToken(FLOATING);
     }
-  } else if (isCP(previous())) {
+  } else if (isCharPrefix(previous())) {
     iter = std::sregex_iterator(_str.begin(), _str.end(), int4);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
@@ -277,7 +284,7 @@ Token Lexer::scanNumber() {
     iter = std::sregex_iterator(_str.begin(), _str.end(), int44);
     if (iter != end) {
       forward(iter->str().size() - 1);
-      if (isA(peek())) {
+      if (isAlpha(peek())) {
         forward(1);
         throwLexerException(LexerExceptionTable[INVALID_INTEGER_SUFFIX]);
       }
@@ -289,7 +296,7 @@ Token Lexer::scanNumber() {
 }
 
 Token Lexer::scanIdentifier() {
-  while (isA(peek())) {
+  while (isAlpha(peek())) {
     advance();
   }
   auto value = input.substr(start, current - start);
@@ -300,7 +307,7 @@ Token Lexer::scanIdentifier() {
   }
 }
 
-void Lexer::addInput(std::string &_input) {
+void Lexer::addInput(std::string _input) {
   if (input.size() == 0) {
     input = _input;
   } else {
@@ -313,21 +320,25 @@ void Lexer::addInput(std::string &_input) {
   }
 }
 
+std::string Lexer::getInput() { return input; }
+
 Token Lexer::scanToken() {
+  /// skip whitespace first
   skipWhitespace();
   start = current;
   if (isEnd()) {
     return makeToken(_EOF);
   }
-
   char c = advance();
-  if (isL(c)) {
+  /// scan identifier
+  if (isLetter(c)) {
     return scanIdentifier();
   }
-  if (isD(c) || c == '.' || c == '\'') {
+  /// scan number
+  if (isDigit(c) || c == '.' || c == '\'') {
     return scanNumber();
   }
-
+  /// scan sign
   switch (c) {
   case ';':
     return makeToken(SEMI);
@@ -441,7 +452,7 @@ Token Lexer::scanToken() {
   case '"':
     return scanString();
   }
-
+  /// throw exception if there is an unexcepted character
   throwLexerException("unexpected character.");
   return Token(ERROR, "");
 }
