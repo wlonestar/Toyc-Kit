@@ -1,0 +1,1 @@
+add_library(Sema OBJECT Sema.cpp)

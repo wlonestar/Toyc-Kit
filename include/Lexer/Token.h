@@ -13,7 +13,7 @@
 
 namespace toyc {
 
-enum TokenType {
+enum TokenTy {
   // keywords
   AUTO,          // auto
   BREAK,         // break
@@ -130,7 +130,7 @@ enum TokenType {
  *
  * @notice: Do not change the order of types
  */
-static std::vector<std::string> TokenTypeTable = {
+static std::vector<std::string> TokenTyTable = {
     // keywords
     _stringify_(AUTO),          // auto
     _stringify_(BREAK),         // break
@@ -243,7 +243,7 @@ static std::vector<std::string> TokenTypeTable = {
  * @brief Mapping from string to enumeration using map
  *
  */
-static std::map<std::string, TokenType> KeywordTable = {
+static std::map<std::string, TokenTy> KeywordTable = {
     {"auto", AUTO},                    // auto
     {"break", BREAK},                  // break
     {"case", CASE},                    // case
@@ -295,16 +295,16 @@ static std::map<std::string, TokenType> KeywordTable = {
 
 class Token {
 public:
-  TokenType type;
+  TokenTy type;
   std::string value;
   size_t line, col;
 
   Token() : type(EMPTY), value(""), line(1), col(0) {}
-  Token(TokenType _type, std::string _value, size_t _line = 1, size_t _col = 0)
+  Token(TokenTy _type, std::string _value, size_t _line = 1, size_t _col = 0)
       : type(_type), value(_value), line(_line), col(_col) {}
 
   std::string toString() const {
-    return fstr("token({}:{} {} -> '{}')", line, col, TokenTypeTable[type],
+    return fstr("token({}:{} {} -> '{}')", line, col, TokenTyTable[type],
                 value);
   }
 };

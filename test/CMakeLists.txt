@@ -19,6 +19,7 @@ add_executable(ParserTest
   ../src/Lexer/Lexer.cpp
   ../src/AST/AST.cpp
   ../src/AST/ASTPrint.cpp  
+  ../src/Sema/Sema.cpp
 )
 target_link_libraries(ParserTest
   ${LLVM_LIBS_C}

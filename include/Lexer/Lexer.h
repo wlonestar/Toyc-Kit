@@ -128,7 +128,7 @@ private:
    * @param type
    * @return Token
    */
-  Token makeToken(TokenType type);
+  Token makeToken(TokenTy type);
 
   /**
    * @brief Return token that depends on customed `value`
@@ -137,7 +137,7 @@ private:
    * @param value
    * @return Token
    */
-  Token makeToken(TokenType type, std::string value);
+  Token makeToken(TokenTy type, std::string value);
 
   /**
    * @brief Skip whitespace

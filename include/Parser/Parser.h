@@ -7,6 +7,7 @@
 
 #include <AST/AST.h>
 #include <Lexer/Lexer.h>
+#include <Sema/Sema.h>
 
 #include <cstddef>
 #include <exception>
@@ -49,6 +50,7 @@ protected:
   Token current;
   Token prev;
   Lexer lexer;
+  Sema actions;
 
 protected:
   /// global variable: <name, type>
@@ -70,55 +72,43 @@ public:
   Token peek() { return current; }
   Token previous() { return prev; }
   Token advance();
-  Token consume(TokenType type, std::string &message);
-  Token consume(TokenType type, std::string &&message);
+  Token consume(TokenTy type, std::string &message);
+  Token consume(TokenTy type, std::string &&message);
 
 protected:
-  bool check(std::initializer_list<TokenType> types);
-  bool check(TokenType type);
-  bool match(std::initializer_list<TokenType> types);
-  bool match(TokenType type);
+  bool check(std::initializer_list<TokenTy> types);
+  bool check(TokenTy type);
+  bool match(std::initializer_list<TokenTy> types);
+  bool match(TokenTy type);
 
 protected:
-  bool checkHexadecimal(std::string &value);
-  bool checkOctal(std::string &value);
-
   int64_t parseIntegerSuffix(std::string &value, int base);
   double parseFloatingSuffix(std::string &value, int base);
 
-  std::string checkUnaryOperatorType(TokenType type, Expr *right);
-  std::string checkBinaryOperatorType(TokenType type,
-                                      std::unique_ptr<Expr> &left,
-                                      std::unique_ptr<Expr> &right);
-  std::string checkShiftOperatorType(TokenType type,
-                                     std::unique_ptr<Expr> &left,
-                                     std::unique_ptr<Expr> &right);
-
 protected:
-  std::unique_ptr<Expr> parseIntegerLiteral();
-  std::unique_ptr<Expr> parseFloatingLiteral();
-  std::unique_ptr<Expr> parseConstant();
-  std::unique_ptr<Expr> parsePrimaryExpression();
-  std::unique_ptr<Expr> parsePostfixExpression();
-  std::unique_ptr<Expr> parseUnaryExpression();
-  std::unique_ptr<Expr> parseMultiplicativeExpression();
-  std::unique_ptr<Expr> parseAdditiveExpression();
-  std::unique_ptr<Expr> parseShiftExpression();
-  std::unique_ptr<Expr> parseRelationalExpression();
-  std::unique_ptr<Expr> parseEqualityExpression();
-  std::unique_ptr<Expr> parseLogicalAndExpression();
-  std::unique_ptr<Expr> parseLogicalOrExpression();
-  std::unique_ptr<Expr> parseAssignmentExpression();
-  std::unique_ptr<Expr> parseExpression();
+  ExprPtr parseIntegerLiteral();
+  ExprPtr parseFloatingLiteral();
+  ExprPtr parsePrimaryExpression();
+  ExprPtr parsePostfixExpression();
+  ExprPtr parseUnaryExpression();
+  ExprPtr parseMultiplicativeExpression();
+  ExprPtr parseAdditiveExpression();
+  ExprPtr parseShiftExpression();
+  ExprPtr parseRelationalExpression();
+  ExprPtr parseEqualityExpression();
+  ExprPtr parseLogicalAndExpression();
+  ExprPtr parseLogicalOrExpression();
+  ExprPtr parseAssignmentExpression();
+  ExprPtr parseExpression();
 
 public:
-  std::unique_ptr<Stmt> parseExpressionStatement();
-  std::unique_ptr<Stmt> parseReturnStatement();
-  std::unique_ptr<Stmt> parseIterationStatement();
-  std::unique_ptr<Stmt> parseSelectionStatement();
-  std::unique_ptr<Stmt> parseDeclarationStatement();
-  std::unique_ptr<Stmt> parseCompoundStatement();
-  std::unique_ptr<Stmt> parseStatement();
+  StmtPtr parseExpressionStatement();
+  StmtPtr parseReturnStatement();
+  StmtPtr parseIterationStatement();
+  StmtPtr parseSelectionStatement();
+  StmtPtr parseDeclarationStatement();
+  StmtPtr parseCompoundStatement();
+  StmtPtr parseStatement();
 
 public:
   std::pair<std::string, bool> parseDeclarationSpecifiers();
@@ -128,16 +118,15 @@ public:
                           std::vector<std::unique_ptr<ParmVarDecl>> &params);
 
 public:
-  virtual std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
-                                                         std::string &name,
-                                                         VarScope scope);
-  std::unique_ptr<Decl>
-  parseFunctionDeclaration(std::string &type, std::string &name, bool isExtern);
+  virtual DeclPtr parseVariableDeclaration(std::string type, std::string name,
+                                           VarScope scope);
+  DeclPtr parseFunctionDeclaration(std::string type, std::string name,
+                                   bool isExtern);
 
-  std::unique_ptr<Decl> parseExternalDeclaration();
+  DeclPtr parseExternalDeclaration();
 
 public:
-  BaseParser() : lexer(), current(), prev() {}
+  BaseParser() : lexer(), current(), prev(), actions() {}
 
 public:
   void addInput(std::string &_input) { lexer.addInput(_input); }

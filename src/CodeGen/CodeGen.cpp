@@ -556,7 +556,7 @@ llvm::Value *CompilerIRVisitor::codegen(const BinaryOperator &expr) {
   }
 
   /// logical operation (no matter types)
-  TokenType opTy = expr.op.type;
+  TokenTy opTy = expr.op.type;
   if (opTy == AND_OP) {
     return builder->CreateAnd(l, r);
   }

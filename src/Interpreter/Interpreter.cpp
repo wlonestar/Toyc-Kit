@@ -10,7 +10,7 @@
 
 namespace toyc {
 
-void Interpreter::execute(InterpreterParser::parse_t &unit) {
+void Interpreter::execute(InterpreterParser::ParseResult &unit) {
   if (unit.index() == 0) {
     auto &decl = std::get<std::unique_ptr<Decl>>(unit);
     visitor.handleDeclaration(decl);

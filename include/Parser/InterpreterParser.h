@@ -18,18 +18,16 @@ namespace toyc {
  */
 class InterpreterParser : public BaseParser {
 private:
-  using expr_or_stmt_t = std::pair<std::unique_ptr<ExprStmt>, bool>;
+  using ExprOrStmt = std::pair<std::unique_ptr<ExprStmt>, bool>;
 
 public:
-  using parse_t = std::variant<std::unique_ptr<Decl>, std::unique_ptr<Stmt>,
-                               std::unique_ptr<Expr>>;
+  using ParseResult = std::variant<DeclPtr, StmtPtr, ExprPtr>;
 
 private:
-  expr_or_stmt_t parseExprOrExprStmt();
+  ExprOrStmt parseExprOrExprStmt();
 
-  virtual std::unique_ptr<Decl> parseVariableDeclaration(std::string &type,
-                                                 std::string &name,
-                                                 VarScope scope) override;
+  virtual DeclPtr parseVariableDeclaration(std::string type, std::string name,
+                                           VarScope scope) override;
 
 public:
   InterpreterParser() : BaseParser() {}
@@ -43,7 +41,7 @@ public:
    *
    * @return parse_t - A variant of three types
    */
-  parse_t parse();
+  ParseResult parse();
 };
 
 } // namespace toyc

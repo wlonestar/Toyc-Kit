@@ -1,6 +1,7 @@
 add_subdirectory(Preprocessor)
 add_subdirectory(Lexer)
 add_subdirectory(AST)
+add_subdirectory(Sema)
 add_subdirectory(Parser)
 add_subdirectory(CodeGen)
 add_subdirectory(Interpreter)
@@ -16,6 +17,7 @@ target_link_libraries(toycc PRIVATE
   Prepprocessor
   Lexer
   AST
+  Sema
   Parser
   CodeGen
   fmt
@@ -33,6 +35,7 @@ target_link_libraries(toyci
   Prepprocessor
   Lexer
   AST
+  Sema
   Parser
   InterpreterParser
   Interpreter
@@ -52,6 +55,7 @@ target_link_libraries(toyc-repl
   Prepprocessor
   Lexer
   AST
+  Sema
   Parser
   InterpreterParser
   CodeGen

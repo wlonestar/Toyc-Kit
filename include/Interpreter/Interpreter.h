@@ -27,7 +27,7 @@ private:
    *
    * @param unit - a variant of Expr, Stmt and Decl
    */
-  void execute(InterpreterParser::parse_t &unit);
+  void execute(InterpreterParser::ParseResult &unit);
 
 public:
   Interpreter() : parser(), visitor() {}

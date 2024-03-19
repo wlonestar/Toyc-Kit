@@ -13,8 +13,8 @@
 
 namespace toyc {
 
-InterpreterParser::expr_or_stmt_t InterpreterParser::parseExprOrExprStmt() {
-  std::unique_ptr<Expr> expr = nullptr;
+InterpreterParser::ExprOrStmt InterpreterParser::parseExprOrExprStmt() {
+  ExprPtr expr = nullptr;
   bool isStmt = true;
   if (!match(SEMI)) {
     expr = parseExpression();
@@ -25,10 +25,10 @@ InterpreterParser::expr_or_stmt_t InterpreterParser::parseExprOrExprStmt() {
   return {std::make_unique<ExprStmt>(std::move(expr)), isStmt};
 }
 
-std::unique_ptr<Decl>
-InterpreterParser::parseVariableDeclaration(std::string &type,
-                                            std::string &name, VarScope scope) {
-  std::unique_ptr<Expr> init;
+DeclPtr InterpreterParser::parseVariableDeclaration(std::string type,
+                                                    std::string name,
+                                                    VarScope scope) {
+  ExprPtr init;
   if (scope == GLOBAL) {
     if (globalVarTable.find(name) != globalVarTable.end()) {
       throwParserException(fstr("redefinition of '{}'", name));
@@ -53,7 +53,7 @@ InterpreterParser::parseVariableDeclaration(std::string &type,
   return decl;
 }
 
-InterpreterParser::parse_t InterpreterParser::parse() {
+InterpreterParser::ParseResult InterpreterParser::parse() {
   std::string type, name;
   bool isExtern = false;
   if (match(EXTERN)) {

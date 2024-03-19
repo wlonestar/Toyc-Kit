@@ -55,11 +55,11 @@ char Lexer::previous() {
   return input.at(current - 1);
 }
 
-Token Lexer::makeToken(TokenType type) {
+Token Lexer::makeToken(TokenTy type) {
   return Token(type, input.substr(start, current - start), line, col);
 }
 
-Token Lexer::makeToken(TokenType type, std::string value) {
+Token Lexer::makeToken(TokenTy type, std::string value) {
   return Token(type, std::move(value), line, col);
 }
 
