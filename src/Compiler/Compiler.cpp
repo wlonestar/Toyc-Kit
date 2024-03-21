@@ -37,7 +37,7 @@ void Compiler::compile(std::string &src, llvm::raw_ostream &os) {
   try {
     auto translationUnit = parser.parse();
     if (translationUnit != nullptr) {
-#ifdef DEBUG
+#ifndef NDEBUG
       std::stringstream ss;
       translationUnit->dump(ss);
       std::cerr << ss.str();
@@ -55,13 +55,14 @@ void Compiler::compile(std::string &src, llvm::raw_ostream &os) {
   } catch (CodeGenException e3) {
     std::cerr << e3.what() << "\n";
     exit(EXIT_FAILURE);
-#ifndef DEBUG
+#ifdef NDEBUG
   } catch (...) {
     std::cerr << "there is something wrong in compiler inner\n";
     exit(EXIT_FAILURE);
 #endif
   }
-#ifdef DEBUG
+
+#ifndef NDEBUG
   visitor.dump();
 #endif
 

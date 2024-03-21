@@ -26,8 +26,8 @@ void run_prompt() {
     if (line.size() > 0) {
       editor.addHistory(line);
       /// deal with options (now only support quit)
-      if (line == R"(.quit)") {
-        /// quit
+      if (line == R"(.exit)") {
+        /// exit
         cout << "bye~" << endl;
         break;
       }
