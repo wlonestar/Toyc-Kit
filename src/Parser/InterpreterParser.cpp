@@ -31,13 +31,13 @@ DeclPtr InterpreterParser::parseVariableDeclaration(std::string type,
   ExprPtr init;
   if (scope == GLOBAL) {
     if (globalVarTable.find(name) != globalVarTable.end()) {
-      throwParserException(fstr("redefinition of '{}'", name));
+      throwParserException(makeString("redefinition of '{}'", name));
     }
     init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);
     globalVarTable[name] = type;
   } else {
     if (varTable.find(name) != varTable.end()) {
-      throwParserException(fstr("redefinition of '{}'", name));
+      throwParserException(makeString("redefinition of '{}'", name));
     }
     varTable[name] = type;
     init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);

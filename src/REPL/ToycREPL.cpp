@@ -13,13 +13,14 @@
 using namespace toyc;
 using namespace std;
 
-void run_prompt() {
+int main(int argc, const char **argv) {
   string input;
   Interpreter interpreter;
   LineEditor editor(PROMPT);
+  string line;
   while (true) {
     /// line buffer
-    string line = editor.readLine();
+    line = editor.readLine();
     trim(line);
 
     /// only compile non-empty string
@@ -42,7 +43,6 @@ void run_prompt() {
         /// single input
         editor.setPrompt(PROMPT);
         input += line;
-
         interpreter.parseAndExecute(input);
 
         /// clear buffer
@@ -50,9 +50,5 @@ void run_prompt() {
       }
     }
   }
-}
-
-int main(int argc, const char **argv) {
-  run_prompt();
   return 0;
 }

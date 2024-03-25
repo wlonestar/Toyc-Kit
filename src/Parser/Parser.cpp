@@ -164,7 +164,7 @@ ExprPtr BaseParser::parsePrimaryExpression() {
   if (match(STRING)) {
     std::string value = previous().value;
     /// add a terminator '\0' size
-    std::string type = fstr("char[{}]", value.size() + 1);
+    std::string type = makeString("char[{}]", value.size() + 1);
     return std::make_unique<StringLiteral>(std::move(value), std::move(type));
   }
   if (match(IDENTIFIER)) {
@@ -178,7 +178,7 @@ ExprPtr BaseParser::parsePrimaryExpression() {
         type = globalVarTable[name];
       }
       if (type == "") {
-        throwParserException(fstr("identifier '{}' not found", name));
+        throwParserException(makeString("identifier '{}' not found", name));
       }
       return std::make_unique<DeclRefExpr>(
           std::make_unique<VarDecl>(std::move(name), std::move(type)));
@@ -187,7 +187,7 @@ ExprPtr BaseParser::parsePrimaryExpression() {
       type = fp.retType;
       if (type == "") {
         throwParserException(
-            fstr("implicit declaration of function '{}' is invalid", name));
+            makeString("implicit declaration of function '{}' is invalid", name));
       }
 
       std::string funcName = name;
@@ -229,7 +229,7 @@ ExprPtr BaseParser::parsePostfixExpression() {
       do {
         if (idx == f->proto->params.size()) {
           throwParserException(
-              fstr("too many arguments to function call, expected {}",
+              makeString("too many arguments to function call, expected {}",
                    f->proto->params.size()));
         }
         auto arg = parseExpression();
@@ -309,7 +309,7 @@ ExprPtr BaseParser::parseShiftExpression() {
     std::string type = actions.checkShiftOperatorType(expr, right, op.type);
     if (type == "") {
       throwParserException(
-          fstr("invalid operands to binary expression ('{}' and '{}')",
+          makeString("invalid operands to binary expression ('{}' and '{}')",
                expr->getType(), right->getType()));
     }
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
@@ -567,7 +567,7 @@ DeclPtr BaseParser::parseVariableDeclaration(std::string type, std::string name,
   ExprPtr init;
   if (scope == GLOBAL) {
     if (globalVarTable.find(name) != globalVarTable.end()) {
-      throwParserException(fstr("redefinition of '{}'", name));
+      throwParserException(makeString("redefinition of '{}'", name));
     }
     /// for global variable, set default value
     ExprPtr zero;
@@ -587,7 +587,7 @@ DeclPtr BaseParser::parseVariableDeclaration(std::string type, std::string name,
     globalVarTable[name] = type;
   } else {
     if (varTable.find(name) != varTable.end()) {
-      throwParserException(fstr("redefinition of '{}'", name));
+      throwParserException(makeString("redefinition of '{}'", name));
     }
     varTable[name] = type;
     init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);

@@ -13,7 +13,7 @@ namespace toyc {
  * @brief wrap a macro for providing a simple string formatter
  *
  */
-#define fstr(__fmt__, ...) fmt::format(__fmt__, ##__VA_ARGS__)
+// #define fstr(__fmt__, ...) fmt::format(__fmt__, ##__VA_ARGS__)
 
 #define makeString(__fmt__, ...) std::move(fmt::format(__fmt__, ##__VA_ARGS__))
 
@@ -24,7 +24,7 @@ namespace toyc {
  */
 #ifndef NDEBUG
 #define debug(__fmt__, ...)                                                    \
-  std::cerr << fstr("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n", __FILE__,  \
+  std::cerr << makeString("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n", __FILE__,  \
                     __LINE__, ##__VA_ARGS__)
 #else
 #define debug(__fmt__, ...) ((void)0)

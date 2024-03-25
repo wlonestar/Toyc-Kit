@@ -22,7 +22,7 @@ private:
 
 public:
   CodeGenException(std::string _msg)
-      : message(fstr("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
+      : message(makeString("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
 
   const char *what() const noexcept override { return message.c_str(); }
 };

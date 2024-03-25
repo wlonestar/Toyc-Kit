@@ -20,7 +20,10 @@ private:
 public:
   LineEditor(std::string str) : prompt(str), size(0) {}
 
-  ~LineEditor() { clearHistory(); }
+  ~LineEditor() {
+    prompt.clear();
+    clearHistory();
+  }
 
 public:
   void setPrompt(std::string _prompt) { prompt = _prompt; }

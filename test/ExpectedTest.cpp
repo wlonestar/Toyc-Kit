@@ -12,9 +12,7 @@ namespace toyc {
 
 class ExpectedTest : public testing::Test {};
 
-enum CalculateErrorCode {
-  DivisionZero
-};
+enum CalculateErrorCode { DivisionZero };
 
 Expected<int> divide(int a, int b) {
   if (b == 0) {
@@ -30,7 +28,8 @@ TEST_F(ExpectedTest, SimpleTest) {
     if (auto result = divide(a, b)) {
       EXPECT_EQ(result.getValue(), a / b);
     } else {
-      EXPECT_EQ(result.getError().message(), fstr("zero: '{}'/'{}'", a, b));
+      EXPECT_EQ(result.getError().message(),
+                makeString("zero: '{}'/'{}'", a, b));
     }
   }
 }

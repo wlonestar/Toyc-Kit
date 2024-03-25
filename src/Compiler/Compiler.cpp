@@ -19,7 +19,7 @@ void Compiler::compile(std::string &src, llvm::raw_ostream &os) {
   /// read from src file
   std::string input;
   if (read_from(src, input) == false) {
-    std::cerr << fstr("failed to open file '{}'\n", src);
+    std::cerr << makeString("failed to open file '{}'\n", src);
     exit(EXIT_FAILURE);
   }
 

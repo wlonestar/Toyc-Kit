@@ -137,7 +137,8 @@ llvm::Value *InterpreterIRVisitor::codegen(const DeclRefExpr &expr) {
   if (id != nullptr) {
     llvm::LoadInst *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("local identifier '{}' not load", varName));
+      throw CodeGenException(
+          makeString("local identifier '{}' not load", varName));
     }
     return idVal;
   }
@@ -145,11 +146,12 @@ llvm::Value *InterpreterIRVisitor::codegen(const DeclRefExpr &expr) {
   if (gid != nullptr) {
     llvm::LoadInst *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("global identifier '{}' not load", varName));
+      throw CodeGenException(
+          makeString("global identifier '{}' not load", varName));
     }
     return idVal;
   }
-  throw CodeGenException(fstr("identifier '{}' not found", varName));
+  throw CodeGenException(makeString("identifier '{}' not found", varName));
 }
 
 llvm::Value *InterpreterIRVisitor::codegen(const CallExpr &expr) {
@@ -157,7 +159,7 @@ llvm::Value *InterpreterIRVisitor::codegen(const CallExpr &expr) {
       getFunction((const FunctionDecl &)*expr.callee->decl);
   if (callee == nullptr) {
     throw CodeGenException(
-        fstr("function '{}' not declared", expr.callee->decl->getName()));
+        makeString("function '{}' not declared", expr.callee->decl->getName()));
   }
   std::vector<llvm::Value *> argVals;
   for (auto &arg : expr.args) {
@@ -232,7 +234,7 @@ llvm::Value *InterpreterIRVisitor::codegen(const UnaryOperator &expr) {
     }
   }
   default:
-    throw CodeGenException(fstr(
+    throw CodeGenException(makeString(
         "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
   }
 }
@@ -417,7 +419,7 @@ void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
         functionPtr();
       } else {
         throw CodeGenException(
-            fstr("not supported type '{}'", funcDecl->getType()));
+            makeString("not supported type '{}'", funcDecl->getType()));
       }
       ExitOnErr(resTracker->remove());
     }
@@ -461,7 +463,7 @@ void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
       functionPtr();
     } else {
       throw CodeGenException(
-          fstr("not supported type '{}'", funcDecl->getType()));
+          makeString("not supported type '{}'", funcDecl->getType()));
     }
     ExitOnErr(resTracker->remove());
   } else {
@@ -490,13 +492,13 @@ void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
     auto exprSym = ExitOnErr(JIT->lookup("__wrapped__expr__"));
     if (funcDecl->getType() == "i64") {
       int64_t (*functionPtr)() = (int64_t(*)())(intptr_t)exprSym.getAddress();
-      std::cout << fstr("{}\n", functionPtr());
+      std::cout << makeString("{}\n", functionPtr());
     } else if (funcDecl->getType() == "f64") {
       double (*functionPtr)() = (double (*)())(intptr_t)exprSym.getAddress();
-      std::cout << fstr("{}\n", functionPtr());
+      std::cout << makeString("{}\n", functionPtr());
     } else {
       throw CodeGenException(
-          fstr("not supported type '{}'", funcDecl->getType()));
+          makeString("not supported type '{}'", funcDecl->getType()));
     }
     ExitOnErr(resTracker->remove());
   } else {

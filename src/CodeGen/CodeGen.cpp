@@ -46,7 +46,7 @@ void BaseIRVisitor::printVarEnv() {
     } else {
       ros << "<null>";
     }
-    std::cout << fstr("  <var> '{}': {}\n", first, valueStr);
+    std::cout << makeString("  <var> '{}': {}\n", first, valueStr);
   }
   std::cout << "\033[0m\n";
 }
@@ -412,7 +412,7 @@ void CompilerIRVisitor::printGlobalVarEnv() {
     } else {
       ros << "<null>";
     }
-    std::cout << fstr("  <var> '{}': {}\n", first, valueStr);
+    std::cout << makeString("  <var> '{}': {}\n", first, valueStr);
   }
   std::cout << "\033[0m\n";
 }
@@ -435,7 +435,7 @@ llvm::Value *CompilerIRVisitor::codegen(const DeclRefExpr &expr) {
   if (id != nullptr) {
     auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("identifier '{}' not load", varName));
+      throw CodeGenException(makeString("identifier '{}' not load", varName));
     }
     return idVal;
   }
@@ -443,18 +443,18 @@ llvm::Value *CompilerIRVisitor::codegen(const DeclRefExpr &expr) {
   if (gid != nullptr) {
     auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
     if (idVal == nullptr) {
-      throw CodeGenException(fstr("identifier '{}' not load", varName));
+      throw CodeGenException(makeString("identifier '{}' not load", varName));
     }
     return idVal;
   }
-  throw CodeGenException(fstr("identifier '{}' not found", varName));
+  throw CodeGenException(makeString("identifier '{}' not found", varName));
 }
 
 llvm::Value *CompilerIRVisitor::codegen(const CallExpr &expr) {
   llvm::Function *callee = module->getFunction(expr.callee->decl->getName());
   if (callee == nullptr) {
     throw CodeGenException(
-        fstr("function '{}' not declared", expr.callee->decl->getName()));
+        makeString("function '{}' not declared", expr.callee->decl->getName()));
   }
   std::vector<llvm::Value *> argVals;
   for (auto &arg : expr.args) {
@@ -529,7 +529,7 @@ llvm::Value *CompilerIRVisitor::codegen(const UnaryOperator &expr) {
     }
   }
   default:
-    throw CodeGenException(fstr(
+    throw CodeGenException(makeString(
         "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
   }
 }

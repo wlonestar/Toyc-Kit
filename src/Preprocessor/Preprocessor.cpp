@@ -96,7 +96,7 @@ void Preprocessor::importLib() {
     /// read content from file
     std::string content;
     if (read_from(libName, content) == false) {
-      std::cerr << fstr("failed to open file '{}'\n", libName);
+      std::cerr << makeString("failed to open file '{}'\n", libName);
       exit(EXIT_FAILURE);
     }
     /// recursivly process include file

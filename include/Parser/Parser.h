@@ -26,7 +26,7 @@ private:
 public:
   ParserException(size_t _line, size_t _col, std::string _msg)
       : line(_line), col(_col),
-        message(fstr("\033[1;37mline:{}:col:{}:\033[0m "
+        message(makeString("\033[1;37mline:{}:col:{}:\033[0m "
                      "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
                      _line, _col, _msg)) {}
 

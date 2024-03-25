@@ -5,7 +5,7 @@
 
 int main(int argc, const char **argv) {
   if (argc < 2) {
-    std::cerr << fstr("Usage: {} <src> <bytcode>\n", argv[0]);
+    std::cerr << makeString("Usage: {} <src> <bytcode>\n", argv[0]);
     exit(EXIT_FAILURE);
   }
 
@@ -13,7 +13,7 @@ int main(int argc, const char **argv) {
   /// wrap parameters
   std::string src = argv[1];
   if (!src.ends_with(toyc::ext)) {
-    std::cerr << fstr("incorrect file extension\n");
+    std::cerr << makeString("incorrect file extension\n");
     exit(EXIT_FAILURE);
   }
   std::string dest = (argc == 3) ? argv[2] : "a.ll";
@@ -24,7 +24,7 @@ int main(int argc, const char **argv) {
   compiler.compile(src, ros);
   /// write into file
   if (toyc::write_to(dest, output) == false) {
-    std::cerr << fstr("failed to open file '{}'\n", src);
+    std::cerr << makeString("failed to open file '{}'\n", src);
     exit(EXIT_FAILURE);
   }
   return 0;

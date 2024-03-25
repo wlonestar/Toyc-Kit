@@ -304,7 +304,7 @@ public:
       : type(_type), value(_value), line(_line), col(_col) {}
 
   std::string toString() const {
-    return fstr("token({}:{} {} -> '{}')", line, col, TokenTyTable[type],
+    return makeString("token({}:{} {} -> '{}')", line, col, TokenTyTable[type],
                 value);
   }
 };
