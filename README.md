@@ -1,10 +1,10 @@
-# Toyc - A C Subset Compiler, Interpreter and REPL
+# Toyc-Kit - A C Subset Compiler, Interpreter and REPL
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
-Toyc is a project focused on simplifying the complexities of the C programming language while providing a platform for learning about compiler construction principles and delving into LLVM Intermediate Representation (**LLVM IR**). It offers a compiler, an interpreter and a REPL tailored to the needs of learners and enthusiasts in the field.
+Toyc-Kit is a project focused on simplifying the complexities of the C programming language while providing a platform for learning about compiler construction principles and delving into LLVM Intermediate Representation (**LLVM IR**). It offers a compiler, an interpreter and a REPL tailored to the needs of learners and enthusiasts in the field.
 
 ## Features
 
@@ -23,7 +23,7 @@ Toyc is a project focused on simplifying the complexities of the C programming l
 
 ### Prerequisites
 
-Before using Toyc, make sure you have the following dependencies installed:
+Before using Toyc-Kit, make sure you have the following dependencies installed:
 
 - CMake
 - Ninja
@@ -65,7 +65,7 @@ You need to have enough permission.
 
 ### Usage
 
-#### Compiler
+#### 1. Compiler
 
 To compile examples, use the provided `toycc.sh` script:
 
@@ -77,7 +77,7 @@ This command will compile the specified example source file(`simple.toyc`) using
 
 If compiled in **Release** mode, bytecode and executable files (`a.ll` and `a.exe`) will be generated. In **Debug** mode, colored AST tree dump and generated IR will be shown.
 
-![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-07_21-04-24.jpg)
+![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-28_15-27-08.jpg)
 
 **Running the Frontend Separately**
 
@@ -88,7 +88,7 @@ export toycc=build/bin/toycc
 build/bin/toycc <source_file> <bytecode_file>
 ```
 
-#### Interpreter
+#### 2. Interpreter
 
 To use Interpreter, use the provided `toyci.sh` script:
 
@@ -96,15 +96,19 @@ To use Interpreter, use the provided `toyci.sh` script:
 ./scripts/toyci.sh examples/repl_test.toyc
 ```
 
+![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-28_15-27-33.jpg)
+
 The Interpreter allows you to execute Toyc source code line by line, providing immediate feedback. This is particularly useful for experimenting with language features and exploring code behavior interactively.
 
-#### REPL
+#### 3. REPL
 
 To launch the REPL, execute the following command:
 
 ````
-./script/toyc-repl.sh
+./scripts/toyc-repl.sh
 ````
+
+![](https://image-1305118058.cos.ap-nanjing.myqcloud.com/image/Snipaste_2024-03-28_15-29-13.jpg)
 
 The REPL (Read-Eval-Print Loop) provides an interactive programming environment where you can enter Toyc expressions or statements, which are then immediately evaluated, and the results are displayed back to you. This is a convenient way to test code snippets, explore language features, and prototype algorithms interactively.
 
