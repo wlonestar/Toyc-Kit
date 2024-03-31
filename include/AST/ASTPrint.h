@@ -41,8 +41,8 @@ namespace toyc {
 #define AST_DECL(__fmt__, ...)                                                 \
   fmt::format(_BOLD_GREEN __fmt__ _RST, ##__VA_ARGS__)
 
-void printASTLeader(size_t _d, Side _s, std::string _p);
-std::string attachLeafLeader(Side _s, std::string _p);
+void PrintASTLeader(size_t _d, Side _s, std::string _p);
+auto AttachLeafLeader(Side _s, const std::string &_p) -> std::string;
 
 } // namespace toyc
 

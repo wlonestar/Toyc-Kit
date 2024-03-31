@@ -9,7 +9,7 @@
 
 namespace toyc {
 
-void printASTLeader(std::ostream &os, size_t _d, Side _s, std::string _p) {
+void PrintASTLeader(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
   std::string leader;
   if (_d == 0) {
     leader = "`";
@@ -23,7 +23,7 @@ void printASTLeader(std::ostream &os, size_t _d, Side _s, std::string _p) {
   os << AST_LEADER("{}-", leader);
 }
 
-std::string attachLeafLeader(Side _s, std::string _p) {
+auto AttachLeafLeader(Side _s, const std::string &_p) -> std::string {
   std::string leader = _p + " ";
   if (_s == LEAF) {
     leader += " ";
@@ -35,173 +35,176 @@ std::string attachLeafLeader(Side _s, std::string _p) {
  * Expr
  */
 
-void IntegerLiteral::dump(std::ostream &os, size_t _d, Side _s,
-                          std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} {}\n", AST_STMT("IntegerLiteral"), AST_TYPE("'{}'", type),
-             AST_LITERAL("{}", value));
+void IntegerLiteral::Dump(std::ostream &os, size_t _d, Side _s,
+                          const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {} {}\n", AST_STMT("IntegerLiteral"),
+                   AST_TYPE("'{}'", type_), AST_LITERAL("{}", value_));
 }
 
-void FloatingLiteral::dump(std::ostream &os, size_t _d, Side _s,
-                           std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} {}\n", AST_STMT("FloatingLiteral"), AST_TYPE("'{}'", type),
-             AST_LITERAL("{}", value));
+void FloatingLiteral::Dump(std::ostream &os, size_t _d, Side _s,
+                           const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {} {}\n", AST_STMT("FloatingLiteral"),
+                   AST_TYPE("'{}'", type_), AST_LITERAL("{}", value_));
 }
 
-void CharacterLiteral::dump(std::ostream &os, size_t _d, Side _s,
-                            std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} {}\n", AST_STMT("CharacterLiteral"), AST_TYPE("'{}'", type),
-             AST_LITERAL("{}", value));
+void CharacterLiteral::Dump(std::ostream &os, size_t _d, Side _s,
+                            const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {} {}\n", AST_STMT("CharacterLiteral"),
+                   AST_TYPE("'{}'", type_), AST_LITERAL("{}", value_));
 }
 
-void StringLiteral::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} {}\n", AST_STMT("StringLiteral"), AST_TYPE("'{}'", type),
-             AST_LITERAL("\"{}\"", value));
+void StringLiteral::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {} {}\n", AST_STMT("StringLiteral"),
+                   AST_TYPE("'{}'", type_), AST_LITERAL("\"{}\"", value_));
 }
 
-void DeclRefExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  std::string declType = "(null)";
-  if (dynamic_cast<VarDecl *>(decl.get())) {
-    declType = "Var";
-  } else if (dynamic_cast<FunctionDecl *>(decl.get())) {
-    declType = "Function";
+void DeclRefExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  std::string decl_type = "(null)";
+  if (dynamic_cast<VarDecl *>(decl_.get()) != nullptr) {
+    decl_type = "Var";
+  } else if (dynamic_cast<FunctionDecl *>(decl_.get()) != nullptr) {
+    decl_type = "Function";
   }
   os << makeString("{} {} {} {}\n", AST_STMT("DeclRefExpr"),
-             AST_TYPE("'{}'", decl->getType()), AST_DECL("{}", declType),
-             AST_LITERAL("'{}'", decl->getName()));
+                   AST_TYPE("'{}'", decl_->GetType()), AST_DECL("{}", decl_type),
+                   AST_LITERAL("'{}'", decl_->GetName()));
 }
 
-void ImplicitCastExpr::dump(std::ostream &os, size_t _d, Side _s,
-                            std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {}\n", AST_STMT("ImplicitCastExpr"), AST_TYPE("'{}'", type));
-  std::string leader = attachLeafLeader(_s, _p);
-  expr->dump(os, _d + 1, LEAF, leader);
+void ImplicitCastExpr::Dump(std::ostream &os, size_t _d, Side _s,
+                            const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {}\n", AST_STMT("ImplicitCastExpr"),
+                   AST_TYPE("'{}'", type_));
+  std::string leader = AttachLeafLeader(_s, _p);
+  expr_->Dump(os, _d + 1, LEAF, leader);
 }
 
-void ParenExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {}\n", AST_STMT("ParenExpr"), AST_TYPE("'{}'", getType()));
-  std::string leader = attachLeafLeader(_s, _p);
-  expr->dump(os, _d + 1, LEAF, leader);
+void ParenExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {}\n", AST_STMT("ParenExpr"),
+                   AST_TYPE("'{}'", GetType()));
+  std::string leader = AttachLeafLeader(_s, _p);
+  expr_->Dump(os, _d + 1, LEAF, leader);
 }
 
-void CallExpr::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {}\n", AST_STMT("CallExpr"), AST_TYPE("'{}'", getType()));
-  std::string leader = attachLeafLeader(_s, _p);
-  if (args.size() != 0) {
-    callee->dump(os, _d + 1, INTERNAL, leader + "|");
+void CallExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {}\n", AST_STMT("CallExpr"),
+                   AST_TYPE("'{}'", GetType()));
+  std::string leader = AttachLeafLeader(_s, _p);
+  if (!args_.empty()) {
+    callee_->Dump(os, _d + 1, INTERNAL, leader + "|");
   } else {
-    callee->dump(os, _d + 1, LEAF, leader);
+    callee_->Dump(os, _d + 1, LEAF, leader);
   }
-  if (args.size() != 0) {
-    for (size_t i = 0; i < args.size() - 1; i++) {
-      args[i]->dump(os, _d + 1, INTERNAL, leader + "|");
+  if (!args_.empty()) {
+    for (size_t i = 0; i < args_.size() - 1; i++) {
+      args_[i]->Dump(os, _d + 1, INTERNAL, leader + "|");
     }
-    args[args.size() - 1]->dump(os, _d + 1, LEAF, leader);
+    args_[args_.size() - 1]->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
-void UnaryOperator::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void UnaryOperator::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {} {} '{}'\n", AST_STMT("UnaryOperator"),
-             AST_TYPE("'{}'", type), side == PREFIX ? "prefix" : "postfix",
-             op.value);
-  std::string leader = attachLeafLeader(_s, _p);
-  expr->dump(os, _d + 1, LEAF, leader);
+                   AST_TYPE("'{}'", type_),
+                   side_ == PREFIX ? "prefix" : "postfix", op_.value_);
+  std::string leader = AttachLeafLeader(_s, _p);
+  expr_->Dump(os, _d + 1, LEAF, leader);
 }
 
-void BinaryOperator::dump(std::ostream &os, size_t _d, Side _s,
-                          std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} '{}'\n", AST_STMT("BinaryOperator"), AST_TYPE("'{}'", type),
-             op.value);
-  left->dump(os, _d + 1, INTERNAL, _p + "  |");
-  right->dump(os, _d + 1, LEAF, _p + "  ");
+void BinaryOperator::Dump(std::ostream &os, size_t _d, Side _s,
+                          const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {} '{}'\n", AST_STMT("BinaryOperator"),
+                   AST_TYPE("'{}'", type_), op_.value_);
+  left_->Dump(os, _d + 1, INTERNAL, _p + "  |");
+  right_->Dump(os, _d + 1, LEAF, _p + "  ");
 }
 
 /**
  * Stmt
  */
 
-void CompoundStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void CompoundStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("CompoundStmt"));
-  std::string leader = attachLeafLeader(_s, _p);
-  if (stmts.size() == 1) {
-    stmts[0]->dump(os, _d + 1, LEAF, leader);
-  } else if (stmts.size() >= 2) {
-    for (int i = 0; i < stmts.size() - 1; i++) {
-      stmts[i]->dump(os, _d + 1, INTERNAL, leader + "|");
+  std::string leader = AttachLeafLeader(_s, _p);
+  if (stmts_.size() == 1) {
+    stmts_[0]->Dump(os, _d + 1, LEAF, leader);
+  } else if (stmts_.size() >= 2) {
+    for (int i = 0; i < stmts_.size() - 1; i++) {
+      stmts_[i]->Dump(os, _d + 1, INTERNAL, leader + "|");
     }
-    stmts[stmts.size() - 1]->dump(os, _d + 1, LEAF, leader);
+    stmts_[stmts_.size() - 1]->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
-void ExprStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void ExprStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("ExprStmt"));
-  std::string leader = attachLeafLeader(_s, _p);
-  if (expr != nullptr) {
-    expr->dump(os, _d + 1, LEAF, leader);
+  std::string leader = AttachLeafLeader(_s, _p);
+  if (expr_ != nullptr) {
+    expr_->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
-void DeclStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void DeclStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("DeclStmt"));
-  std::string leader = attachLeafLeader(_s, _p);
-  if (decl != nullptr) {
-    decl->dump(os, _d + 1, LEAF, leader);
+  std::string leader = AttachLeafLeader(_s, _p);
+  if (decl_ != nullptr) {
+    decl_->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
-void IfStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void IfStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("IfStmt"));
-  std::string leader = attachLeafLeader(_s, _p);
-  cond->dump(os, _d + 1, INTERNAL, leader + "|");
-  if (elseStmt != nullptr) {
-    thenStmt->dump(os, _d + 1, INTERNAL, leader + "|");
+  std::string leader = AttachLeafLeader(_s, _p);
+  cond_->Dump(os, _d + 1, INTERNAL, leader + "|");
+  if (else_stmt_ != nullptr) {
+    then_stmt_->Dump(os, _d + 1, INTERNAL, leader + "|");
   } else {
-    thenStmt->dump(os, _d + 1, LEAF, leader);
+    then_stmt_->Dump(os, _d + 1, LEAF, leader);
   }
-  if (elseStmt != nullptr) {
-    elseStmt->dump(os, _d + 1, LEAF, leader);
+  if (else_stmt_ != nullptr) {
+    else_stmt_->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
-void WhileStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void WhileStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("WhileStmt"));
-  std::string leader = attachLeafLeader(_s, _p);
-  cond->dump(os, _d + 1, INTERNAL, leader + "|");
-  if (stmt != nullptr) {
-    stmt->dump(os, _d + 1, LEAF, leader);
+  std::string leader = AttachLeafLeader(_s, _p);
+  cond_->Dump(os, _d + 1, INTERNAL, leader + "|");
+  if (stmt_ != nullptr) {
+    stmt_->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
-void ForStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void ForStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("ForStmt"));
-  std::string leader = attachLeafLeader(_s, _p);
-  init->dump(os, _d + 1, INTERNAL, leader + "|");
-  cond->dump(os, _d + 1, INTERNAL, leader + "|");
-  update->dump(os, _d + 1, INTERNAL, leader + "|");
-  body->dump(os, _d + 1, LEAF, leader);
+  std::string leader = AttachLeafLeader(_s, _p);
+  init_->Dump(os, _d + 1, INTERNAL, leader + "|");
+  cond_->Dump(os, _d + 1, INTERNAL, leader + "|");
+  update_->Dump(os, _d + 1, INTERNAL, leader + "|");
+  body_->Dump(os, _d + 1, LEAF, leader);
 }
 
-void ReturnStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void ReturnStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("ReturnStmt"));
-  std::string leader = attachLeafLeader(_s, _p);
-  if (expr != nullptr) {
-    expr->dump(os, _d + 1, LEAF, leader);
+  std::string leader = AttachLeafLeader(_s, _p);
+  if (expr_ != nullptr) {
+    expr_->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
@@ -209,37 +212,38 @@ void ReturnStmt::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
  * Decl
  */
 
-void VarDecl::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} {}\n", AST_DECL("VarDecl"), AST_LITERAL("{}", name),
-             AST_TYPE("'{}'", getType()));
-  std::string leader = attachLeafLeader(_s, _p);
-  if (init != nullptr) {
-    init->dump(os, _d + 1, LEAF, leader);
+void VarDecl::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {} {}\n", AST_DECL("VarDecl"), AST_LITERAL("{}", name_),
+                   AST_TYPE("'{}'", GetType()));
+  std::string leader = AttachLeafLeader(_s, _p);
+  if (init_ != nullptr) {
+    init_->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
-void ParmVarDecl::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} {}\n", AST_DECL("ParmVarDecl"), AST_LITERAL("{}", name),
-             AST_TYPE("'{}'", getType()));
+void ParmVarDecl::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
+  os << makeString("{} {} {}\n", AST_DECL("ParmVarDecl"),
+                   AST_LITERAL("{}", name_), AST_TYPE("'{}'", GetType()));
 }
 
-void FunctionDecl::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
-  printASTLeader(os, _d, _s, _p);
+void FunctionDecl::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+  PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {} {}{}\n", AST_DECL("FunctionDecl"),
-             AST_LITERAL("{}", proto->name), AST_TYPE("'{}'", proto->type),
-             kind == EXTERN_FUNC ? " extern" : "");
-  std::string leader = attachLeafLeader(_s, _p);
-  for (size_t i = 0; i < proto->params.size(); i++) {
-    if (i == proto->params.size() - 1 && body == nullptr) {
-      proto->params[i]->dump(os, _d + 1, LEAF, leader);
+                   AST_LITERAL("{}", proto_->name_),
+                   AST_TYPE("'{}'", proto_->type_),
+                   kind_ == EXTERN_FUNC ? " extern" : "");
+  std::string leader = AttachLeafLeader(_s, _p);
+  for (size_t i = 0; i < proto_->params_.size(); i++) {
+    if (i == proto_->params_.size() - 1 && body_ == nullptr) {
+      proto_->params_[i]->Dump(os, _d + 1, LEAF, leader);
     } else {
-      proto->params[i]->dump(os, _d + 1, INTERNAL, leader + "|");
+      proto_->params_[i]->Dump(os, _d + 1, INTERNAL, leader + "|");
     }
   }
-  if (body != nullptr) {
-    body->dump(os, _d + 1, LEAF, leader);
+  if (body_ != nullptr) {
+    body_->Dump(os, _d + 1, LEAF, leader);
   }
 }
 
@@ -247,16 +251,16 @@ void FunctionDecl::dump(std::ostream &os, size_t _d, Side _s, std::string _p) {
  * TranslationUnitDecl
  */
 
-void TranslationUnitDecl::dump(std::ostream &os, size_t _d, Side _s,
-                               std::string _p) {
+void TranslationUnitDecl::Dump(std::ostream &os, size_t _d, Side _s,
+                               const std::string &_p) {
   os << AST_DECL("TranslationUnitDecl") << "\n";
-  if (decls.size() == 1) {
-    decls[0]->dump(os, _d + 1, LEAF, _p);
-  } else if (decls.size() >= 2) {
-    for (int i = 0; i < decls.size() - 1; i++) {
-      decls[i]->dump(os, _d + 1, INTERNAL, _p + "|");
+  if (decls_.size() == 1) {
+    decls_[0]->Dump(os, _d + 1, LEAF, _p);
+  } else if (decls_.size() >= 2) {
+    for (int i = 0; i < decls_.size() - 1; i++) {
+      decls_[i]->Dump(os, _d + 1, INTERNAL, _p + "|");
     }
-    decls[decls.size() - 1]->dump(os, _d + 1, LEAF, _p);
+    decls_[decls_.size() - 1]->Dump(os, _d + 1, LEAF, _p);
   }
 }
 

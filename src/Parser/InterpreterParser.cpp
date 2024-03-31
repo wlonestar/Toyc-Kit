@@ -13,75 +13,74 @@
 
 namespace toyc {
 
-InterpreterParser::ExprOrStmt InterpreterParser::parseExprOrExprStmt() {
+auto InterpreterParser::ParseExprOrExprStmt() -> InterpreterParser::ExprOrStmt {
   ExprPtr expr = nullptr;
-  bool isStmt = true;
-  if (!match(SEMI)) {
-    expr = parseExpression();
-    if (!match(SEMI)) {
-      isStmt = false;
+  bool is_stmt = true;
+  if (!Match(SEMI)) {
+    expr = ParseExpression();
+    if (!Match(SEMI)) {
+      is_stmt = false;
     }
   }
-  return {std::make_unique<ExprStmt>(std::move(expr)), isStmt};
+  return {std::make_unique<ExprStmt>(std::move(expr)), is_stmt};
 }
 
-DeclPtr InterpreterParser::parseVariableDeclaration(std::string type,
-                                                    std::string name,
-                                                    VarScope scope) {
+auto InterpreterParser::ParseVariableDeclaration(std::string type,
+                                                 std::string name,
+                                                 VarScope scope) -> DeclPtr {
   ExprPtr init;
   if (scope == GLOBAL) {
-    if (globalVarTable.find(name) != globalVarTable.end()) {
-      throwParserException(makeString("redefinition of '{}'", name));
+    if (global_var_table_.find(name) != global_var_table_.end()) {
+      ThrowParserException(makeString("redefinition of '{}'", name));
     }
-    init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);
-    globalVarTable[name] = type;
+    init = (Match(EQUAL) ? ParseAssignmentExpression() : nullptr);
+    global_var_table_[name] = type;
   } else {
-    if (varTable.find(name) != varTable.end()) {
-      throwParserException(makeString("redefinition of '{}'", name));
+    if (var_table_.find(name) != var_table_.end()) {
+      ThrowParserException(makeString("redefinition of '{}'", name));
     }
-    varTable[name] = type;
-    init = (match(EQUAL) ? parseAssignmentExpression() : nullptr);
+    var_table_[name] = type;
+    init = (Match(EQUAL) ? ParseAssignmentExpression() : nullptr);
   }
 
-  if (init != nullptr && type != init->getType()) {
+  if (init != nullptr && type != init->GetType()) {
     init = std::make_unique<ImplicitCastExpr>(type, std::move(init));
   }
   std::unique_ptr<VarDecl> decl = std::make_unique<VarDecl>(
       std::move(name), std::move(type), std::move(init), scope);
-  consume(SEMI, "expected ';' after declaration");
+  Consume(SEMI, "expected ';' after declaration");
 
   return decl;
 }
 
-InterpreterParser::ParseResult InterpreterParser::parse() {
-  std::string type, name;
-  bool isExtern = false;
-  if (match(EXTERN)) {
-    isExtern = true;
+auto InterpreterParser::Parse() -> InterpreterParser::ParseResult {
+  std::string type;
+  std::string name;
+  bool is_extern = false;
+  if (Match(EXTERN)) {
+    is_extern = true;
   }
   /// declaration
-  if (match({VOID, I64, F64})) {
-    type = previous().value;
-    if (match(IDENTIFIER)) {
-      name = previous().value;
+  if (Match({VOID, I64, F64})) {
+    type = Previous().value_;
+    if (Match(IDENTIFIER)) {
+      name = Previous().value_;
     } else {
-      throwParserException("invalid expression");
+      ThrowParserException("invalid expression");
     }
-    if (match(LP)) {
-      return parseFunctionDeclaration(type, name, isExtern);
-    } else {
-      return parseVariableDeclaration(type, name, GLOBAL);
+    if (Match(LP)) {
+      return ParseFunctionDeclaration(type, name, is_extern);
     }
-  } else if (check({IF, WHILE, FOR, LC})) {
-    return parseStatement();
-  } else {
-    auto [stmt, flag] = parseExprOrExprStmt();
-    if (flag) {
-      return std::move(stmt);
-    } else {
-      return std::move(stmt->expr);
-    }
+    return ParseVariableDeclaration(type, name, GLOBAL);
   }
+  if (Check({IF, WHILE, FOR, LC})) {
+    return ParseStatement();
+  }
+  auto [stmt, flag] = ParseExprOrExprStmt();
+  if (flag) {
+    return std::move(stmt);
+  }
+  return std::move(stmt->expr_);
 }
 
 } // namespace toyc

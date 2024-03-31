@@ -31,12 +31,15 @@ namespace toyc {
 #define debug(__fmt__, ...) ((void)0)
 #endif
 
-static bool isDigit(char c) { return (c >= '0' && c <= '9'); }
-static bool isNonZero(char c) { return (c >= '1' && c <= '9'); }
-static bool isLetter(char c) {
+static auto IsDigit(char c) -> bool { return (c >= '0' && c <= '9'); }
+
+static auto IsNonZero(char c) -> bool { return (c >= '1' && c <= '9'); }
+
+static auto IsLetter(char c) -> bool {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
-static bool isAlpha(char c) { return isLetter(c) || isDigit(c); }
+
+static auto IsAlpha(char c) -> bool { return IsLetter(c) || IsDigit(c); }
 
 /**
  * @brief read file content from `src` and write into string `input`
@@ -46,9 +49,9 @@ static bool isAlpha(char c) { return isLetter(c) || isDigit(c); }
  * @return true if read and write successfully
  * @return false if file can not open
  */
-static bool read_from(std::string src, std::string &input) {
+static auto ReadFrom(const std::string &src, std::string &input) -> bool {
   std::ifstream file(src);
-  if (file.is_open() == false) {
+  if (!file.is_open()) {
     return false;
   }
   input = std::string((std::istreambuf_iterator<char>(file)),
@@ -65,9 +68,9 @@ static bool read_from(std::string src, std::string &input) {
  * @return true if write into file successfully
  * @return false if file can not open
  */
-static bool write_to(std::string dest, std::string &output) {
+static auto WriteTo(const std::string &dest, std::string &output) -> bool {
   std::ofstream file(dest);
-  if (file.is_open() == false) {
+  if (!file.is_open()) {
     return false;
   }
   file << output;
@@ -75,7 +78,7 @@ static bool write_to(std::string dest, std::string &output) {
   return true;
 }
 
-static void trim(std::string &str) {
+static void Trim(std::string &str) {
   /// erase leading whitespaces
   size_t start = str.find_first_not_of(" \t\n\r\f\v");
   if (start != std::string::npos) {
@@ -92,7 +95,7 @@ static void trim(std::string &str) {
   }
 }
 
-static bool createIfNotExist(std::string filePath) {
+static auto CreateIfNotExist(const std::string &filePath) -> bool {
   std::ofstream file(filePath, std::ios::out | std::ios::app);
   if (!file.is_open()) {
     return false;

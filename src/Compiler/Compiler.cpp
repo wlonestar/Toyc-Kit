@@ -15,36 +15,36 @@
 
 namespace toyc {
 
-void Compiler::compile(std::string &src, llvm::raw_ostream &os) {
+void Compiler::Compile(std::string &src, llvm::raw_ostream &os) {
   /// read from src file
   std::string input;
-  if (read_from(src, input) == false) {
+  if (!ReadFrom(src, input)) {
     std::cerr << makeString("failed to open file '{}'\n", src);
     exit(EXIT_FAILURE);
   }
 
   /// preprocessor
-  preprocessor.setInput(input);
+  preprocessor_.SetInput(input);
   try {
-    input = preprocessor.process();
+    input = preprocessor_.Process();
   } catch (PreprocessorException e) {
     std::cerr << e.what() << "\n";
     exit(EXIT_FAILURE);
   }
 
   /// parse
-  parser.addInput(input);
+  parser_.AddInput(input);
   try {
-    auto translationUnit = parser.parse();
-    if (translationUnit != nullptr) {
+    auto translation_unit = parser_.Parse();
+    if (translation_unit != nullptr) {
 #ifndef NDEBUG
       std::stringstream ss;
-      translationUnit->dump(ss);
+      translation_unit->Dump(ss);
       std::cerr << ss.str();
 #endif
       /// generate IR code
-      visitor.setModuleID(src);
-      visitor.codegen(*translationUnit);
+      visitor_.SetModuleID(src);
+      visitor_.Codegen(*translation_unit);
     }
   } catch (LexerException e1) {
     std::cerr << e1.what() << "\n";
@@ -63,14 +63,14 @@ void Compiler::compile(std::string &src, llvm::raw_ostream &os) {
   }
 
 #ifndef NDEBUG
-  visitor.dump();
+  visitor_.Dump();
 #endif
 
-  if (visitor.verifyModule() == false) {
+  if (!visitor_.VerifyModule()) {
     std::cerr << "there is something wrong in compiler inner\n";
     exit(EXIT_FAILURE);
   }
-  visitor.dump(os);
+  visitor_.Dump(os);
 }
 
 } // namespace toyc

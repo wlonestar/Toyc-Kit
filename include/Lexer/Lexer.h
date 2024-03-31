@@ -13,18 +13,20 @@ namespace toyc {
 
 class LexerException : public std::exception {
 private:
-  size_t line;
-  size_t col;
-  std::string message;
+  size_t line_;
+  size_t col_;
+  std::string message_;
 
 public:
   LexerException(size_t _line, size_t _col, std::string _msg)
-      : line(_line), col(_col),
-        message(makeString("\033[1;37mline:{}:col:{}:\033[0m "
-                     "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                     _line, _col, _msg)) {}
+      : line_(_line), col_(_col),
+        message_(makeString("\033[1;37mline:{}:col:{}:\033[0m "
+                            "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
+                            _line, _col, _msg)) {}
 
-  const char *what() const noexcept override { return message.c_str(); }
+  auto what() const noexcept -> const char * override {
+    return message_.c_str();
+  }
 };
 
 enum LexerExceptionCode {
@@ -33,7 +35,7 @@ enum LexerExceptionCode {
   INVALID_INTEGER_OR_FLOATING = 2,
 };
 
-static std::vector<std::string> LexerExceptionTable = {
+static std::vector<std::string> lexer_exception_table = {
     "invalid suffix on integer constant",   // INVALID_INTEGER_SUFFIX
     "invalid suffix on floating constant",  // INVALID_FLOATING_SUFFIX
     "invalid integer or floating constant", // INVALID_INTEGER_OR_FLOATING
@@ -48,27 +50,27 @@ static std::vector<std::string> LexerExceptionTable = {
 class Lexer {
 private:
   /// String that need to be scan
-  std::string input;
+  std::string input_;
   /// Cursor of input that point to begin character of current token
-  size_t start;
+  size_t start_{};
   /// Cursor of input that points to current character of current token
-  size_t current;
+  size_t current_{};
   /// Line number of the input, begin from 1
-  size_t line;
+  size_t line_{};
   /// Column number of current line, begin from 0
-  size_t col;
+  size_t col_{};
 
 private:
-  void throwLexerException(std::string message) {
-    throw LexerException(line, col, message);
+  void ThrowLexerException(std::string message) {
+    throw LexerException(line_, col_, std::move(message));
   }
 
 private:
-  bool isEnd() { return current >= input.size(); }
-  bool isHexPreifx(char a, char b) {
+  auto IsEnd() -> bool { return current_ >= input_.size(); }
+  auto IsHexPreifx(char a, char b) -> bool {
     return a == '0' && (b == 'x' || b == 'X');
   }
-  bool isCharPrefix(char c) { return c == 'u' || c == 'U' || c == 'L'; }
+  auto IsCharPrefix(char c) -> bool { return c == 'u' || c == 'U' || c == 'L'; }
 
 private:
   /**
@@ -76,21 +78,21 @@ private:
    *
    * @param expected
    */
-  bool match(char expected);
+  auto Match(char expected) -> bool;
 
   /**
    * @brief Move `current` cursor forward `steps`
    *
    * @param steps
    */
-  void forward(size_t steps);
+  void Forward(size_t steps);
 
   /**
    * @brief Move `current` cursor backward `steps`
    *
    * @param steps
    */
-  void backward(size_t steps);
+  void Backward(size_t steps);
 
 public:
   /**
@@ -98,28 +100,28 @@ public:
    *
    * @return char
    */
-  char advance();
+  auto Advance() -> char;
 
   /**
    * @brief Return character that located at `current` cursor
    *
    * @return char
    */
-  char peek();
+  auto Peek() -> char;
 
   /**
    * @brief Return character that next to `current` cursor
    *
    * @return char
    */
-  char peekNext();
+  auto PeekNext() -> char;
 
   /**
    * @brief Return character that before `current` cursor
    *
    * @return char
    */
-  char previous();
+  auto Previous() -> char;
 
 private:
   /**
@@ -128,7 +130,7 @@ private:
    * @param type
    * @return Token
    */
-  Token makeToken(TokenTy type);
+  auto MakeToken(TokenTy type) -> Token;
 
   /**
    * @brief Return token that depends on customed `value`
@@ -137,19 +139,19 @@ private:
    * @param value
    * @return Token
    */
-  Token makeToken(TokenTy type, std::string value);
+  auto MakeToken(TokenTy type, std::string value) -> Token;
 
   /**
    * @brief Skip whitespace
    *
    */
-  void skipWhitespace();
+  void SkipWhitespace();
 
   /**
    * @brief Skip multi line commet
    *
    */
-  void skipMutliComment();
+  void SkipMutliComment();
 
 private:
   /**
@@ -158,24 +160,24 @@ private:
    *
    * @return Token
    */
-  Token scanString();
+  auto ScanString() -> Token;
 
   /**
    * @brief Scan number literal, use regex to simplify code
    *
    * @return Token
    */
-  Token scanNumber();
+  auto ScanNumber() -> Token;
 
   /**
    * @brief Scan identifier, search `KeywordTable` to match keyword
    *
    * @return Token
    */
-  Token scanIdentifier();
+  auto ScanIdentifier() -> Token;
 
 public:
-  Lexer() : input(""), start(0), current(0), line(1), col(0) {}
+  Lexer() = default;
 
 public:
   /**
@@ -183,14 +185,14 @@ public:
    *
    * @param str
    */
-  void addInput(std::string str);
+  void AddInput(const std::string &input);
 
   /**
    * @brief Get the `input` string
    *
    * @return std::string
    */
-  std::string getInput();
+  auto GetInput() -> std::string;
 
 public:
   /**
@@ -198,7 +200,7 @@ public:
    *
    * @return Token
    */
-  Token scanToken();
+  auto ScanToken() -> Token;
 };
 
 } // namespace toyc

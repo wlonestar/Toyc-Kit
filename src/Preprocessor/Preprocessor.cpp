@@ -10,138 +10,138 @@ namespace toyc {
 
 namespace fs = std::filesystem;
 
-bool Preprocessor::isEnd() { return current >= input.size(); }
+auto Preprocessor::IsEnd() -> bool { return current_ >= input_.size(); }
 
-char Preprocessor::peek() {
-  if (isEnd()) {
+auto Preprocessor::Peek() -> char {
+  if (IsEnd()) {
     return '\0';
   }
-  return input.at(current);
+  return input_.at(current_);
 }
 
-char Preprocessor::peekNext() {
-  if (current + 1 >= input.size()) {
+auto Preprocessor::PeekNext() -> char {
+  if (current_ + 1 >= input_.size()) {
     return '\0';
   }
-  return input.at(current + 1);
+  return input_.at(current_ + 1);
 }
 
-char Preprocessor::advance() { return input.at(current++); }
+auto Preprocessor::Advance() -> char { return input_.at(current_++); }
 
-void Preprocessor::backward() { current--; }
+void Preprocessor::Backward() { current_--; }
 
-void Preprocessor::removeLineComment() {
-  while (peek() != '\n' && !isEnd()) {
-    advance();
+void Preprocessor::RemoveLineComment() {
+  while (Peek() != '\n' && !IsEnd()) {
+    Advance();
   }
-  backward();
+  Backward();
   /// erase comment
-  input.erase(start, current - start + 1);
-  current = start;
+  input_.erase(start_, current_ - start_ + 1);
+  current_ = start_;
 }
 
-void Preprocessor::removeMutliComment() {
-  advance();
+void Preprocessor::RemoveMutliComment() {
+  Advance();
   /// line number the comment cross
-  size_t lineCnt = 0;
-  while (!(peek() == '*' && peekNext() == '/') && !isEnd()) {
-    if (peek() == '\n') {
-      line++;
-      col = 1;
-      lineCnt++;
+  size_t line_cnt = 0;
+  while (!(Peek() == '*' && PeekNext() == '/') && !IsEnd()) {
+    if (Peek() == '\n') {
+      line_++;
+      col_ = 1;
+      line_cnt++;
     }
-    advance();
+    Advance();
   }
-  if (isEnd()) {
-    throwPreprocessorException("unterminated /* comment");
+  if (IsEnd()) {
+    ThrowPreprocessorException("unterminated /* comment");
   }
-  advance();
-  if (peek() != '/') {
-    throwPreprocessorException("unterminated /* comment");
+  Advance();
+  if (Peek() != '/') {
+    ThrowPreprocessorException("unterminated /* comment");
   }
-  advance();
-  backward();
-  input.erase(start, current - start + 1);
+  Advance();
+  Backward();
+  input_.erase(start_, current_ - start_ + 1);
   /// removed new line characters
-  std::string newLine(lineCnt, '\n');
+  std::string new_line(line_cnt, '\n');
   /// insert new line characters again
-  input.insert(start, newLine);
-  start += lineCnt;
-  current = start;
+  input_.insert(start_, new_line);
+  start_ += line_cnt;
+  current_ = start_;
 }
 
-void Preprocessor::importLib() {
-  char c = peek();
-  while (peek() != '\n' && !isEnd()) {
-    advance();
+void Preprocessor::ImportLib() {
+  char c = Peek();
+  while (Peek() != '\n' && !IsEnd()) {
+    Advance();
   }
   /// peek out line start with `#`
-  std::string _line = input.substr(start, current - start);
-  if (_line.starts_with("#include ")) {
+  std::string line = input_.substr(start_, current_ - start_);
+  if (line.starts_with("#include ")) {
     /// remove `include` macro
-    input.erase(start, current - start);
+    input_.erase(start_, current_ - start_);
     /// find header file by name
-    std::string libName = _line.substr(_line.find(" ") + 1);
+    std::string lib_name = line.substr(line.find(' ') + 1);
     std::string path = "(not specified path)";
     /// get toycc path from environment variable
     if (auto e = getenv("toycc")) {
       path = std::string(e);
     }
     /// get absolute path of toycc
-    auto absolutePath = fs::canonical(std::filesystem::path(path));
+    auto absolute_path = fs::canonical(std::filesystem::path(path));
     /// find standard library files
-    libName = absolutePath.parent_path().parent_path().string() + "/include/" +
-              libName + ".toyc";
+    lib_name = absolute_path.parent_path().parent_path().string() +
+               "/include/" + lib_name + ".toyc";
 
     /// read content from file
     std::string content;
-    if (read_from(libName, content) == false) {
-      std::cerr << makeString("failed to open file '{}'\n", libName);
+    if (!ReadFrom(lib_name, content)) {
+      std::cerr << makeString("failed to open file '{}'\n", lib_name);
       exit(EXIT_FAILURE);
     }
     /// recursivly process include file
     Preprocessor p;
-    p.setInput(content);
-    content = p.process();
+    p.SetInput(content);
+    content = p.Process();
     /// insert content into current file and reset cursors
-    input.insert(start, content);
-    start += content.size() + 1;
-    current = start;
+    input_.insert(start_, content);
+    start_ += content.size() + 1;
+    current_ = start_;
   }
 }
 
-void Preprocessor::setInput(std::string _input) { input = _input; }
+void Preprocessor::SetInput(std::string _input) { input_ = std::move(_input); }
 
-std::string Preprocessor::process() {
-  while (peek() != '\0') {
-    char c = peek();
+auto Preprocessor::Process() -> std::string {
+  while (Peek() != '\0') {
+    char c = Peek();
     switch (c) {
     case '/':
-      if (peekNext() == '/') {
-        removeLineComment();
-      } else if (peekNext() == '*') {
-        removeMutliComment();
+      if (PeekNext() == '/') {
+        RemoveLineComment();
+      } else if (PeekNext() == '*') {
+        RemoveMutliComment();
       } else {
-        advance();
-        start = current;
+        Advance();
+        start_ = current_;
         continue;
       }
     case '#':
-      importLib();
+      ImportLib();
       continue;
     case '\n':
-      line++;
-      advance();
-      start = current;
-      col = 0;
+      line_++;
+      Advance();
+      start_ = current_;
+      col_ = 0;
       break;
     default:
-      advance();
-      start = current;
+      Advance();
+      start_ = current_;
       continue;
     }
   }
-  return input;
+  return input_;
 }
 
 } // namespace toyc

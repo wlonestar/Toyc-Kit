@@ -3,7 +3,7 @@
 #include <Compiler/Compiler.h>
 #include <Config.h>
 
-int main(int argc, const char **argv) {
+auto main(int argc, const char **argv) -> int {
   if (argc < 2) {
     std::cerr << makeString("Usage: {} <src> <bytcode>\n", argv[0]);
     exit(EXIT_FAILURE);
@@ -21,9 +21,9 @@ int main(int argc, const char **argv) {
   /// redirect to string first
   std::string output;
   llvm::raw_string_ostream ros(output);
-  compiler.compile(src, ros);
+  compiler.Compile(src, ros);
   /// write into file
-  if (toyc::write_to(dest, output) == false) {
+  if (!toyc::WriteTo(dest, output)) {
     std::cerr << makeString("failed to open file '{}'\n", src);
     exit(EXIT_FAILURE);
   }

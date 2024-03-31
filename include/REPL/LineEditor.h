@@ -16,47 +16,46 @@ namespace toyc {
 
 class LineEditor {
 private:
-  std::string prompt;
-  size_t size;
-  std::string filePath;
+  std::string prompt_;
+  size_t size_{};
+  std::string file_path_;
 
 public:
   LineEditor(std::string str, std::string _filePath)
-      : prompt(str), size(0), filePath(_filePath) {
-    std::cout << filePath << "\n";
-    if (!createIfNotExist(filePath)) {
-      std::cerr << makeString("failed to create file {}\n", filePath);
+      : prompt_(std::move(str)), file_path_(std::move(_filePath)) {
+    if (!CreateIfNotExist(file_path_)) {
+      std::cerr << makeString("failed to create file {}\n", file_path_);
       exit(EXIT_FAILURE);
     }
-    if (read_history(filePath.c_str()) != 0) {
-      std::cerr << makeString("failed to read from {}\n", filePath);
+    if (read_history(file_path_.c_str()) != 0) {
+      std::cerr << makeString("failed to read from {}\n", file_path_);
       exit(EXIT_FAILURE);
     }
   }
 
   ~LineEditor() {
-    prompt.clear();
-    clearHistory();
+    prompt_.clear();
+    ClearHistory();
   }
 
 public:
-  void setPrompt(std::string _prompt) { prompt = _prompt; }
+  void SetPrompt(std::string _prompt) { prompt_ = std::move(_prompt); }
 
-  std::string readLine() { return std::string(readline(prompt.c_str())); }
+  auto ReadLine() -> std::string { return {readline(prompt_.c_str())}; }
 
-  void addHistory(std::string str) {
+  void AddHistory(const std::string &str) {
     add_history(str.c_str());
-    size++;
+    size_++;
   }
 
-  void writeHistory() {
-    if (write_history(filePath.c_str()) != 0) {
-      std::cerr << makeString("failed to write into {}\n", filePath);
+  void WriteHistory() {
+    if (write_history(file_path_.c_str()) != 0) {
+      std::cerr << makeString("failed to write into {}\n", file_path_);
       exit(EXIT_FAILURE);
     }
   }
 
-  void clearHistory() { remove_history(size); }
+  void ClearHistory() { remove_history(size_); }
 };
 
 } // namespace toyc

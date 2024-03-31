@@ -22,12 +22,14 @@ public:
   Sema() = default;
 
 public:
-  bool checkHexadecimal(std::string value);
-  bool checkOctal(std::string value);
+  auto CheckHexadecimal(const std::string &value) -> bool;
+  auto CheckOctal(const std::string &value) -> bool;
 
-  std::string checkUnaryOperatorType(ExprPtr &right, TokenTy type);
-  std::string checkBinaryOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type);
-  std::string checkShiftOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type);
+  auto CheckUnaryOperatorType(ExprPtr &rhs, TokenTy type) -> std::string;
+  auto CheckBinaryOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
+      -> std::string;
+  auto CheckShiftOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
+      -> std::string;
 };
 
 } // namespace toyc

@@ -18,12 +18,12 @@ namespace toyc {
  */
 class Compiler {
 private:
-  Preprocessor preprocessor;
-  Parser parser;
-  CompilerIRVisitor visitor;
+  Preprocessor preprocessor_;
+  Parser parser_;
+  CompilerIRVisitor visitor_;
 
 public:
-  Compiler() : preprocessor(), parser(), visitor() {}
+  Compiler() = default;
 
   /**
    * @brief compile source code to byte code (IR)
@@ -31,7 +31,7 @@ public:
    * @param src source code filepath
    * @param os output stream
    */
-  void compile(std::string &src, llvm::raw_ostream &os);
+  void Compile(std::string &src, llvm::raw_ostream &os);
 };
 
 } // namespace toyc

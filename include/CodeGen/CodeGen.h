@@ -18,13 +18,16 @@ namespace toyc {
 
 class CodeGenException : public std::exception {
 private:
-  std::string message;
+  std::string message_;
 
 public:
-  CodeGenException(std::string _msg)
-      : message(makeString("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
+  explicit CodeGenException(std::string _msg)
+      : message_(
+            makeString("\033[1;31merror:\033[0m \033[1;37m{}\033[0m", _msg)) {}
 
-  const char *what() const noexcept override { return message.c_str(); }
+  auto what() const noexcept -> const char * override {
+    return message_.c_str();
+  }
 };
 
 /**
@@ -33,73 +36,73 @@ public:
 
 class BaseIRVisitor : public ASTVisitor {
 protected:
-  std::unique_ptr<llvm::LLVMContext> context;
-  std::unique_ptr<llvm::Module> module;
-  std::unique_ptr<llvm::IRBuilder<>> builder;
+  std::unique_ptr<llvm::LLVMContext> context_;
+  std::unique_ptr<llvm::Module> module_;
+  std::unique_ptr<llvm::IRBuilder<>> builder_;
 
 protected:
   /// local variable table
-  std::map<std::string, llvm::AllocaInst *> varEnv;
+  std::map<std::string, llvm::AllocaInst *> var_env_;
 
 protected:
-  void printVarEnv();
-  void clearVarEnv() { varEnv.clear(); }
+  void PrintVarEnv();
+  void ClearVarEnv() { var_env_.clear(); }
 
 public:
-  BaseIRVisitor() {}
+  BaseIRVisitor() = default;
 
 public:
-  virtual void dump(llvm::raw_ostream &os = llvm::errs());
-  virtual bool verifyModule(llvm::raw_ostream &os = llvm::errs());
+  virtual void Dump(llvm::raw_ostream &os = llvm::errs());
+  virtual auto VerifyModule(llvm::raw_ostream &os = llvm::errs()) -> bool;
 
 public:
-  virtual llvm::Function *getFunction(const FunctionDecl &decl);
+  virtual auto GetFunction(const FunctionDecl &decl) -> llvm::Function *;
 
 public:
-  virtual llvm::Value *codegen(const IntegerLiteral &expr) override;
-  virtual llvm::Value *codegen(const FloatingLiteral &expr) override;
-  virtual llvm::Value *codegen(const ImplicitCastExpr &expr) override;
-  virtual llvm::Value *codegen(const ParenExpr &expr) override;
+  auto Codegen(const IntegerLiteral &expr) -> llvm::Value * override;
+  auto Codegen(const FloatingLiteral &expr) -> llvm::Value * override;
+  auto Codegen(const ImplicitCastExpr &expr) -> llvm::Value * override;
+  auto Codegen(const ParenExpr &expr) -> llvm::Value * override;
 
 public:
-  virtual llvm::Value *codegen(const CompoundStmt &stmt) override;
-  virtual llvm::Value *codegen(const ExprStmt &stmt) override;
-  virtual llvm::Value *codegen(const DeclStmt &stmt) override;
-  virtual llvm::Value *codegen(const IfStmt &stmt) override;
-  virtual llvm::Value *codegen(const WhileStmt &stmt) override;
-  virtual llvm::Value *codegen(const ForStmt &stmt) override;
-  virtual llvm::Value *codegen(const ReturnStmt &stmt) override;
+  auto Codegen(const CompoundStmt &stmt) -> llvm::Value * override;
+  auto Codegen(const ExprStmt &stmt) -> llvm::Value * override;
+  auto Codegen(const DeclStmt &stmt) -> llvm::Value * override;
+  auto Codegen(const IfStmt &stmt) -> llvm::Value * override;
+  auto Codegen(const WhileStmt &stmt) -> llvm::Value * override;
+  auto Codegen(const ForStmt &stmt) -> llvm::Value * override;
+  auto Codegen(const ReturnStmt &stmt) -> llvm::Value * override;
 
 public:
-  virtual llvm::Type *codegen(const ParmVarDecl &decl) override;
-  virtual llvm::Function *codegen(const FunctionDecl &decl) override;
+  auto Codegen(const ParmVarDecl &decl) -> llvm::Type * override;
+  auto Codegen(const FunctionDecl &decl) -> llvm::Function * override;
 };
 
 class CompilerIRVisitor : public BaseIRVisitor {
 private:
   /// global variable table
-  std::map<std::string, llvm::GlobalVariable *> globalVarEnv;
+  std::map<std::string, llvm::GlobalVariable *> global_var_env_;
 
 private:
-  void printGlobalVarEnv();
+  void PrintGlobalVarEnv();
 
 public:
   CompilerIRVisitor();
 
 public:
-  void setModuleID(std::string &name);
+  void SetModuleID(std::string &name);
 
 public:
-  virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
-  virtual llvm::Value *codegen(const CallExpr &expr) override;
-  virtual llvm::Value *codegen(const UnaryOperator &expr) override;
-  virtual llvm::Value *codegen(const BinaryOperator &expr) override;
+  auto Codegen(const DeclRefExpr &expr) -> llvm::Value * override;
+  auto Codegen(const CallExpr &expr) -> llvm::Value * override;
+  auto Codegen(const UnaryOperator &expr) -> llvm::Value * override;
+  auto Codegen(const BinaryOperator &expr) -> llvm::Value * override;
 
 public:
-  virtual llvm::Value *codegen(const VarDecl &decl) override;
+  auto Codegen(const VarDecl &decl) -> llvm::Value * override;
 
 public:
-  void codegen(const TranslationUnitDecl &decl);
+  void Codegen(const TranslationUnitDecl &decl);
 };
 
 } // namespace toyc

@@ -18,8 +18,8 @@ namespace toyc {
  */
 class Interpreter {
 private:
-  InterpreterParser parser;
-  InterpreterIRVisitor visitor;
+  InterpreterParser parser_;
+  InterpreterIRVisitor visitor_;
 
 private:
   /**
@@ -27,10 +27,10 @@ private:
    *
    * @param unit - a variant of Expr, Stmt and Decl
    */
-  void execute(InterpreterParser::ParseResult &unit);
+  void Execute(InterpreterParser::ParseResult &unit);
 
 public:
-  Interpreter() : parser(), visitor() {}
+  Interpreter() = default;
 
 public:
   /**
@@ -38,7 +38,7 @@ public:
    *
    * @param input - input toyc script
    */
-  void parseAndExecute(std::string input);
+  void ParseAndExecute(std::string input);
 };
 
 } // namespace toyc

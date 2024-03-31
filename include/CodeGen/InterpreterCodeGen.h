@@ -24,58 +24,60 @@
 #include <llvm/Support/Error.h>
 
 #include <memory>
+#include <utility>
 
 namespace toyc {
 
 class InterpreterIRVisitor : public BaseIRVisitor {
 private:
-  std::unique_ptr<ToycJIT> JIT;
-  std::unique_ptr<llvm::legacy::FunctionPassManager> FPM;
-  std::unique_ptr<llvm::LoopAnalysisManager> LAM;
-  std::unique_ptr<llvm::FunctionAnalysisManager> FAM;
-  std::unique_ptr<llvm::CGSCCAnalysisManager> CGAM;
-  std::unique_ptr<llvm::ModuleAnalysisManager> MAM;
-  std::unique_ptr<llvm::PassInstrumentationCallbacks> PIC;
-  std::unique_ptr<llvm::StandardInstrumentations> SI;
+  std::unique_ptr<ToycJIT> jit_;
+  std::unique_ptr<llvm::legacy::FunctionPassManager> fpm_;
+  std::unique_ptr<llvm::LoopAnalysisManager> lam_;
+  std::unique_ptr<llvm::FunctionAnalysisManager> fam_;
+  std::unique_ptr<llvm::CGSCCAnalysisManager> cgam_;
+  std::unique_ptr<llvm::ModuleAnalysisManager> mam_;
+  std::unique_ptr<llvm::PassInstrumentationCallbacks> pic_;
+  std::unique_ptr<llvm::StandardInstrumentations> si_;
 
-  llvm::ExitOnError ExitOnErr;
+  llvm::ExitOnError exit_on_err_;
 
   struct GlobalVar {
-    std::string name;
-    std::string type;
-    size_t refered;
+    std::string name_;
+    std::string type_;
+    size_t refered_;
     GlobalVar(std::string _name, std::string _type, size_t _refered)
-        : name(_name), type(_type), refered(_refered) {}
+        : name_(std::move(_name)), type_(std::move(_type)), refered_(_refered) {
+    }
   };
 
-  std::map<std::string, std::unique_ptr<GlobalVar>> globalVarEnv;
-  std::map<std::string, std::unique_ptr<FunctionProto>> functionEnv;
+  std::map<std::string, std::unique_ptr<GlobalVar>> global_var_env_;
+  std::map<std::string, std::unique_ptr<FunctionProto>> function_env_;
 
 private:
-  void initialize();
-  void resetReferGlobalVar();
-  void resetReferFunctionProto();
+  void Initialize();
+  void ResetReferGlobalVar();
+  void ResetReferFunctionProto();
 
 public:
   InterpreterIRVisitor();
 
 public:
-  llvm::GlobalVariable *getGlobalVar(std::string name);
-  virtual llvm::Function *getFunction(const FunctionDecl &decl) override;
+  auto GetGlobalVar(const std::string &name) -> llvm::GlobalVariable *;
+  auto GetFunction(const FunctionDecl &decl) -> llvm::Function * override;
 
 public:
-  virtual llvm::Value *codegen(const DeclRefExpr &expr) override;
-  virtual llvm::Value *codegen(const CallExpr &expr) override;
-  virtual llvm::Value *codegen(const UnaryOperator &expr) override;
-  virtual llvm::Value *codegen(const BinaryOperator &expr) override;
+  auto Codegen(const DeclRefExpr &expr) -> llvm::Value * override;
+  auto Codegen(const CallExpr &expr) -> llvm::Value * override;
+  auto Codegen(const UnaryOperator &expr) -> llvm::Value * override;
+  auto Codegen(const BinaryOperator &expr) -> llvm::Value * override;
 
 public:
-  virtual llvm::Value *codegen(const VarDecl &decl) override;
+  auto Codegen(const VarDecl &decl) -> llvm::Value * override;
 
 public:
-  void handleDeclaration(std::unique_ptr<Decl> &decl);
-  void handleStatement(std::unique_ptr<Stmt> &stmt);
-  void handleExpression(std::unique_ptr<Expr> &expr);
+  void HandleDeclaration(std::unique_ptr<Decl> &decl);
+  void HandleStatement(std::unique_ptr<Stmt> &stmt);
+  void HandleExpression(std::unique_ptr<Expr> &expr);
 };
 
 } // namespace toyc

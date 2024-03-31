@@ -36,58 +36,58 @@ namespace toyc {
  * Base IR visitor
  */
 
-void BaseIRVisitor::printVarEnv() {
+void BaseIRVisitor::PrintVarEnv() {
   std::cout << "\033[1;32mVarEnv:\n";
-  for (auto &[first, second] : varEnv) {
-    std::string valueStr;
-    llvm::raw_string_ostream ros(valueStr);
+  for (auto &[first, second] : var_env_) {
+    std::string value_str;
+    llvm::raw_string_ostream ros(value_str);
     if (second != nullptr) {
       second->print(ros);
     } else {
       ros << "<null>";
     }
-    std::cout << makeString("  <var> '{}': {}\n", first, valueStr);
+    std::cout << makeString("  <var> '{}': {}\n", first, value_str);
   }
   std::cout << "\033[0m\n";
 }
 
-void BaseIRVisitor::dump(llvm::raw_ostream &os) {
-  module->print(os, nullptr, false, false);
+void BaseIRVisitor::Dump(llvm::raw_ostream &os) {
+  module_->print(os, nullptr, false, false);
 }
 
-bool BaseIRVisitor::verifyModule(llvm::raw_ostream &os) {
+auto BaseIRVisitor::VerifyModule(llvm::raw_ostream &os) -> bool {
   std::string info;
   llvm::raw_string_ostream ros(info);
-  llvm::verifyModule(*module, &ros, nullptr);
-  if (info.size() == 0) {
+  llvm::verifyModule(*module_, &ros, nullptr);
+  if (info.empty()) {
     return true;
-  } else {
-    os << "\033[1;31mverify:\n" << info << "\033[0m\n";
-    return false;
   }
+  os << "\033[1;31mverify:\n" << info << "\033[0m\n";
+  return false;
 }
 
-llvm::Function *BaseIRVisitor::getFunction(const FunctionDecl &decl) {
+auto BaseIRVisitor::GetFunction(const FunctionDecl &decl) -> llvm::Function * {
   /// function return type
-  llvm::Type *resultTy;
-  if (decl.proto->type.starts_with("void")) {
-    resultTy = llvm::Type::getVoidTy(*context);
-  } else if (decl.proto->type.starts_with("i64")) {
-    resultTy = llvm::Type::getInt64Ty(*context);
-  } else if (decl.proto->type.starts_with("f64")) {
-    resultTy = llvm::Type::getDoubleTy(*context);
+  llvm::Type *result_ty;
+  if (decl.proto_->type_.starts_with("void")) {
+    result_ty = llvm::Type::getVoidTy(*context_);
+  } else if (decl.proto_->type_.starts_with("i64")) {
+    result_ty = llvm::Type::getInt64Ty(*context_);
+  } else if (decl.proto_->type_.starts_with("f64")) {
+    result_ty = llvm::Type::getDoubleTy(*context_);
   }
 
   /// function parameters
   std::vector<llvm::Type *> params;
-  for (auto &param : decl.proto->params) {
-    params.push_back(param->accept(*this));
+  for (auto &param : decl.proto_->params_) {
+    params.push_back(param->Accept(*this));
   }
 
   /// create function
-  llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
+  llvm::FunctionType *func_ty =
+      llvm::FunctionType::get(result_ty, params, false);
   llvm::Function *func = llvm::Function::Create(
-      funcTy, llvm::Function::ExternalLinkage, decl.proto->name, *module);
+      func_ty, llvm::Function::ExternalLinkage, decl.proto_->name_, *module_);
   return func;
 }
 
@@ -95,305 +95,309 @@ llvm::Function *BaseIRVisitor::getFunction(const FunctionDecl &decl) {
  * Expr
  */
 
-llvm::Value *BaseIRVisitor::codegen(const IntegerLiteral &expr) {
-  return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), expr.value);
+auto BaseIRVisitor::Codegen(const IntegerLiteral &expr) -> llvm::Value * {
+  return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), expr.value_);
 }
 
-llvm::Value *BaseIRVisitor::codegen(const FloatingLiteral &expr) {
-  return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), expr.value);
+auto BaseIRVisitor::Codegen(const FloatingLiteral &expr) -> llvm::Value * {
+  return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), expr.value_);
 }
 
-llvm::Value *BaseIRVisitor::codegen(const ImplicitCastExpr &expr) {
-  if (expr.type == expr.expr->getType()) {
-    return expr.expr->accept(*this);
-  } else {
-    llvm::Value *value = expr.expr->accept(*this);
-    if (expr.type == "f64" && expr.expr->getType() == "i64") {
-      return builder->CreateSIToFP(value, llvm::Type::getDoubleTy(*context));
-    } else if (expr.type == "i64" && expr.expr->getType() == "f64") {
-      return builder->CreateFPToSI(value, llvm::Type::getInt64Ty(*context));
-    } else {
-      throw CodeGenException("not implemented!");
-    }
+auto BaseIRVisitor::Codegen(const ImplicitCastExpr &expr) -> llvm::Value * {
+  if (expr.type_ == expr.expr_->GetType()) {
+    return expr.expr_->Accept(*this);
   }
+  llvm::Value *value = expr.expr_->Accept(*this);
+  if (expr.type_ == "f64" && expr.expr_->GetType() == "i64") {
+    return builder_->CreateSIToFP(value, llvm::Type::getDoubleTy(*context_));
+  }
+  if (expr.type_ == "i64" && expr.expr_->GetType() == "f64") {
+    return builder_->CreateFPToSI(value, llvm::Type::getInt64Ty(*context_));
+  }
+  throw CodeGenException("not implemented!");
 }
 
-llvm::Value *BaseIRVisitor::codegen(const ParenExpr &expr) {
-  return expr.expr->accept(*this);
+auto BaseIRVisitor::Codegen(const ParenExpr &expr) -> llvm::Value * {
+  return expr.expr_->Accept(*this);
 }
 
 /**
  * Stmt
  */
 
-llvm::Value *BaseIRVisitor::codegen(const CompoundStmt &stmt) {
-  llvm::Value *retVal = nullptr;
-  for (auto &stmt : stmt.stmts) {
-    if (llvm::Value *ret = stmt->accept(*this)) {
-      retVal = ret;
+auto BaseIRVisitor::Codegen(const CompoundStmt &stmt) -> llvm::Value * {
+  llvm::Value *ret_val = nullptr;
+  for (auto &stmt : stmt.stmts_) {
+    if (llvm::Value *ret = stmt->Accept(*this)) {
+      ret_val = ret;
     }
   }
-  return retVal;
+  return ret_val;
 }
 
-llvm::Value *BaseIRVisitor::codegen(const ExprStmt &stmt) {
-  return stmt.expr->accept(*this);
+auto BaseIRVisitor::Codegen(const ExprStmt &stmt) -> llvm::Value * {
+  return stmt.expr_->Accept(*this);
 }
 
-llvm::Value *BaseIRVisitor::codegen(const DeclStmt &stmt) {
-  if (VarDecl *var = dynamic_cast<VarDecl *>(stmt.decl.get())) {
-    return var->accept(*this);
+auto BaseIRVisitor::Codegen(const DeclStmt &stmt) -> llvm::Value * {
+  if (auto *var = dynamic_cast<VarDecl *>(stmt.decl_.get())) {
+    return var->Accept(*this);
   }
   throw CodeGenException("invalid declaration statement");
 }
 
-llvm::Value *BaseIRVisitor::codegen(const IfStmt &stmt) {
-  llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
-  llvm::Type *retTy = parentFunc->getReturnType();
+auto BaseIRVisitor::Codegen(const IfStmt &stmt) -> llvm::Value * {
+  llvm::Function *parent_func = builder_->GetInsertBlock()->getParent();
+  llvm::Type *ret_ty = parent_func->getReturnType();
 
   /// set condition expression
-  llvm::Value *condVal = stmt.cond->accept(*this);
-  if (condVal == nullptr) {
+  llvm::Value *cond_val = stmt.cond_->Accept(*this);
+  if (cond_val == nullptr) {
     throw CodeGenException("null condition expr for if-else statement");
   }
-  llvm::Value *zeroVal, *oneVal;
-  if (condVal->getType() != llvm::Type::getInt1Ty(*context)) {
-    if (condVal->getType() == llvm::Type::getInt64Ty(*context)) {
-      zeroVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
-      oneVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1);
-      condVal = builder->CreateICmpNE(condVal, zeroVal);
-    } else if (condVal->getType() == llvm::Type::getInt64Ty(*context)) {
-      zeroVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
-      oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
-      condVal = builder->CreateFCmpONE(condVal, zeroVal);
+  llvm::Value *zero_val;
+  llvm::Value *one_val;
+  if (cond_val->getType() != llvm::Type::getInt1Ty(*context_)) {
+    if (cond_val->getType() == llvm::Type::getInt64Ty(*context_)) {
+      zero_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 0);
+      one_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 1);
+      cond_val = builder_->CreateICmpNE(cond_val, zero_val);
+    } else if (cond_val->getType() == llvm::Type::getInt64Ty(*context_)) {
+      zero_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 0);
+      one_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 1);
+      cond_val = builder_->CreateFCmpONE(cond_val, zero_val);
     } else {
       throw CodeGenException("not implemented!");
     }
   }
 
-  if (stmt.elseStmt != nullptr) {
+  if (stmt.else_stmt_ != nullptr) {
     /// create basic blocks
-    llvm::BasicBlock *thenB =
-        llvm::BasicBlock::Create(*context, "", parentFunc);
-    llvm::BasicBlock *elseB =
-        llvm::BasicBlock::Create(*context, "", parentFunc);
-    llvm::BasicBlock *mergeB =
-        llvm::BasicBlock::Create(*context, "", parentFunc);
-    builder->CreateCondBr(condVal, thenB, elseB);
+    llvm::BasicBlock *then_b =
+        llvm::BasicBlock::Create(*context_, "", parent_func);
+    llvm::BasicBlock *else_b =
+        llvm::BasicBlock::Create(*context_, "", parent_func);
+    llvm::BasicBlock *merge_b =
+        llvm::BasicBlock::Create(*context_, "", parent_func);
+    builder_->CreateCondBr(cond_val, then_b, else_b);
 
     /// then block
-    builder->SetInsertPoint(thenB);
-    llvm::Value *thenVal = stmt.thenStmt->accept(*this);
-    if (thenVal == nullptr ||
-        thenVal->getType() == llvm::Type::getVoidTy(*context)) {
-      thenVal = zeroVal;
+    builder_->SetInsertPoint(then_b);
+    llvm::Value *then_val = stmt.then_stmt_->Accept(*this);
+    if (then_val == nullptr ||
+        then_val->getType() == llvm::Type::getVoidTy(*context_)) {
+      then_val = zero_val;
     }
-    builder->CreateBr(mergeB);
-    thenB = builder->GetInsertBlock();
+    builder_->CreateBr(merge_b);
+    then_b = builder_->GetInsertBlock();
 
     /// else block
-    parentFunc->insert(parentFunc->end(), elseB);
-    builder->SetInsertPoint(elseB);
-    llvm::Value *elseVal = nullptr;
-    elseVal = stmt.elseStmt->accept(*this);
-    if (elseVal == nullptr ||
-        elseVal->getType() == llvm::Type::getVoidTy(*context)) {
-      elseVal = oneVal;
+    parent_func->insert(parent_func->end(), else_b);
+    builder_->SetInsertPoint(else_b);
+    llvm::Value *else_val = nullptr;
+    else_val = stmt.else_stmt_->Accept(*this);
+    if (else_val == nullptr ||
+        else_val->getType() == llvm::Type::getVoidTy(*context_)) {
+      else_val = one_val;
     }
-    builder->CreateBr(mergeB);
-    elseB = builder->GetInsertBlock();
+    builder_->CreateBr(merge_b);
+    else_b = builder_->GetInsertBlock();
 
     /// merge block
-    parentFunc->insert(parentFunc->end(), mergeB);
-    builder->SetInsertPoint(mergeB);
-    llvm::PHINode *pn = builder->CreatePHI(retTy, 2);
-    pn->addIncoming(thenVal, thenB);
-    pn->addIncoming(elseVal, elseB);
+    parent_func->insert(parent_func->end(), merge_b);
+    builder_->SetInsertPoint(merge_b);
+    llvm::PHINode *pn = builder_->CreatePHI(ret_ty, 2);
+    pn->addIncoming(then_val, then_b);
+    pn->addIncoming(else_val, else_b);
     return pn;
-  } else {
-    /**
-     * if there is no else-stmt
-     */
-
-    /// create basic blocks
-    llvm::BasicBlock *thenB =
-        llvm::BasicBlock::Create(*context, "then", parentFunc);
-    llvm::BasicBlock *afterB =
-        llvm::BasicBlock::Create(*context, "after", parentFunc);
-    builder->CreateCondBr(condVal, thenB, afterB);
-
-    /// then block
-    builder->SetInsertPoint(thenB);
-    llvm::Value *thenVal = stmt.thenStmt->accept(*this);
-    if (thenVal == nullptr ||
-        thenVal->getType() == llvm::Type::getVoidTy(*context)) {
-      thenVal = zeroVal;
-    }
-
-    /// create return in if-stmt
-    if (parentFunc->getReturnType()->isVoidTy()) {
-      builder->CreateRetVoid();
-    } else {
-      /// if function does not have a terminator, create a return instruction
-      if (thenVal == nullptr ||
-          (thenVal != nullptr &&
-           thenVal->getType() == llvm::Type::getVoidTy(*context))) {
-        if (parentFunc->getReturnType() == llvm::Type::getInt64Ty(*context)) {
-          thenVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
-        } else {
-          thenVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
-        }
-      }
-      builder->CreateRet(thenVal);
-    }
-
-    /// after block
-    builder->SetInsertPoint(afterB);
-    return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
   }
-}
-
-llvm::Value *BaseIRVisitor::codegen(const WhileStmt &stmt) {
-  llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
-  llvm::Type *retTy = parentFunc->getReturnType();
+  /**
+   * if there is no else-stmt
+   */
 
   /// create basic blocks
-  llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context, "", parentFunc);
+  llvm::BasicBlock *then_b =
+      llvm::BasicBlock::Create(*context_, "then", parent_func);
+  llvm::BasicBlock *after_b =
+      llvm::BasicBlock::Create(*context_, "after", parent_func);
+  builder_->CreateCondBr(cond_val, then_b, after_b);
+
+  /// then block
+  builder_->SetInsertPoint(then_b);
+  llvm::Value *then_val = stmt.then_stmt_->Accept(*this);
+  if (then_val == nullptr ||
+      then_val->getType() == llvm::Type::getVoidTy(*context_)) {
+    then_val = zero_val;
+  }
+
+  /// create return in if-stmt
+  if (parent_func->getReturnType()->isVoidTy()) {
+    builder_->CreateRetVoid();
+  } else {
+    /// if function does not have a terminator, create a return instruction
+    if (then_val == nullptr ||
+        (then_val != nullptr &&
+         then_val->getType() == llvm::Type::getVoidTy(*context_))) {
+      if (parent_func->getReturnType() == llvm::Type::getInt64Ty(*context_)) {
+        then_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 0);
+      } else {
+        then_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 0);
+      }
+    }
+    builder_->CreateRet(then_val);
+  }
+
+  /// after block
+  builder_->SetInsertPoint(after_b);
+  return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context_));
+}
+
+auto BaseIRVisitor::Codegen(const WhileStmt &stmt) -> llvm::Value * {
+  llvm::Function *parent_func = builder_->GetInsertBlock()->getParent();
+  llvm::Type *ret_ty = parent_func->getReturnType();
+
+  /// create basic blocks
+  llvm::BasicBlock *cond_b =
+      llvm::BasicBlock::Create(*context_, "", parent_func);
+  llvm::BasicBlock *body_b =
+      llvm::BasicBlock::Create(*context_, "", parent_func);
+  llvm::BasicBlock *exit_b =
+      llvm::BasicBlock::Create(*context_, "", parent_func);
 
   /// cond block
-  builder->CreateBr(condB);
-  builder->SetInsertPoint(condB);
+  builder_->CreateBr(cond_b);
+  builder_->SetInsertPoint(cond_b);
 
   /// set condition expression
-  llvm::Value *condVal = stmt.cond->accept(*this);
-  if (condVal == nullptr) {
+  llvm::Value *cond_val = stmt.cond_->Accept(*this);
+  if (cond_val == nullptr) {
     throw CodeGenException("null condition expr for if-else statement");
   }
-  llvm::Value *zeroVal;
-  if (condVal->getType() != llvm::Type::getInt1Ty(*context)) {
-    if (condVal->getType() == llvm::Type::getInt64Ty(*context)) {
-      zeroVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
-      condVal = builder->CreateICmpNE(condVal, zeroVal);
-    } else if (condVal->getType() == llvm::Type::getInt64Ty(*context)) {
-      zeroVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
-      condVal = builder->CreateFCmpONE(condVal, zeroVal);
+  llvm::Value *zero_val;
+  if (cond_val->getType() != llvm::Type::getInt1Ty(*context_)) {
+    if (cond_val->getType() == llvm::Type::getInt64Ty(*context_)) {
+      zero_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 0);
+      cond_val = builder_->CreateICmpNE(cond_val, zero_val);
+    } else if (cond_val->getType() == llvm::Type::getInt64Ty(*context_)) {
+      zero_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 0);
+      cond_val = builder_->CreateFCmpONE(cond_val, zero_val);
     } else {
       throw CodeGenException("not implemented!");
     }
   }
 
   /// set condition branch
-  builder->CreateCondBr(condVal, bodyB, exitB);
+  builder_->CreateCondBr(cond_val, body_b, exit_b);
 
   /// then block
-  builder->SetInsertPoint(bodyB);
-  if (stmt.stmt != nullptr) {
-    stmt.stmt->accept(*this);
+  builder_->SetInsertPoint(body_b);
+  if (stmt.stmt_ != nullptr) {
+    stmt.stmt_->Accept(*this);
   }
-  builder->CreateBr(condB);
+  builder_->CreateBr(cond_b);
 
   /// exit block
-  builder->SetInsertPoint(exitB);
-  return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
+  builder_->SetInsertPoint(exit_b);
+  return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context_));
 }
 
-llvm::Value *BaseIRVisitor::codegen(const ForStmt &stmt) {
-  llvm::Value *init = stmt.init->accept(*this);
-  llvm::Function *parentFunc = builder->GetInsertBlock()->getParent();
-  llvm::Type *retTy = parentFunc->getReturnType();
+auto BaseIRVisitor::Codegen(const ForStmt &stmt) -> llvm::Value * {
+  llvm::Value *init = stmt.init_->Accept(*this);
+  llvm::Function *parent_func = builder_->GetInsertBlock()->getParent();
+  llvm::Type *ret_ty = parent_func->getReturnType();
 
   /// init
-  stmt.init->accept(*this);
+  stmt.init_->Accept(*this);
 
   /// condition block
-  llvm::BasicBlock *condB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  builder->CreateBr(condB);
-  builder->SetInsertPoint(condB);
+  llvm::BasicBlock *cond_b =
+      llvm::BasicBlock::Create(*context_, "", parent_func);
+  builder_->CreateBr(cond_b);
+  builder_->SetInsertPoint(cond_b);
   /// condition check
-  llvm::Value *cmp = stmt.cond->accept(*this);
-  llvm::BasicBlock *bodyB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  llvm::BasicBlock *exitB = llvm::BasicBlock::Create(*context, "", parentFunc);
-  builder->CreateCondBr(cmp, bodyB, exitB);
+  llvm::Value *cmp = stmt.cond_->Accept(*this);
+  llvm::BasicBlock *body_b =
+      llvm::BasicBlock::Create(*context_, "", parent_func);
+  llvm::BasicBlock *exit_b =
+      llvm::BasicBlock::Create(*context_, "", parent_func);
+  builder_->CreateCondBr(cmp, body_b, exit_b);
 
   /// loop body
-  builder->SetInsertPoint(bodyB);
-  stmt.body->accept(*this);
+  builder_->SetInsertPoint(body_b);
+  stmt.body_->Accept(*this);
   /// update loop
-  stmt.update->accept(*this);
-  builder->CreateBr(condB);
+  stmt.update_->Accept(*this);
+  builder_->CreateBr(cond_b);
   /// exit
-  builder->SetInsertPoint(exitB);
-  varEnv.erase(stmt.init->decl->getName());
-  return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context));
+  builder_->SetInsertPoint(exit_b);
+  var_env_.erase(stmt.init_->decl_->GetName());
+  return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*context_));
 }
 
-llvm::Value *BaseIRVisitor::codegen(const ReturnStmt &stmt) {
-  if (stmt.expr != nullptr) {
-    llvm::Value *retVal = stmt.expr->accept(*this);
-    return retVal;
-  } else {
-    return nullptr;
+auto BaseIRVisitor::Codegen(const ReturnStmt &stmt) -> llvm::Value * {
+  if (stmt.expr_ != nullptr) {
+    llvm::Value *ret_val = stmt.expr_->Accept(*this);
+    return ret_val;
   }
+  return nullptr;
 }
 
 /**
  * Decl
  */
 
-llvm::Type *BaseIRVisitor::codegen(const ParmVarDecl &decl) {
-  llvm::Type *paramTy;
-  if (decl.type.starts_with("i64")) {
-    paramTy = llvm::Type::getInt64Ty(*context);
-  } else if (decl.type.starts_with("f64")) {
-    paramTy = llvm::Type::getDoubleTy(*context);
+auto BaseIRVisitor::Codegen(const ParmVarDecl &decl) -> llvm::Type * {
+  llvm::Type *param_ty;
+  if (decl.type_.starts_with("i64")) {
+    param_ty = llvm::Type::getInt64Ty(*context_);
+  } else if (decl.type_.starts_with("f64")) {
+    param_ty = llvm::Type::getDoubleTy(*context_);
   }
-  return paramTy;
+  return param_ty;
 }
 
-llvm::Function *BaseIRVisitor::codegen(const FunctionDecl &decl) {
-  llvm::Function *func = getFunction(decl);
-  if (decl.kind == EXTERN_FUNC) {
+auto BaseIRVisitor::Codegen(const FunctionDecl &decl) -> llvm::Function * {
+  llvm::Function *func = GetFunction(decl);
+  if (decl.kind_ == EXTERN_FUNC) {
     return func;
   }
 
   /// function entry point
-  llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context, "", func);
-  builder->SetInsertPoint(bb);
+  llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context_, "", func);
+  builder_->SetInsertPoint(bb);
 
   /// clear local variable table
-  clearVarEnv();
+  ClearVarEnv();
   for (auto &param : func->args()) {
     size_t idx = param.getArgNo();
-    std::string paramName = decl.proto->params[idx]->name;
+    std::string param_name = decl.proto_->params_[idx]->name_;
     llvm::Type *type = func->getFunctionType()->getParamType(idx);
-    varEnv[paramName] = builder->CreateAlloca(type, nullptr);
-    builder->CreateStore(&param, varEnv[paramName]);
+    var_env_[param_name] = builder_->CreateAlloca(type, nullptr);
+    builder_->CreateStore(&param, var_env_[param_name]);
   }
 
   /// return type
-  llvm::Value *retVal = nullptr;
-  if (decl.body != nullptr) {
-    if (llvm::Value *ret = decl.body->accept(*this)) {
-      retVal = ret;
+  llvm::Value *ret_val = nullptr;
+  if (decl.body_ != nullptr) {
+    if (llvm::Value *ret = decl.body_->Accept(*this)) {
+      ret_val = ret;
     }
   }
   /// create void return if function type is void
   if (func->getReturnType()->isVoidTy()) {
-    builder->CreateRetVoid();
+    builder_->CreateRetVoid();
   } else {
     /// if function does not have a terminator, create a return instruction
-    if (retVal == nullptr ||
-        (retVal != nullptr &&
-         retVal->getType() == llvm::Type::getVoidTy(*context))) {
-      if (func->getReturnType() == llvm::Type::getInt64Ty(*context)) {
-        retVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+    if (ret_val == nullptr ||
+        (ret_val != nullptr &&
+         ret_val->getType() == llvm::Type::getVoidTy(*context_))) {
+      if (func->getReturnType() == llvm::Type::getInt64Ty(*context_)) {
+        ret_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 0);
       } else {
-        retVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
+        ret_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 0);
       }
     }
-    builder->CreateRet(retVal);
+    builder_->CreateRet(ret_val);
   }
   return func;
 }
@@ -402,223 +406,222 @@ llvm::Function *BaseIRVisitor::codegen(const FunctionDecl &decl) {
  * CompilerIRVisitor
  */
 
-void CompilerIRVisitor::printGlobalVarEnv() {
+void CompilerIRVisitor::PrintGlobalVarEnv() {
   std::cout << "\033[1;32mGlobalVarEnv:\n";
-  for (auto &[first, second] : globalVarEnv) {
-    std::string valueStr;
-    llvm::raw_string_ostream ros(valueStr);
+  for (auto &[first, second] : global_var_env_) {
+    std::string value_str;
+    llvm::raw_string_ostream ros(value_str);
     if (second != nullptr) {
       second->print(ros);
     } else {
       ros << "<null>";
     }
-    std::cout << makeString("  <var> '{}': {}\n", first, valueStr);
+    std::cout << makeString("  <var> '{}': {}\n", first, value_str);
   }
   std::cout << "\033[0m\n";
 }
 
 CompilerIRVisitor::CompilerIRVisitor() {
-  context = std::make_unique<llvm::LLVMContext>();
-  builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*context));
-  module = std::make_unique<llvm::Module>("toycc", *context);
-  module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
+  context_ = std::make_unique<llvm::LLVMContext>();
+  builder_ = std::make_unique<llvm::IRBuilder<>>(*context_);
+  module_ = std::make_unique<llvm::Module>("toycc", *context_);
+  module_->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
-void CompilerIRVisitor::setModuleID(std::string &name) {
-  module->setModuleIdentifier(name);
-  module->setSourceFileName(name);
+void CompilerIRVisitor::SetModuleID(std::string &name) {
+  module_->setModuleIdentifier(name);
+  module_->setSourceFileName(name);
 }
 
-llvm::Value *CompilerIRVisitor::codegen(const DeclRefExpr &expr) {
-  std::string varName = expr.decl->getName();
-  llvm::AllocaInst *id = varEnv[varName];
+auto CompilerIRVisitor::Codegen(const DeclRefExpr &expr) -> llvm::Value * {
+  std::string var_name = expr.decl_->GetName();
+  llvm::AllocaInst *id = var_env_[var_name];
   if (id != nullptr) {
-    auto *idVal = builder->CreateLoad(id->getAllocatedType(), id);
-    if (idVal == nullptr) {
-      throw CodeGenException(makeString("identifier '{}' not load", varName));
+    auto *id_val = builder_->CreateLoad(id->getAllocatedType(), id);
+    if (id_val == nullptr) {
+      throw CodeGenException(makeString("identifier '{}' not load", var_name));
     }
-    return idVal;
+    return id_val;
   }
-  llvm::GlobalVariable *gid = globalVarEnv[varName];
+  llvm::GlobalVariable *gid = global_var_env_[var_name];
   if (gid != nullptr) {
-    auto *idVal = builder->CreateLoad(gid->getValueType(), gid);
-    if (idVal == nullptr) {
-      throw CodeGenException(makeString("identifier '{}' not load", varName));
+    auto *id_val = builder_->CreateLoad(gid->getValueType(), gid);
+    if (id_val == nullptr) {
+      throw CodeGenException(makeString("identifier '{}' not load", var_name));
     }
-    return idVal;
+    return id_val;
   }
-  throw CodeGenException(makeString("identifier '{}' not found", varName));
+  throw CodeGenException(makeString("identifier '{}' not found", var_name));
 }
 
-llvm::Value *CompilerIRVisitor::codegen(const CallExpr &expr) {
-  llvm::Function *callee = module->getFunction(expr.callee->decl->getName());
+auto CompilerIRVisitor::Codegen(const CallExpr &expr) -> llvm::Value * {
+  llvm::Function *callee = module_->getFunction(expr.callee_->decl_->GetName());
   if (callee == nullptr) {
-    throw CodeGenException(
-        makeString("function '{}' not declared", expr.callee->decl->getName()));
+    throw CodeGenException(makeString("function '{}' not declared",
+                                      expr.callee_->decl_->GetName()));
   }
-  std::vector<llvm::Value *> argVals;
-  for (auto &arg : expr.args) {
-    llvm ::Value *argVal = arg->accept(*this);
-    if (argVal == nullptr) {
+  std::vector<llvm::Value *> arg_vals;
+  for (auto &arg : expr.args_) {
+    llvm ::Value *arg_val = arg->Accept(*this);
+    if (arg_val == nullptr) {
       throw CodeGenException("params not exists");
     }
-    argVals.push_back(argVal);
+    arg_vals.push_back(arg_val);
   }
-  return builder->CreateCall(callee, argVals);
+  return builder_->CreateCall(callee, arg_vals);
 }
 
-llvm::Value *CompilerIRVisitor::codegen(const UnaryOperator &expr) {
-  llvm::Value *e = expr.expr->accept(*this);
+auto CompilerIRVisitor::Codegen(const UnaryOperator &expr) -> llvm::Value * {
+  llvm::Value *e = expr.expr_->Accept(*this);
   if (e == nullptr) {
     throw CodeGenException("[UnaryOperator] the operand is null");
   }
 
   /// prepare for INC_OP and DEC_OP
-  llvm::Value *oneVal;
-  if (expr.type == "i64") {
-    oneVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1);
+  llvm::Value *one_val;
+  if (expr.type_ == "i64") {
+    one_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 1);
   } else {
-    oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
+    one_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 1);
   }
-  llvm::Value *var;
-  if (DeclRefExpr *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
-    std::string varName = _left->decl->getName();
-    var = varEnv[varName];
-    if (var == nullptr) {
-      var = globalVarEnv[varName];
+  llvm::Value *ptr;
+  if (auto *left = dynamic_cast<DeclRefExpr *>(expr.expr_.get())) {
+    std::string var_name = left->decl_->GetName();
+    ptr = var_env_[var_name];
+    if (ptr == nullptr) {
+      ptr = global_var_env_[var_name];
     }
   }
 
-  switch (expr.op.type) {
+  switch (expr.op_.type_) {
   case ADD:
     return e;
   case NOT:
-    return builder->CreateNot(e);
+    return builder_->CreateNot(e);
   case SUB:
-    if (expr.type == "i64") {
-      return builder->CreateNeg(e);
+    if (expr.type_ == "i64") {
+      return builder_->CreateNeg(e);
     } else {
-      return builder->CreateFNeg(e);
+      return builder_->CreateFNeg(e);
     }
   case INC_OP: {
     llvm::Value *updated;
-    if (expr.type == "i64") {
-      updated = builder->CreateNSWAdd(e, oneVal);
+    if (expr.type_ == "i64") {
+      updated = builder_->CreateNSWAdd(e, one_val);
     } else {
-      updated = builder->CreateFAdd(e, oneVal);
+      updated = builder_->CreateFAdd(e, one_val);
     }
-    builder->CreateStore(updated, var);
-    if (expr.side == POSTFIX) {
+    builder_->CreateStore(updated, ptr);
+    if (expr.side_ == POSTFIX) {
       return e;
-    } else {
-      return updated;
     }
+    return updated;
   }
   case DEC_OP: {
     llvm::Value *updated;
-    if (expr.type == "i64") {
-      updated = builder->CreateNSWSub(e, oneVal);
+    if (expr.type_ == "i64") {
+      updated = builder_->CreateNSWSub(e, one_val);
     } else {
-      updated = builder->CreateFSub(e, oneVal);
+      updated = builder_->CreateFSub(e, one_val);
     }
-    builder->CreateStore(updated, var);
-    if (expr.side == POSTFIX) {
+    builder_->CreateStore(updated, ptr);
+    if (expr.side_ == POSTFIX) {
       return e;
-    } else {
-      return updated;
     }
+    return updated;
   }
   default:
     throw CodeGenException(makeString(
-        "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
+        "[UnaryOperator] unimplemented unary operator '{}'", expr.op_.value_));
   }
 }
 
-llvm::Value *CompilerIRVisitor::codegen(const BinaryOperator &expr) {
-  llvm::Value *l, *r;
+auto CompilerIRVisitor::Codegen(const BinaryOperator &expr) -> llvm::Value * {
+  llvm::Value *l;
+  llvm::Value *r;
 
-  if (expr.op.type == EQUAL) {
-    if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.left.get())) {
-      std::string varName = _left->decl->getName();
-      l = varEnv[varName];
+  if (expr.op_.type_ == EQUAL) {
+    if (auto *left = dynamic_cast<DeclRefExpr *>(expr.left_.get())) {
+      std::string var_name = left->decl_->GetName();
+      l = var_env_[var_name];
       if (l == nullptr) {
-        l = globalVarEnv[varName];
+        l = global_var_env_[var_name];
       }
     }
-    r = expr.right->accept(*this);
-    return builder->CreateStore(r, l);
+    r = expr.right_->Accept(*this);
+    return builder_->CreateStore(r, l);
   }
 
-  l = expr.left->accept(*this);
-  r = expr.right->accept(*this);
+  l = expr.left_->Accept(*this);
+  r = expr.right_->Accept(*this);
   if (l == nullptr || r == nullptr) {
     throw CodeGenException("[BinaryOperator] operands must be not null");
   }
 
   /// logical operation (no matter types)
-  TokenTy opTy = expr.op.type;
-  if (opTy == AND_OP) {
-    return builder->CreateAnd(l, r);
+  TokenTy op_ty = expr.op_.type_;
+  if (op_ty == AND_OP) {
+    return builder_->CreateAnd(l, r);
   }
-  if (opTy == OR_OP) {
-    return builder->CreateOr(l, r);
+  if (op_ty == OR_OP) {
+    return builder_->CreateOr(l, r);
   }
 
-  if (expr.type == "i64") {
-    switch (opTy) {
+  if (expr.type_ == "i64") {
+    switch (op_ty) {
     case ADD:
-      return builder->CreateNSWAdd(l, r);
+      return builder_->CreateNSWAdd(l, r);
     case SUB:
-      return builder->CreateNSWSub(l, r);
+      return builder_->CreateNSWSub(l, r);
     case MUL:
-      return builder->CreateNSWMul(l, r);
+      return builder_->CreateNSWMul(l, r);
     case DIV:
-      return builder->CreateSDiv(l, r);
+      return builder_->CreateSDiv(l, r);
     case MOD:
-      return builder->CreateSRem(l, r);
+      return builder_->CreateSRem(l, r);
     case EQ_OP:
-      return builder->CreateICmpEQ(l, r);
+      return builder_->CreateICmpEQ(l, r);
     case NE_OP:
-      return builder->CreateICmpNE(l, r);
+      return builder_->CreateICmpNE(l, r);
     case LE_OP:
-      return builder->CreateICmpSLE(l, r);
+      return builder_->CreateICmpSLE(l, r);
     case GE_OP:
-      return builder->CreateICmpSGE(l, r);
-    case LA:
-      return builder->CreateICmpSLT(l, r);
-    case RA:
-      return builder->CreateICmpSGT(l, r);
+      return builder_->CreateICmpSGE(l, r);
+    case LT:
+      return builder_->CreateICmpSLT(l, r);
+    case RT:
+      return builder_->CreateICmpSGT(l, r);
     case LEFT_OP:
-      return builder->CreateShl(l, r);
+      return builder_->CreateShl(l, r);
     case RIGHT_OP:
-      return builder->CreateAShr(l, r);
+      return builder_->CreateAShr(l, r);
     default:
       break;
     }
-  } else if (expr.type == "f64") {
-    switch (opTy) {
+  } else if (expr.type_ == "f64") {
+    switch (op_ty) {
     case ADD:
-      return builder->CreateFAdd(l, r);
+      return builder_->CreateFAdd(l, r);
     case SUB:
-      return builder->CreateFSub(l, r);
+      return builder_->CreateFSub(l, r);
     case MUL:
-      return builder->CreateFMul(l, r);
+      return builder_->CreateFMul(l, r);
     case DIV:
-      return builder->CreateFDiv(l, r);
+      return builder_->CreateFDiv(l, r);
     case MOD:
-      return builder->CreateFRem(l, r);
+      return builder_->CreateFRem(l, r);
     case EQ_OP:
-      return builder->CreateFCmpOEQ(l, r);
+      return builder_->CreateFCmpOEQ(l, r);
     case NE_OP:
-      return builder->CreateFCmpONE(l, r);
+      return builder_->CreateFCmpONE(l, r);
     case LE_OP:
-      return builder->CreateFCmpOLE(l, r);
+      return builder_->CreateFCmpOLE(l, r);
     case GE_OP:
-      return builder->CreateFCmpOGE(l, r);
-    case LA:
-      return builder->CreateFCmpOLT(l, r);
-    case RA:
-      return builder->CreateFCmpOGT(l, r);
+      return builder_->CreateFCmpOGE(l, r);
+    case LT:
+      return builder_->CreateFCmpOLT(l, r);
+    case RT:
+      return builder_->CreateFCmpOGT(l, r);
     default:
       break;
     }
@@ -626,40 +629,41 @@ llvm::Value *CompilerIRVisitor::codegen(const BinaryOperator &expr) {
   throw CodeGenException("[BinaryOperator] unimplemented binary operation");
 }
 
-llvm::Value *CompilerIRVisitor::codegen(const VarDecl &decl) {
-  llvm::Type *varTy =
-      (decl.type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
+auto CompilerIRVisitor::Codegen(const VarDecl &decl) -> llvm::Value * {
+  llvm::Type *var_ty =
+      (decl.type_ == "i64" ? builder_->getInt64Ty() : builder_->getDoubleTy());
   llvm::Constant *initializer =
-      (decl.init != nullptr ? (llvm::Constant *)decl.init->accept(*this)
-                            : nullptr);
+      (decl.init_ != nullptr
+           ? reinterpret_cast<llvm::Constant *>(decl.init_->Accept(*this))
+           : nullptr);
 
-  if (decl.scope == GLOBAL) {
-    llvm::GlobalVariable *var = new llvm::GlobalVariable(
-        *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
-        initializer, decl.name);
-    globalVarEnv[decl.name] = var;
-    return var;
-  } else {
-    llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
-    if (decl.init != nullptr) {
-      builder->CreateStore(initializer, var);
-    }
-    varEnv[decl.name] = var;
+  if (decl.scope_ == GLOBAL) {
+    auto *var = new llvm::GlobalVariable(*module_, var_ty, false,
+                                         llvm::GlobalVariable::ExternalLinkage,
+                                         initializer, decl.name_);
+    global_var_env_[decl.name_] = var;
     return var;
   }
+
+  llvm::AllocaInst *ptr = builder_->CreateAlloca(var_ty, nullptr);
+  if (decl.init_ != nullptr) {
+    builder_->CreateStore(initializer, ptr);
+  }
+  var_env_[decl.name_] = ptr;
+  return ptr;
 }
 
 /**
  * TranslationUnitDecl
  */
 
-void CompilerIRVisitor::codegen(const TranslationUnitDecl &decl) {
-  for (auto &d : decl.decls) {
-    if (VarDecl *varDecl = dynamic_cast<VarDecl *>(d.get())) {
-      varDecl->accept(*this);
-    } else if (FunctionDecl *funcDecl = dynamic_cast<FunctionDecl *>(d.get())) {
-      if (funcDecl->getKind() != DECLARATION) {
-        funcDecl->accept(*this);
+void CompilerIRVisitor::Codegen(const TranslationUnitDecl &decl) {
+  for (auto &d : decl.decls_) {
+    if (auto *var_decl = dynamic_cast<VarDecl *>(d.get())) {
+      var_decl->Accept(*this);
+    } else if (auto *func_decl = dynamic_cast<FunctionDecl *>(d.get())) {
+      if (func_decl->GetKind() != DECLARATION) {
+        func_decl->Accept(*this);
       }
     } else {
       throw CodeGenException("[TranslationUnitDecl] unsupported declaration");
@@ -667,8 +671,9 @@ void CompilerIRVisitor::codegen(const TranslationUnitDecl &decl) {
   }
 
   /// remove not used extern functions
-  auto functionList = &module->getFunctionList();
-  for (auto it = functionList->begin(), end = functionList->end(); it != end;) {
+  auto function_list = &module_->getFunctionList();
+  for (auto it = function_list->begin(), end = function_list->end();
+       it != end;) {
     auto &f = *it++;
     if (f.isDeclaration() && f.users().empty()) {
       // debug("remove extern function: {} (not used)", f.getName());

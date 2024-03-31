@@ -36,32 +36,32 @@
 
 namespace toyc {
 
-void InterpreterIRVisitor::initialize() {
-  context = std::make_unique<llvm::LLVMContext>();
-  module = std::make_unique<llvm::Module>("toyc jit", *context);
-  module->setDataLayout(JIT->getDataLayout());
-  builder = std::make_unique<llvm::IRBuilder<>>(*context);
+void InterpreterIRVisitor::Initialize() {
+  context_ = std::make_unique<llvm::LLVMContext>();
+  module_ = std::make_unique<llvm::Module>("toyc jit", *context_);
+  module_->setDataLayout(jit_->GetDataLayout());
+  builder_ = std::make_unique<llvm::IRBuilder<>>(*context_);
 
-  FPM = std::make_unique<llvm::legacy::FunctionPassManager>(module.get());
-  FPM->add(llvm::createInstructionCombiningPass());
-  FPM->add(llvm::createReassociatePass());
-  FPM->add(llvm::createGVNPass());
-  FPM->add(llvm::createCFGSimplificationPass());
-  FPM->doInitialization();
+  fpm_ = std::make_unique<llvm::legacy::FunctionPassManager>(module_.get());
+  fpm_->add(llvm::createInstructionCombiningPass());
+  fpm_->add(llvm::createReassociatePass());
+  fpm_->add(llvm::createGVNPass());
+  fpm_->add(llvm::createCFGSimplificationPass());
+  fpm_->doInitialization();
 }
 
-void InterpreterIRVisitor::resetReferGlobalVar() {
-  for (auto &var : globalVarEnv) {
+void InterpreterIRVisitor::ResetReferGlobalVar() {
+  for (auto &var : global_var_env_) {
     if (auto &f = var.second) {
-      f->refered = 0;
+      f->refered_ = 0;
     }
   }
 }
 
-void InterpreterIRVisitor::resetReferFunctionProto() {
-  for (auto &func : functionEnv) {
+void InterpreterIRVisitor::ResetReferFunctionProto() {
+  for (auto &func : function_env_) {
     if (auto &f = func.second) {
-      f->refered = 0;
+      f->refered_ = 0;
     }
   }
 }
@@ -71,59 +71,61 @@ InterpreterIRVisitor::InterpreterIRVisitor() {
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
-  JIT = ExitOnErr(ToycJIT::create());
-  initialize();
+  jit_ = exit_on_err_(ToycJIT::Create());
+  Initialize();
 }
 
-llvm::GlobalVariable *InterpreterIRVisitor::getGlobalVar(std::string name) {
+auto InterpreterIRVisitor::GetGlobalVar(const std::string &name)
+    -> llvm::GlobalVariable * {
   llvm::GlobalVariable *var = nullptr;
-  if (auto &gvar = globalVarEnv[name]) {
-    llvm::Type *varTy =
-        (gvar->type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
+  if (auto &gvar = global_var_env_[name]) {
+    llvm::Type *var_ty = (gvar->type_ == "i64" ? builder_->getInt64Ty()
+                                               : builder_->getDoubleTy());
 
-    if (gvar->refered == 0) {
-      var = new llvm::GlobalVariable(*module, varTy, false,
+    if (gvar->refered_ == 0) {
+      var = new llvm::GlobalVariable(*module_, var_ty, false,
                                      llvm::GlobalVariable::ExternalLinkage,
                                      nullptr, name);
-      gvar->refered++;
+      gvar->refered_++;
     } else {
-      var = module->getGlobalVariable(name);
+      var = module_->getGlobalVariable(name);
     }
   }
   return var;
 }
 
 /// override getFunction
-llvm::Function *InterpreterIRVisitor::getFunction(const FunctionDecl &decl) {
-  std::string funcName = decl.getName();
-  if (auto &fn = functionEnv[funcName]) {
-    if (fn->refered != 0) {
-      return module->getFunction(funcName);
-    } else {
-      fn->refered++;
+auto InterpreterIRVisitor::GetFunction(const FunctionDecl &decl)
+    -> llvm::Function * {
+  std::string func_name = decl.GetName();
+  if (auto &fn = function_env_[func_name]) {
+    if (fn->refered_ != 0) {
+      return module_->getFunction(func_name);
     }
+    fn->refered_++;
   }
 
   /// function return type
-  llvm::Type *resultTy;
-  if (decl.proto->type.starts_with("void")) {
-    resultTy = llvm::Type::getVoidTy(*context);
-  } else if (decl.proto->type.starts_with("i64")) {
-    resultTy = llvm::Type::getInt64Ty(*context);
-  } else if (decl.proto->type.starts_with("f64")) {
-    resultTy = llvm::Type::getDoubleTy(*context);
+  llvm::Type *result_ty;
+  if (decl.proto_->type_.starts_with("void")) {
+    result_ty = llvm::Type::getVoidTy(*context_);
+  } else if (decl.proto_->type_.starts_with("i64")) {
+    result_ty = llvm::Type::getInt64Ty(*context_);
+  } else if (decl.proto_->type_.starts_with("f64")) {
+    result_ty = llvm::Type::getDoubleTy(*context_);
   }
 
   /// function parameters
   std::vector<llvm::Type *> params;
-  for (auto &param : decl.proto->params) {
-    params.push_back(param->accept(*this));
+  for (auto &param : decl.proto_->params_) {
+    params.push_back(param->Accept(*this));
   }
 
   /// create function
-  llvm::FunctionType *funcTy = llvm::FunctionType::get(resultTy, params, false);
+  llvm::FunctionType *func_ty =
+      llvm::FunctionType::get(result_ty, params, false);
   llvm::Function *func = llvm::Function::Create(
-      funcTy, llvm::Function::ExternalLinkage, decl.proto->name, *module);
+      func_ty, llvm::Function::ExternalLinkage, decl.proto_->name_, *module_);
   return func;
 }
 
@@ -131,199 +133,200 @@ llvm::Function *InterpreterIRVisitor::getFunction(const FunctionDecl &decl) {
  * Expr
  */
 
-llvm::Value *InterpreterIRVisitor::codegen(const DeclRefExpr &expr) {
-  std::string varName = expr.decl->getName();
-  llvm::AllocaInst *id = varEnv[varName];
+auto InterpreterIRVisitor::Codegen(const DeclRefExpr &expr) -> llvm::Value * {
+  std::string var_name = expr.decl_->GetName();
+  llvm::AllocaInst *id = var_env_[var_name];
   if (id != nullptr) {
-    llvm::LoadInst *idVal = builder->CreateLoad(id->getAllocatedType(), id);
-    if (idVal == nullptr) {
+    llvm::LoadInst *id_val = builder_->CreateLoad(id->getAllocatedType(), id);
+    if (id_val == nullptr) {
       throw CodeGenException(
-          makeString("local identifier '{}' not load", varName));
+          makeString("local identifier '{}' not load", var_name));
     }
-    return idVal;
+    return id_val;
   }
-  llvm::GlobalVariable *gid = getGlobalVar(varName);
+  llvm::GlobalVariable *gid = GetGlobalVar(var_name);
   if (gid != nullptr) {
-    llvm::LoadInst *idVal = builder->CreateLoad(gid->getValueType(), gid);
-    if (idVal == nullptr) {
+    llvm::LoadInst *id_val = builder_->CreateLoad(gid->getValueType(), gid);
+    if (id_val == nullptr) {
       throw CodeGenException(
-          makeString("global identifier '{}' not load", varName));
+          makeString("global identifier '{}' not load", var_name));
     }
-    return idVal;
+    return id_val;
   }
-  throw CodeGenException(makeString("identifier '{}' not found", varName));
+  throw CodeGenException(makeString("identifier '{}' not found", var_name));
 }
 
-llvm::Value *InterpreterIRVisitor::codegen(const CallExpr &expr) {
+auto InterpreterIRVisitor::Codegen(const CallExpr &expr) -> llvm::Value * {
   llvm::Function *callee =
-      getFunction((const FunctionDecl &)*expr.callee->decl);
+      // GetFunction((const FunctionDecl &)*expr.callee_->decl_);
+      GetFunction(reinterpret_cast<const FunctionDecl &>(*expr.callee_->decl_));
   if (callee == nullptr) {
-    throw CodeGenException(
-        makeString("function '{}' not declared", expr.callee->decl->getName()));
+    throw CodeGenException(makeString("function '{}' not declared",
+                                      expr.callee_->decl_->GetName()));
   }
-  std::vector<llvm::Value *> argVals;
-  for (auto &arg : expr.args) {
-    llvm ::Value *argVal = arg->accept(*this);
-    if (argVal == nullptr) {
+  std::vector<llvm::Value *> arg_vals;
+  for (auto &arg : expr.args_) {
+    llvm ::Value *arg_val = arg->Accept(*this);
+    if (arg_val == nullptr) {
       throw CodeGenException("params not exists");
     }
-    argVals.push_back(argVal);
+    arg_vals.push_back(arg_val);
   }
-  return builder->CreateCall(callee, argVals);
+  return builder_->CreateCall(callee, arg_vals);
 }
 
-llvm::Value *InterpreterIRVisitor::codegen(const UnaryOperator &expr) {
-  llvm::Value *e = expr.expr->accept(*this);
+auto InterpreterIRVisitor::Codegen(const UnaryOperator &expr) -> llvm::Value * {
+  llvm::Value *e = expr.expr_->Accept(*this);
   if (e == nullptr) {
     throw CodeGenException("[UnaryOperator] the operand is null");
   }
 
   /// prepare for INC_OP and DEC_OP
-  llvm::Value *oneVal;
-  if (expr.type == "i64") {
-    oneVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1);
+  llvm::Value *one_val;
+  if (expr.type_ == "i64") {
+    one_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 1);
   } else {
-    oneVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 1);
+    one_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 1);
   }
-  llvm::Value *var;
-  if (DeclRefExpr *_left = dynamic_cast<DeclRefExpr *>(expr.expr.get())) {
-    std::string varName = _left->decl->getName();
-    var = varEnv[varName];
-    if (var == nullptr) {
-      var = getGlobalVar(varName);
+  llvm::Value *ptr;
+  if (auto *left = dynamic_cast<DeclRefExpr *>(expr.expr_.get())) {
+    std::string var_name = left->decl_->GetName();
+    ptr = var_env_[var_name];
+    if (ptr == nullptr) {
+      ptr = GetGlobalVar(var_name);
     }
   }
 
-  switch (expr.op.type) {
+  switch (expr.op_.type_) {
   case ADD:
     return e;
   case NOT:
-    return builder->CreateNot(e);
+    return builder_->CreateNot(e);
   case SUB:
-    if (expr.type == "i64") {
-      return builder->CreateNeg(e);
+    if (expr.type_ == "i64") {
+      return builder_->CreateNeg(e);
     } else {
-      return builder->CreateFNeg(e);
+      return builder_->CreateFNeg(e);
     }
   case INC_OP: {
     llvm::Value *updated;
-    if (expr.type == "i64") {
-      updated = builder->CreateNSWAdd(e, oneVal);
+    if (expr.type_ == "i64") {
+      updated = builder_->CreateNSWAdd(e, one_val);
     } else {
-      updated = builder->CreateFAdd(e, oneVal);
+      updated = builder_->CreateFAdd(e, one_val);
     }
-    builder->CreateStore(updated, var);
-    if (expr.side == POSTFIX) {
+    builder_->CreateStore(updated, ptr);
+    if (expr.side_ == POSTFIX) {
       return e;
-    } else {
-      return updated;
     }
+    return updated;
   }
   case DEC_OP: {
     llvm::Value *updated;
-    if (expr.type == "i64") {
-      updated = builder->CreateNSWSub(e, oneVal);
+    if (expr.type_ == "i64") {
+      updated = builder_->CreateNSWSub(e, one_val);
     } else {
-      updated = builder->CreateFSub(e, oneVal);
+      updated = builder_->CreateFSub(e, one_val);
     }
-    builder->CreateStore(updated, var);
-    if (expr.side == POSTFIX) {
+    builder_->CreateStore(updated, ptr);
+    if (expr.side_ == POSTFIX) {
       return e;
-    } else {
-      return updated;
     }
+    return updated;
   }
   default:
     throw CodeGenException(makeString(
-        "[UnaryOperator] unimplemented unary operator '{}'", expr.op.value));
+        "[UnaryOperator] unimplemented unary operator '{}'", expr.op_.value_));
   }
 }
 
-llvm::Value *InterpreterIRVisitor::codegen(const BinaryOperator &expr) {
-  llvm::Value *l, *r;
+auto InterpreterIRVisitor::Codegen(const BinaryOperator &expr)
+    -> llvm::Value * {
+  llvm::Value *l;
+  llvm::Value *r;
 
-  if (expr.op.type == EQUAL) {
-    if (auto *_left = dynamic_cast<DeclRefExpr *>(expr.left.get())) {
-      std::string varName = _left->decl->getName();
-      l = varEnv[varName];
+  if (expr.op_.type_ == EQUAL) {
+    if (auto *left = dynamic_cast<DeclRefExpr *>(expr.left_.get())) {
+      std::string var_name = left->decl_->GetName();
+      l = var_env_[var_name];
       if (l == nullptr) {
-        l = getGlobalVar(varName);
+        l = GetGlobalVar(var_name);
       }
     }
-    r = expr.right->accept(*this);
-    return builder->CreateStore(r, l);
+    r = expr.right_->Accept(*this);
+    return builder_->CreateStore(r, l);
   }
 
-  l = expr.left->accept(*this);
-  r = expr.right->accept(*this);
+  l = expr.left_->Accept(*this);
+  r = expr.right_->Accept(*this);
   if (l == nullptr || r == nullptr) {
     throw CodeGenException("[BinaryOperator] operands must be not null");
   }
 
   /// logical operation (no matter types)
-  TokenTy opTy = expr.op.type;
-  if (opTy == AND_OP) {
-    return builder->CreateAnd(l, r);
+  TokenTy op_ty = expr.op_.type_;
+  if (op_ty == AND_OP) {
+    return builder_->CreateAnd(l, r);
   }
-  if (opTy == OR_OP) {
-    return builder->CreateOr(l, r);
+  if (op_ty == OR_OP) {
+    return builder_->CreateOr(l, r);
   }
 
-  if (expr.type == "i64") {
-    switch (opTy) {
+  if (expr.type_ == "i64") {
+    switch (op_ty) {
     case ADD:
-      return builder->CreateNSWAdd(l, r);
+      return builder_->CreateNSWAdd(l, r);
     case SUB:
-      return builder->CreateNSWSub(l, r);
+      return builder_->CreateNSWSub(l, r);
     case MUL:
-      return builder->CreateNSWMul(l, r);
+      return builder_->CreateNSWMul(l, r);
     case DIV:
-      return builder->CreateSDiv(l, r);
+      return builder_->CreateSDiv(l, r);
     case MOD:
-      return builder->CreateSRem(l, r);
+      return builder_->CreateSRem(l, r);
     case EQ_OP:
-      return builder->CreateICmpEQ(l, r);
+      return builder_->CreateICmpEQ(l, r);
     case NE_OP:
-      return builder->CreateICmpNE(l, r);
+      return builder_->CreateICmpNE(l, r);
     case LE_OP:
-      return builder->CreateICmpSLE(l, r);
+      return builder_->CreateICmpSLE(l, r);
     case GE_OP:
-      return builder->CreateICmpSGE(l, r);
-    case LA:
-      return builder->CreateICmpSLT(l, r);
-    case RA:
-      return builder->CreateICmpSGT(l, r);
+      return builder_->CreateICmpSGE(l, r);
+    case LT:
+      return builder_->CreateICmpSLT(l, r);
+    case RT:
+      return builder_->CreateICmpSGT(l, r);
     case LEFT_OP:
-      return builder->CreateShl(l, r);
+      return builder_->CreateShl(l, r);
     case RIGHT_OP:
-      return builder->CreateAShr(l, r);
+      return builder_->CreateAShr(l, r);
     default:
       break;
     }
-  } else if (expr.type == "f64") {
-    switch (opTy) {
+  } else if (expr.type_ == "f64") {
+    switch (op_ty) {
     case ADD:
-      return builder->CreateFAdd(l, r);
+      return builder_->CreateFAdd(l, r);
     case SUB:
-      return builder->CreateFSub(l, r);
+      return builder_->CreateFSub(l, r);
     case MUL:
-      return builder->CreateFMul(l, r);
+      return builder_->CreateFMul(l, r);
     case DIV:
-      return builder->CreateFDiv(l, r);
+      return builder_->CreateFDiv(l, r);
     case MOD:
-      return builder->CreateFRem(l, r);
+      return builder_->CreateFRem(l, r);
     case EQ_OP:
-      return builder->CreateFCmpOEQ(l, r);
+      return builder_->CreateFCmpOEQ(l, r);
     case NE_OP:
-      return builder->CreateFCmpONE(l, r);
+      return builder_->CreateFCmpONE(l, r);
     case LE_OP:
-      return builder->CreateFCmpOLE(l, r);
+      return builder_->CreateFCmpOLE(l, r);
     case GE_OP:
-      return builder->CreateFCmpOGE(l, r);
-    case LA:
-      return builder->CreateFCmpOLT(l, r);
-    case RA:
-      return builder->CreateFCmpOGT(l, r);
+      return builder_->CreateFCmpOGE(l, r);
+    case LT:
+      return builder_->CreateFCmpOLT(l, r);
+    case RT:
+      return builder_->CreateFCmpOGT(l, r);
     default:
       break;
     }
@@ -335,106 +338,114 @@ llvm::Value *InterpreterIRVisitor::codegen(const BinaryOperator &expr) {
  * Decl
  */
 
-llvm::Value *InterpreterIRVisitor::codegen(const VarDecl &decl) {
-  llvm::Type *varTy =
-      (decl.type == "i64" ? builder->getInt64Ty() : builder->getDoubleTy());
+auto InterpreterIRVisitor::Codegen(const VarDecl &decl) -> llvm::Value * {
+  llvm::Type *var_ty =
+      (decl.type_ == "i64" ? builder_->getInt64Ty() : builder_->getDoubleTy());
   llvm::Constant *initializer =
-      (decl.init != nullptr ? (llvm::Constant *)decl.init->accept(*this)
-                            : nullptr);
+      // (decl.init_ != nullptr ? (llvm::Constant *)decl.init_->Accept(*this)
+      //                        : nullptr);
+      (decl.init_ != nullptr
+           ? reinterpret_cast<llvm::Constant *>(decl.init_->Accept(*this))
+           : nullptr);
 
-  if (decl.scope == GLOBAL) {
-    llvm::GlobalVariable *var = new llvm::GlobalVariable(
-        *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
-        initializer, decl.name);
-    globalVarEnv[decl.name] =
-        std::make_unique<GlobalVar>(decl.name, decl.type, 0);
-    return var;
-  } else {
-    llvm::AllocaInst *var = builder->CreateAlloca(varTy, nullptr);
-    if (decl.init != nullptr) {
-      builder->CreateStore(initializer, var);
-    }
-    varEnv[decl.name] = var;
+  if (decl.scope_ == GLOBAL) {
+    auto *var = new llvm::GlobalVariable(*module_, var_ty, false,
+                                         llvm::GlobalVariable::ExternalLinkage,
+                                         initializer, decl.name_);
+    global_var_env_[decl.name_] =
+        std::make_unique<GlobalVar>(decl.name_, decl.type_, 0);
     return var;
   }
+
+  llvm::AllocaInst *ptr = builder_->CreateAlloca(var_ty, nullptr);
+  if (decl.init_ != nullptr) {
+    builder_->CreateStore(initializer, ptr);
+  }
+  var_env_[decl.name_] = ptr;
+  return ptr;
 }
 
 /**
  * Top
  */
 
-void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
-  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(decl.get())) {
+void InterpreterIRVisitor::HandleDeclaration(std::unique_ptr<Decl> &decl) {
+  if (auto *var_decl = dynamic_cast<VarDecl *>(decl.get())) {
     /// for variable declaration, all see as global variable
-    llvm::Type *varTy = (varDecl->getType() == "i64" ? builder->getInt64Ty()
-                                                     : builder->getDoubleTy());
-    llvm::Value *zeroVal;
-    if (varDecl->getType() == "i64") {
-      zeroVal = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0);
+    llvm::Type *var_ty =
+        (var_decl->GetType() == "i64" ? builder_->getInt64Ty()
+                                      : builder_->getDoubleTy());
+    llvm::Value *zero_val;
+    if (var_decl->GetType() == "i64") {
+      zero_val = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context_), 0);
     } else {
-      zeroVal = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context), 0);
+      zero_val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*context_), 0);
     }
     llvm::Constant *initializer =
-        (varDecl->init != nullptr && varDecl->init->isConstant()
-             ? (llvm::Constant *)varDecl->init->accept(*this)
-             : (llvm::Constant *)zeroVal);
+        // (var_decl->init_ != nullptr && var_decl->init_->IsConstant()
+        //      ? (llvm::Constant *)var_decl->init_->Accept(*this)
+        //      : (llvm::Constant *)zero_val);
+        (var_decl->init_ != nullptr && var_decl->init_->IsConstant()
+             ? reinterpret_cast<llvm::Constant *>(
+                   var_decl->init_->Accept(*this))
+             : reinterpret_cast<llvm::Constant *>(zero_val));
 
     /// variable definition
-    llvm::GlobalVariable *var = new llvm::GlobalVariable(
-        *module, varTy, false, llvm::GlobalVariable::ExternalLinkage,
-        initializer, varDecl->getName());
-    globalVarEnv[varDecl->getName()] =
-        std::make_unique<GlobalVar>(varDecl->getName(), varDecl->getType(), 0);
+    auto *var = new llvm::GlobalVariable(*module_, var_ty, false,
+                                         llvm::GlobalVariable::ExternalLinkage,
+                                         initializer, var_decl->GetName());
+    global_var_env_[var_decl->GetName()] = std::make_unique<GlobalVar>(
+        var_decl->GetName(), var_decl->GetType(), 0);
 
-    ExitOnErr(JIT->addModule(
-        llvm::orc::ThreadSafeModule(std::move(module), std::move(context))));
-    initialize();
-    resetReferGlobalVar();
+    exit_on_err_(jit_->AddModule(
+        llvm::orc::ThreadSafeModule(std::move(module_), std::move(context_))));
+    Initialize();
+    ResetReferGlobalVar();
 
     /// assign in function
-    if (varDecl->init != nullptr && !varDecl->init->isConstant()) {
-      auto declRef = std::make_unique<DeclRefExpr>(
-          std::make_unique<VarDecl>(varDecl->getName(), varDecl->getType()));
-      auto assignExpr = std::make_unique<BinaryOperator>(
-          Token(EQUAL, "="), std::move(declRef), std::move(varDecl->init),
-          varDecl->getType());
-      auto stmt = std::make_unique<ExprStmt>(std::move(assignExpr));
+    if (var_decl->init_ != nullptr && !var_decl->init_->IsConstant()) {
+      auto decl_ref = std::make_unique<DeclRefExpr>(
+          std::make_unique<VarDecl>(var_decl->GetName(), var_decl->GetType()));
+      auto assign_expr = std::make_unique<BinaryOperator>(
+          Token(EQUAL, "="), std::move(decl_ref), std::move(var_decl->init_),
+          var_decl->GetType());
+      auto stmt = std::make_unique<ExprStmt>(std::move(assign_expr));
       auto proto = std::make_unique<FunctionProto>(
           "__wrapped__var_init__", "void",
           std::vector<std::unique_ptr<ParmVarDecl>>{}, 0);
-      auto funcDecl =
+      auto func_decl =
           std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
-      funcDecl->accept(*this);
+      func_decl->Accept(*this);
 
-      auto resTracker = JIT->getMainJITDylib().createResourceTracker();
+      auto res_tracker = jit_->GetMainJITDylib().createResourceTracker();
       auto tsm =
-          llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
-      ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
-      initialize();
-      resetReferGlobalVar();
+          llvm::orc::ThreadSafeModule(std::move(module_), std::move(context_));
+      exit_on_err_(jit_->AddModule(std::move(tsm), res_tracker));
+      Initialize();
+      ResetReferGlobalVar();
 
-      auto exprSym = ExitOnErr(JIT->lookup("__wrapped__var_init__"));
-      if (funcDecl->getType() == "void") {
-        void (*functionPtr)() = (void (*)())(intptr_t)exprSym.getAddress();
-        functionPtr();
+      auto expr_sym = exit_on_err_(jit_->Lookup("__wrapped__var_init__"));
+      if (func_decl->GetType() == "void") {
+        auto function_ptr =
+            (void (*)()) static_cast<intptr_t>(expr_sym.getAddress());
+        function_ptr();
       } else {
         throw CodeGenException(
-            makeString("not supported type '{}'", funcDecl->getType()));
+            makeString("not supported type '{}'", func_decl->GetType()));
       }
-      ExitOnErr(resTracker->remove());
+      exit_on_err_(res_tracker->remove());
     }
-  } else if (FunctionDecl *funcDecl =
-                 dynamic_cast<FunctionDecl *>(decl.get())) {
+  } else if (auto *func_decl = dynamic_cast<FunctionDecl *>(decl.get())) {
     /// for function definition
-    if (funcDecl->getKind() != DECLARATION) {
-      funcDecl->accept(*this);
-      functionEnv[funcDecl->getName()] = std::move(funcDecl->proto);
-      if (funcDecl->getKind() == DEFINITION) {
-        ExitOnErr(JIT->addModule(llvm::orc::ThreadSafeModule(
-            std::move(module), std::move(context))));
-        initialize();
-        resetReferGlobalVar();
-        resetReferFunctionProto();
+    if (func_decl->GetKind() != DECLARATION) {
+      func_decl->Accept(*this);
+      function_env_[func_decl->GetName()] = std::move(func_decl->proto_);
+      if (func_decl->GetKind() == DEFINITION) {
+        exit_on_err_(jit_->AddModule(llvm::orc::ThreadSafeModule(
+            std::move(module_), std::move(context_))));
+        Initialize();
+        ResetReferGlobalVar();
+        ResetReferFunctionProto();
       }
     }
   } else {
@@ -442,65 +453,68 @@ void InterpreterIRVisitor::handleDeclaration(std::unique_ptr<Decl> &decl) {
   }
 }
 
-void InterpreterIRVisitor::handleStatement(std::unique_ptr<Stmt> &stmt) {
+void InterpreterIRVisitor::HandleStatement(std::unique_ptr<Stmt> &stmt) {
   auto proto = std::make_unique<FunctionProto>(
       "__wrapped__stmt__", "void", std::vector<std::unique_ptr<ParmVarDecl>>{},
       0);
-  auto funcDecl =
+  auto func_decl =
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
-  if (funcDecl->accept(*this)) {
-    auto resTracker = JIT->getMainJITDylib().createResourceTracker();
+  if (func_decl->Accept(*this) != nullptr) {
+    auto res_tracker = jit_->GetMainJITDylib().createResourceTracker();
     auto tsm =
-        llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
-    ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
-    initialize();
-    resetReferGlobalVar();
+        llvm::orc::ThreadSafeModule(std::move(module_), std::move(context_));
+    exit_on_err_(jit_->AddModule(std::move(tsm), res_tracker));
+    Initialize();
+    ResetReferGlobalVar();
     // resetReferFunctionProto();
 
-    auto exprSym = ExitOnErr(JIT->lookup("__wrapped__stmt__"));
-    if (funcDecl->getType() == "void") {
-      void (*functionPtr)() = (void (*)())(intptr_t)exprSym.getAddress();
-      functionPtr();
+    auto expr_sym = exit_on_err_(jit_->Lookup("__wrapped__stmt__"));
+    if (func_decl->GetType() == "void") {
+      auto function_ptr =
+          (void (*)()) static_cast<intptr_t>(expr_sym.getAddress());
+      function_ptr();
     } else {
       throw CodeGenException(
-          makeString("not supported type '{}'", funcDecl->getType()));
+          makeString("not supported type '{}'", func_decl->GetType()));
     }
-    ExitOnErr(resTracker->remove());
+    exit_on_err_(res_tracker->remove());
   } else {
     throw CodeGenException("generate anon function failed");
   }
 }
 
-void InterpreterIRVisitor::handleExpression(std::unique_ptr<Expr> &expr) {
-  std::string type = expr->getType();
+void InterpreterIRVisitor::HandleExpression(std::unique_ptr<Expr> &expr) {
+  std::string type = expr->GetType();
   auto stmt = std::make_unique<ReturnStmt>(std::move(expr));
   auto proto = std::make_unique<FunctionProto>(
       "__wrapped__expr__", std::move(type),
       std::vector<std::unique_ptr<ParmVarDecl>>{}, 0);
-  auto funcDecl =
+  auto func_decl =
       std::make_unique<FunctionDecl>(std::move(proto), std::move(stmt));
 
-  if (funcDecl->accept(*this)) {
-    auto resTracker = JIT->getMainJITDylib().createResourceTracker();
+  if (func_decl->Accept(*this) != nullptr) {
+    auto res_tracker = jit_->GetMainJITDylib().createResourceTracker();
     auto tsm =
-        llvm::orc::ThreadSafeModule(std::move(module), std::move(context));
-    ExitOnErr(JIT->addModule(std::move(tsm), resTracker));
-    initialize();
-    resetReferGlobalVar();
-    resetReferFunctionProto();
+        llvm::orc::ThreadSafeModule(std::move(module_), std::move(context_));
+    exit_on_err_(jit_->AddModule(std::move(tsm), res_tracker));
+    Initialize();
+    ResetReferGlobalVar();
+    ResetReferFunctionProto();
 
-    auto exprSym = ExitOnErr(JIT->lookup("__wrapped__expr__"));
-    if (funcDecl->getType() == "i64") {
-      int64_t (*functionPtr)() = (int64_t(*)())(intptr_t)exprSym.getAddress();
-      std::cout << makeString("{}\n", functionPtr());
-    } else if (funcDecl->getType() == "f64") {
-      double (*functionPtr)() = (double (*)())(intptr_t)exprSym.getAddress();
-      std::cout << makeString("{}\n", functionPtr());
+    auto expr_sym = exit_on_err_(jit_->Lookup("__wrapped__expr__"));
+    if (func_decl->GetType() == "i64") {
+      auto function_ptr =
+          (int64_t(*)()) static_cast<intptr_t>(expr_sym.getAddress());
+      std::cout << makeString("{}\n", function_ptr());
+    } else if (func_decl->GetType() == "f64") {
+      auto function_ptr =
+          (double (*)()) static_cast<intptr_t>(expr_sym.getAddress());
+      std::cout << makeString("{}\n", function_ptr());
     } else {
       throw CodeGenException(
-          makeString("not supported type '{}'", funcDecl->getType()));
+          makeString("not supported type '{}'", func_decl->GetType()));
     }
-    ExitOnErr(resTracker->remove());
+    exit_on_err_(res_tracker->remove());
   } else {
     throw CodeGenException("generate anon function failed");
   }

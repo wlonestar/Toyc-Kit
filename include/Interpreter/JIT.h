@@ -25,42 +25,42 @@ namespace toyc {
 
 class ToycJIT {
 private:
-  std::unique_ptr<llvm::orc::ExecutionSession> executionSession;
-  llvm::DataLayout dataLayout;
-  llvm::orc::MangleAndInterner mangle;
-  llvm::orc::RTDyldObjectLinkingLayer objectLayer;
-  llvm::orc::IRCompileLayer compileLayer;
-  llvm::orc::JITDylib &mainlib;
+  std::unique_ptr<llvm::orc::ExecutionSession> execution_session_;
+  llvm::DataLayout data_layout_;
+  llvm::orc::MangleAndInterner mangle_;
+  llvm::orc::RTDyldObjectLinkingLayer object_layer_;
+  llvm::orc::IRCompileLayer compile_layer_;
+  llvm::orc::JITDylib &mainlib_;
 
 public:
   ToycJIT(std::unique_ptr<llvm::orc::ExecutionSession> _es,
           llvm::orc::JITTargetMachineBuilder _jtmb,
-          llvm::DataLayout _dataLayout)
-      : executionSession(std::move(_es)), dataLayout(std::move(_dataLayout)),
-        mangle(*this->executionSession, this->dataLayout),
-        objectLayer(
-            *this->executionSession,
+          const llvm::DataLayout &_dataLayout)
+      : execution_session_(std::move(_es)), data_layout_(_dataLayout),
+        mangle_(*this->execution_session_, this->data_layout_),
+        object_layer_(
+            *this->execution_session_,
             []() { return std::make_unique<llvm::SectionMemoryManager>(); }),
-        compileLayer(*this->executionSession, objectLayer,
-                     std::make_unique<llvm::orc::ConcurrentIRCompiler>(
-                         std::move(_jtmb))),
-        mainlib(this->executionSession->createBareJITDylib("<main>")) {
-    mainlib.addGenerator(llvm::cantFail(
+        compile_layer_(*this->execution_session_, object_layer_,
+                       std::make_unique<llvm::orc::ConcurrentIRCompiler>(
+                           std::move(_jtmb))),
+        mainlib_(this->execution_session_->createBareJITDylib("<main>")) {
+    mainlib_.addGenerator(llvm::cantFail(
         llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
-            dataLayout.getGlobalPrefix())));
+            data_layout_.getGlobalPrefix())));
     if (_jtmb.getTargetTriple().isOSBinFormatCOFF()) {
-      objectLayer.setOverrideObjectFlagsWithResponsibilityFlags(true);
-      objectLayer.setAutoClaimResponsibilityForObjectSymbols(true);
+      object_layer_.setOverrideObjectFlagsWithResponsibilityFlags(true);
+      object_layer_.setAutoClaimResponsibilityForObjectSymbols(true);
     }
   }
 
   ~ToycJIT() {
-    if (llvm::Error err = executionSession->endSession()) {
-      executionSession->reportError(std::move(err));
+    if (llvm::Error err = execution_session_->endSession()) {
+      execution_session_->reportError(std::move(err));
     }
   }
 
-  static llvm::Expected<std::unique_ptr<ToycJIT>> create() {
+  static auto Create() -> llvm::Expected<std::unique_ptr<ToycJIT>> {
     auto epc = llvm::orc::SelfExecutorProcessControl::Create();
     if (!epc) {
       return epc.takeError();
@@ -79,20 +79,23 @@ public:
                                      std::move(*dl));
   }
 
-  const llvm::DataLayout &getDataLayout() const { return dataLayout; }
-
-  llvm::orc::JITDylib &getMainJITDylib() { return mainlib; }
-
-  llvm::Error addModule(llvm::orc::ThreadSafeModule tsm,
-                        llvm::orc::ResourceTrackerSP rt = nullptr) {
-    if (!rt) {
-      rt = mainlib.getDefaultResourceTracker();
-    }
-    return compileLayer.add(rt, std::move(tsm));
+  auto GetDataLayout() const -> const llvm::DataLayout & {
+    return data_layout_;
   }
 
-  llvm::Expected<llvm::JITEvaluatedSymbol> lookup(std::string name) {
-    return executionSession->lookup({&mainlib}, mangle(name));
+  auto GetMainJITDylib() -> llvm::orc::JITDylib & { return mainlib_; }
+
+  auto AddModule(llvm::orc::ThreadSafeModule tsm,
+                 llvm::orc::ResourceTrackerSP rt = nullptr) -> llvm::Error {
+    if (!rt) {
+      rt = mainlib_.getDefaultResourceTracker();
+    }
+    return compile_layer_.add(rt, std::move(tsm));
+  }
+
+  auto Lookup(const std::string &name)
+      -> llvm::Expected<llvm::JITEvaluatedSymbol> {
+    return execution_session_->lookup({&mainlib_}, mangle_(name));
   }
 };
 

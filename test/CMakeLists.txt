@@ -1,11 +1,5 @@
 enable_testing()
 
-add_executable(ExpectedTest ExpectedTest.cpp)
-target_link_libraries(ExpectedTest
-  GTest::gtest_main
-  fmt
-)
-
 # copy test files into build dir
 file(COPY ${CMAKE_SOURCE_DIR}/test/Unit/Preprocessor DESTINATION ${CMAKE_BINARY_DIR}/test/Unit)
 file(COPY ${CMAKE_SOURCE_DIR}/test/Unit/Parser DESTINATION ${CMAKE_BINARY_DIR}/test/Unit)
@@ -34,6 +28,5 @@ target_link_libraries(ParserTest
 )
 
 include(GoogleTest)
-gtest_discover_tests(ExpectedTest)
 gtest_discover_tests(PreprocessorTest)
 gtest_discover_tests(ParserTest)

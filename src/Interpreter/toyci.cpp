@@ -10,16 +10,13 @@
 #include <iterator>
 #include <vector>
 
-using namespace toyc;
-using namespace std;
-
-int main(int argc, const char **argv) {
+auto main(int argc, const char **argv) -> int {
   if (argc < 2) {
     std::cerr << makeString("Usage: {} <src>\n", argv[0]);
     exit(EXIT_FAILURE);
   }
 
-  Interpreter interpreter;
+  toyc::Interpreter interpreter;
   std::string input;
   std::string src(argv[1]);
   if (!src.ends_with(toyc::script_ext)) {
@@ -27,7 +24,7 @@ int main(int argc, const char **argv) {
     exit(EXIT_FAILURE);
   }
 
-  read_from(src, input);
-  interpreter.parseAndExecute(input);
+  toyc::ReadFrom(src, input);
+  interpreter.ParseAndExecute(input);
   return 0;
 }

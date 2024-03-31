@@ -24,13 +24,13 @@ public:
   using ParseResult = std::variant<DeclPtr, StmtPtr, ExprPtr>;
 
 private:
-  ExprOrStmt parseExprOrExprStmt();
+  auto ParseExprOrExprStmt() -> ExprOrStmt;
 
-  virtual DeclPtr parseVariableDeclaration(std::string type, std::string name,
-                                           VarScope scope) override;
+  auto ParseVariableDeclaration(std::string type, std::string name,
+                                VarScope scope) -> DeclPtr override;
 
 public:
-  InterpreterParser() : BaseParser() {}
+  InterpreterParser() = default;
 
 public:
   /**
@@ -41,7 +41,7 @@ public:
    *
    * @return parse_t - A variant of three types
    */
-  ParseResult parse();
+  auto Parse() -> ParseResult;
 };
 
 } // namespace toyc

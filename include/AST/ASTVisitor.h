@@ -13,26 +13,26 @@ namespace toyc {
 
 class ASTVisitor {
 public:
-  virtual llvm::Value *codegen(const IntegerLiteral &expr) = 0;
-  virtual llvm::Value *codegen(const FloatingLiteral &expr) = 0;
-  virtual llvm::Value *codegen(const DeclRefExpr &expr) = 0;
-  virtual llvm::Value *codegen(const ImplicitCastExpr &expr) = 0;
-  virtual llvm::Value *codegen(const ParenExpr &expr) = 0;
-  virtual llvm::Value *codegen(const CallExpr &expr) = 0;
-  virtual llvm::Value *codegen(const UnaryOperator &expr) = 0;
-  virtual llvm::Value *codegen(const BinaryOperator &expr) = 0;
+  virtual auto Codegen(const IntegerLiteral &expr) -> llvm::Value * = 0;
+  virtual auto Codegen(const FloatingLiteral &expr) -> llvm::Value * = 0;
+  virtual auto Codegen(const DeclRefExpr &expr) -> llvm::Value * = 0;
+  virtual auto Codegen(const ImplicitCastExpr &expr) -> llvm::Value * = 0;
+  virtual auto Codegen(const ParenExpr &expr) -> llvm::Value * = 0;
+  virtual auto Codegen(const CallExpr &expr) -> llvm::Value * = 0;
+  virtual auto Codegen(const UnaryOperator &expr) -> llvm::Value * = 0;
+  virtual auto Codegen(const BinaryOperator &expr) -> llvm::Value * = 0;
 
-  virtual llvm::Value *codegen(const CompoundStmt &stmt) = 0;
-  virtual llvm::Value *codegen(const ExprStmt &stmt) = 0;
-  virtual llvm::Value *codegen(const DeclStmt &stmt) = 0;
-  virtual llvm::Value *codegen(const IfStmt &stmt) = 0;
-  virtual llvm::Value *codegen(const WhileStmt &stmt) = 0;
-  virtual llvm::Value *codegen(const ForStmt &stmt) = 0;
-  virtual llvm::Value *codegen(const ReturnStmt &stmt) = 0;
+  virtual auto Codegen(const CompoundStmt &stmt) -> llvm::Value * = 0;
+  virtual auto Codegen(const ExprStmt &stmt) -> llvm::Value * = 0;
+  virtual auto Codegen(const DeclStmt &stmt) -> llvm::Value * = 0;
+  virtual auto Codegen(const IfStmt &stmt) -> llvm::Value * = 0;
+  virtual auto Codegen(const WhileStmt &stmt) -> llvm::Value * = 0;
+  virtual auto Codegen(const ForStmt &stmt) -> llvm::Value * = 0;
+  virtual auto Codegen(const ReturnStmt &stmt) -> llvm::Value * = 0;
 
-  virtual llvm::Value *codegen(const VarDecl &decl) = 0;
-  virtual llvm::Type *codegen(const ParmVarDecl &decl) = 0;
-  virtual llvm::Function *codegen(const FunctionDecl &decl) = 0;
+  virtual auto Codegen(const VarDecl &decl) -> llvm::Value * = 0;
+  virtual auto Codegen(const ParmVarDecl &decl) -> llvm::Type * = 0;
+  virtual auto Codegen(const FunctionDecl &decl) -> llvm::Function * = 0;
 };
 
 } // namespace toyc

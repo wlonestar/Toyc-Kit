@@ -94,15 +94,15 @@ enum TokenTy {
   EQ_OP,        // ==
   NE_OP,        // !=
   SEMI,         // ;
-  LC,           // { | <%
-  RC,           // } | %>
+  LC,           // {
+  RC,           // }
   COMMA,        // ,
   COLON,        // :
   EQUAL,        // =
   LP,           // (
   RP,           // )
-  LB,           // [ | <:
-  RB,           // ] | :>
+  LB,           // [
+  RB,           // ]
   DOT,          // .
   AND,          // &
   NOT,          // !
@@ -112,8 +112,8 @@ enum TokenTy {
   MUL,          // *
   DIV,          // /
   MOD,          // %
-  LA,           // <
-  RA,           // >
+  LT,           // <
+  RT,           // >
   XOR,          // ^
   OR,           // |
   QUE,          // ?
@@ -130,7 +130,7 @@ enum TokenTy {
  *
  * @notice: Do not change the order of types
  */
-static std::vector<std::string> TokenTyTable = {
+static std::vector<std::string> token_ty_table = {
     // keywords
     _stringify_(AUTO),          // auto
     _stringify_(BREAK),         // break
@@ -243,7 +243,7 @@ static std::vector<std::string> TokenTyTable = {
  * @brief Mapping from string to enumeration using map
  *
  */
-static std::map<std::string, TokenTy> KeywordTable = {
+static std::map<std::string, TokenTy> keyword_table = {
     {"auto", AUTO},                    // auto
     {"break", BREAK},                  // break
     {"case", CASE},                    // case
@@ -295,17 +295,18 @@ static std::map<std::string, TokenTy> KeywordTable = {
 
 class Token {
 public:
-  TokenTy type;
-  std::string value;
-  size_t line, col;
+  TokenTy type_;
+  std::string value_;
+  size_t line_;
+  size_t col_;
 
-  Token() : type(EMPTY), value(""), line(1), col(0) {}
-  Token(TokenTy _type, std::string _value, size_t _line = 1, size_t _col = 0)
-      : type(_type), value(_value), line(_line), col(_col) {}
+  Token() : type_(EMPTY), line_(1), col_(0) {}
+  Token(TokenTy type, std::string value, size_t line = 1, size_t col = 0)
+      : type_(type), value_(std::move(value)), line_(line), col_(col) {}
 
-  std::string toString() const {
-    return makeString("token({}:{} {} -> '{}')", line, col, TokenTyTable[type],
-                value);
+  auto ToString() const -> std::string {
+    return makeString("token({}:{} {} -> '{}')", line_, col_,
+                      token_ty_table[type_], value_);
   }
 };
 

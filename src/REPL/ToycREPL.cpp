@@ -11,27 +11,24 @@
 #include <iterator>
 #include <vector>
 
-using namespace toyc;
-using namespace std;
-
-int main(int argc, const char **argv) {
-  string input;
-  Interpreter interpreter;
-  std::string filePath = std::string(std::getenv("HOME")) + "/" + HISTORY_FILE;
-  LineEditor editor(PROMPT, filePath);
-  string line;
+auto main(int argc, const char **argv) -> int {
+  std::string input;
+  toyc::Interpreter interpreter;
+  std::string file_path = std::string(std::getenv("HOME")) + "/" + HISTORY_FILE;
+  toyc::LineEditor editor(toyc::prompt, file_path);
+  std::string line;
   while (true) {
     /// line buffer
-    line = editor.readLine();
-    trim(line);
+    line = editor.ReadLine();
+    toyc::Trim(line);
 
     /// only compile non-empty string
-    if (line.size() > 0) {
-      editor.addHistory(line);
+    if (!line.empty()) {
+      editor.AddHistory(line);
       /// deal with options (now only support quit)
       if (line == R"(.exit)") {
         /// exit
-        cout << "bye~" << endl;
+        std::cout << "bye~\n";
         break;
       }
       /// normal statements
@@ -39,18 +36,17 @@ int main(int argc, const char **argv) {
         /// multiple input
         line.pop_back();
         input += line;
-        editor.setPrompt(MULTI_PROMPT);
+        editor.SetPrompt(toyc::multi_prompt);
         continue;
-      } else {
-        /// single input
-        editor.setPrompt(PROMPT);
-        input += line;
-        interpreter.parseAndExecute(input);
-        editor.writeHistory();
-
-        /// clear buffer
-        input = "";
       }
+      /// single input
+      editor.SetPrompt(toyc::prompt);
+      input += line;
+      interpreter.ParseAndExecute(input);
+      editor.WriteHistory();
+
+      /// clear buffer
+      input = "";
     }
   }
   return 0;

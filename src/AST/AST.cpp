@@ -13,90 +13,94 @@ namespace toyc {
  * Expr
  */
 
-llvm::Value *IntegerLiteral::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto IntegerLiteral::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *FloatingLiteral::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto FloatingLiteral::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *CharacterLiteral::accept(ASTVisitor &visitor) { return nullptr; }
-
-llvm::Value *StringLiteral::accept(ASTVisitor &visitor) { return nullptr; }
-
-std::string DeclRefExpr::getType() const { return decl->getType(); }
-
-llvm::Value *DeclRefExpr::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto CharacterLiteral::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return nullptr;
 }
 
-llvm::Value *ImplicitCastExpr::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto StringLiteral::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return nullptr;
 }
 
-llvm::Value *ParenExpr::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto DeclRefExpr::GetType() const -> std::string { return decl_->GetType(); }
+
+auto DeclRefExpr::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *CallExpr::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto ImplicitCastExpr::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *UnaryOperator::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto ParenExpr::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *BinaryOperator::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto CallExpr::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
+}
+
+auto UnaryOperator::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
+}
+
+auto BinaryOperator::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
 /**
  * Stmt
  */
 
-llvm::Value *CompoundStmt::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto CompoundStmt::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *ExprStmt::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto ExprStmt::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *DeclStmt::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto DeclStmt::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *IfStmt::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto IfStmt::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *WhileStmt::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto WhileStmt::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *ForStmt::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto ForStmt::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Value *ReturnStmt::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto ReturnStmt::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
 /**
  * Decl
  */
 
-llvm::Value *VarDecl::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto VarDecl::Accept(ASTVisitor &visitor) -> llvm::Value * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Type *ParmVarDecl::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto ParmVarDecl::Accept(ASTVisitor &visitor) -> llvm::Type * {
+  return visitor.Codegen(*this);
 }
 
-llvm::Function *FunctionDecl::accept(ASTVisitor &visitor) {
-  return visitor.codegen(*this);
+auto FunctionDecl::Accept(ASTVisitor &visitor) -> llvm::Function * {
+  return visitor.Codegen(*this);
 }
 
 } // namespace toyc
