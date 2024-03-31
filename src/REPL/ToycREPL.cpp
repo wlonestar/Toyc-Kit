@@ -5,6 +5,7 @@
 #include <REPL/LineEditor.h>
 
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -16,7 +17,8 @@ using namespace std;
 int main(int argc, const char **argv) {
   string input;
   Interpreter interpreter;
-  LineEditor editor(PROMPT);
+  std::string filePath = std::string(std::getenv("HOME")) + "/" + HISTORY_FILE;
+  LineEditor editor(PROMPT, filePath);
   string line;
   while (true) {
     /// line buffer
@@ -44,6 +46,7 @@ int main(int argc, const char **argv) {
         editor.setPrompt(PROMPT);
         input += line;
         interpreter.parseAndExecute(input);
+        editor.writeHistory();
 
         /// clear buffer
         input = "";

@@ -9,6 +9,8 @@
 
 namespace toyc {
 
+#define HISTORY_FILE ".toyc-repl"
+
 static std::string PROMPT = "toyc> ";
 static std::string MULTI_PROMPT = "..... ";
 static std::string ext = ".toyc";

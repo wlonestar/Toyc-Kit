@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <fmt/format.h>
 #include <fstream>
 #include <iostream>
@@ -24,8 +25,8 @@ namespace toyc {
  */
 #ifndef NDEBUG
 #define debug(__fmt__, ...)                                                    \
-  std::cerr << makeString("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n", __FILE__,  \
-                    __LINE__, ##__VA_ARGS__)
+  std::cerr << makeString("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n",      \
+                          __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug(__fmt__, ...) ((void)0)
 #endif
@@ -89,6 +90,15 @@ static void trim(std::string &str) {
   if (end != std::string::npos) {
     str.erase(end + 1);
   }
+}
+
+static bool createIfNotExist(std::string filePath) {
+  std::ofstream file(filePath, std::ios::out | std::ios::app);
+  if (!file.is_open()) {
+    return false;
+  }
+  file.close();
+  return true;
 }
 
 } // namespace toyc
