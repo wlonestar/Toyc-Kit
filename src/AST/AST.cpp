@@ -21,10 +21,6 @@ auto FloatingLiteral::Accept(ASTVisitor &visitor) -> llvm::Value * {
   return visitor.Codegen(*this);
 }
 
-auto CharacterLiteral::Accept(ASTVisitor &visitor) -> llvm::Value * {
-  return nullptr;
-}
-
 auto StringLiteral::Accept(ASTVisitor &visitor) -> llvm::Value * {
   return nullptr;
 }

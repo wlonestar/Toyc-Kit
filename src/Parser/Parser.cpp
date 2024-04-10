@@ -1,10 +1,6 @@
 //! BaseParser implementation
 
-#include "Lexer/Lexer.h"
-#include <AST/AST.h>
-#include <Lexer/Token.h>
 #include <Parser/Parser.h>
-#include <Util.h>
 
 #include <memory>
 #include <tuple>
@@ -27,28 +23,21 @@ auto BaseParser::Advance() -> Token {
       lexer_.Advance();
       continue;
     }
+    // update token loc after moving forward
+    loc_ = TokLoc(current_.line_, current_.col_);
     if (current_.type_ != ERROR) {
       break;
     }
-    ThrowParserException("error at parse");
+    throw ParserException(loc_, "error at parse");
   }
   return prev_;
 }
 
-auto BaseParser::Consume(TokenTy type, std::string &message) -> Token {
+auto BaseParser::Consume(TokenTy type, std::string message) -> Token {
   if (current_.type_ == type) {
     return Advance();
   }
-  ThrowParserException(message);
-  return {ERROR, ""};
-}
-
-auto BaseParser::Consume(TokenTy type, std::string &&message) -> Token {
-  if (current_.type_ == type) {
-    return Advance();
-  }
-  ThrowParserException(message);
-  return {ERROR, ""};
+  throw ParserException(loc_, std::move(message));
 }
 
 auto BaseParser::Check(std::initializer_list<TokenTy> types) -> bool {
@@ -71,13 +60,6 @@ auto BaseParser::Check(TokenTy type) -> bool {
 }
 
 auto BaseParser::Match(std::initializer_list<TokenTy> types) -> bool {
-  // for (TokenTy type : types) {
-  //   if (Check(type)) {
-  //     Advance();
-  //     return true;
-  //   }
-  // }
-  // return false;
   return std::ranges::any_of(types.begin(), types.end(), [&](auto type) {
     if (Check(type)) {
       Advance();
@@ -95,52 +77,6 @@ auto BaseParser::Match(TokenTy type) -> bool {
   return false;
 }
 
-auto BaseParser::ParseIntegerSuffix(std::string &value, int base) -> int64_t {
-  try {
-    if (value.ends_with("llu") || value.ends_with("llU") ||
-        value.ends_with("LLu") || value.ends_with("LLU") ||
-        value.ends_with("ull") || value.ends_with("uLL") ||
-        value.ends_with("Ull") || value.ends_with("ULL")) {
-      return stoull(value, nullptr, base);
-    }
-    if (value.ends_with("ul") || value.ends_with("uL") ||
-        value.ends_with("Ul") || value.ends_with("UL") ||
-        value.ends_with("lu") || value.ends_with("lU") ||
-        value.ends_with("Lu") || value.ends_with("LU")) {
-      return stoul(value, nullptr, base);
-    }
-    if (value.ends_with("ll") || value.ends_with("LL")) {
-      return stoll(value, nullptr, base);
-    }
-    if (value.ends_with("l") || value.ends_with("L")) {
-      return stol(value, nullptr, base);
-    }
-    if (value.ends_with("u") || value.ends_with("U")) {
-      return static_cast<unsigned int>(stoul(value, nullptr, base));
-    }
-    return stoi(value, nullptr, base);
-  } catch (std::out_of_range e) {
-    ThrowParserException(
-        "integer literal is too large to be represented in integer type");
-    return -1;
-  }
-}
-
-auto BaseParser::ParseFloatingSuffix(std::string &value, int base) -> double {
-  try {
-    if (value.ends_with("f") || value.ends_with("F")) {
-      return std::stof(value, nullptr);
-    }
-    if (value.ends_with("l") || value.ends_with("L")) {
-      return stold(value, nullptr);
-    }
-    return stod(value, nullptr);
-  } catch (std::out_of_range e) {
-    ThrowParserException("magnitude of floating-point constant too large");
-    return -0;
-  }
-}
-
 /**
  * parse Expr
  */
@@ -148,26 +84,21 @@ auto BaseParser::ParseFloatingSuffix(std::string &value, int base) -> double {
 auto BaseParser::ParseIntegerLiteral() -> ExprPtr {
   std::string value_str = Previous().value_;
   int64_t value;
+  int base = 10;
   if (actions_.CheckHexadecimal(value_str)) {
     value_str.erase(0, 2);
-    value = ParseIntegerSuffix(value_str, 16);
+    base = 16;
   } else if (actions_.CheckOctal(value_str)) {
     value_str.erase(0, 1);
-    value = ParseIntegerSuffix(value_str, 8);
-  } else if (value_str.starts_with("'")) {
-    value_str.erase(0, 1); // remove leading '
-    value_str.pop_back();  // remove suffix '
-    int value = value_str[0];
-    return std::make_unique<CharacterLiteral>(value);
-  } else {
-    value = ParseIntegerSuffix(value_str, 10);
+    base = 8;
   }
+  value = std::stoll(value_str, nullptr, base);
   return std::make_unique<IntegerLiteral>(value, "i64");
 }
 
 auto BaseParser::ParseFloatingLiteral() -> ExprPtr {
   std::string value_str = Previous().value_;
-  double value = ParseFloatingSuffix(value_str, 10);
+  double value = std::stold(value_str, nullptr);
   return std::make_unique<FloatingLiteral>(value, "f64");
 }
 
@@ -195,7 +126,8 @@ auto BaseParser::ParsePrimaryExpression() -> ExprPtr {
         type = global_var_table_[name];
       }
       if (type.empty()) {
-        ThrowParserException(makeString("identifier '{}' not found", name));
+        throw ParserException(loc_,
+                              makeString("identifier '{}' not found", name));
       }
       return std::make_unique<DeclRefExpr>(
           std::make_unique<VarDecl>(std::move(name), std::move(type)));
@@ -205,7 +137,8 @@ auto BaseParser::ParsePrimaryExpression() -> ExprPtr {
     auto fp = func_table_[name];
     type = fp.ret_type_;
     if (type.empty()) {
-      ThrowParserException(
+      throw ParserException(
+          loc_,
           makeString("implicit declaration of function '{}' is invalid", name));
     }
 
@@ -227,8 +160,7 @@ auto BaseParser::ParsePrimaryExpression() -> ExprPtr {
     expr = std::make_unique<ParenExpr>(std::move(expr));
     return expr;
   }
-  ThrowParserException("parse primary expression error");
-  return nullptr;
+  throw ParserException(loc_, "parse primary expression error");
 }
 
 auto BaseParser::ParsePostfixExpression() -> ExprPtr {
@@ -239,14 +171,15 @@ auto BaseParser::ParsePostfixExpression() -> ExprPtr {
         std::make_unique<DeclRefExpr>(dynamic_cast<DeclRefExpr *>(expr.get()));
     auto f = dynamic_cast<FunctionDecl *>(func->decl_.get());
     if (f == nullptr) {
-      ThrowParserException("error when parsing function call");
+      throw ParserException(loc_, "error when parsing function call");
     }
     size_t idx = 0;
     std::vector<ExprPtr> args;
     if (!Check(RP)) {
       do {
         if (idx == f->proto_->params_.size()) {
-          ThrowParserException(
+          throw ParserException(
+              loc_,
               makeString("too many arguments to function call, expected {}",
                          f->proto_->params_.size()));
         }
@@ -262,10 +195,10 @@ auto BaseParser::ParsePostfixExpression() -> ExprPtr {
   }
   if (Match({INC_OP, DEC_OP})) {
     if (!expr->Assignable()) {
-      ThrowParserException("expression is not assignable");
+      throw ParserException(loc_, "expression is not assignable");
     }
     Token op = Previous();
-    std::string type = actions_.CheckUnaryOperatorType(expr, op.type_);
+    std::string type = actions_.CheckUnaryOperator(expr, op.type_);
     return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
                                            POSTFIX);
   }
@@ -277,7 +210,7 @@ auto BaseParser::ParseUnaryExpression() -> ExprPtr {
   if (Match({ADD, NOT, SUB})) {
     Token op = Previous();
     auto expr = ParseUnaryExpression();
-    std::string type = actions_.CheckUnaryOperatorType(expr, op.type_);
+    std::string type = actions_.CheckUnaryOperator(expr, op.type_);
     return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
                                            PREFIX);
   }
@@ -286,9 +219,9 @@ auto BaseParser::ParseUnaryExpression() -> ExprPtr {
     Token op = Previous();
     auto expr = ParseUnaryExpression();
     if (!expr->Assignable()) {
-      ThrowParserException("expression is not assignable");
+      throw ParserException(loc_, "expression is not assignable");
     }
-    std::string type = actions_.CheckUnaryOperatorType(expr, op.type_);
+    std::string type = actions_.CheckUnaryOperator(expr, op.type_);
     return std::make_unique<UnaryOperator>(op, std::move(expr), std::move(type),
                                            PREFIX);
   }
@@ -300,7 +233,7 @@ auto BaseParser::ParseMultiplicativeExpression() -> ExprPtr {
   while (Match({MUL, DIV, MOD})) {
     Token op = Previous();
     auto right = ParseUnaryExpression();
-    std::string type = actions_.CheckBinaryOperatorType(expr, right, op.type_);
+    std::string type = actions_.CheckBinaryOperator(expr, right, op.type_);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
   }
@@ -312,7 +245,7 @@ auto BaseParser::ParseAdditiveExpression() -> ExprPtr {
   while (Match({ADD, SUB})) {
     Token op = Previous();
     auto right = ParseMultiplicativeExpression();
-    std::string type = actions_.CheckBinaryOperatorType(expr, right, op.type_);
+    std::string type = actions_.CheckBinaryOperator(expr, right, op.type_);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
   }
@@ -324,9 +257,10 @@ auto BaseParser::ParseShiftExpression() -> ExprPtr {
   while (Match({LEFT_OP, RIGHT_OP})) {
     Token op = Previous();
     auto right = ParseAdditiveExpression();
-    std::string type = actions_.CheckShiftOperatorType(expr, right, op.type_);
+    std::string type = actions_.CheckShiftOperator(expr, right, op.type_);
     if (type.empty()) {
-      ThrowParserException(
+      throw ParserException(
+          loc_,
           makeString("invalid operands to binary expression ('{}' and '{}')",
                      expr->GetType(), right->GetType()));
     }
@@ -341,7 +275,7 @@ auto BaseParser::ParseRelationalExpression() -> ExprPtr {
   while (Match({LE_OP, GE_OP, LT, GT})) {
     Token op = Previous();
     auto right = ParseShiftExpression();
-    std::string type = actions_.CheckBinaryOperatorType(expr, right, op.type_);
+    std::string type = actions_.CheckBinaryOperator(expr, right, op.type_);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
   }
@@ -353,7 +287,7 @@ auto BaseParser::ParseEqualityExpression() -> ExprPtr {
   while (Match({EQ_OP, NE_OP})) {
     Token op = Previous();
     auto right = ParseRelationalExpression();
-    std::string type = actions_.CheckBinaryOperatorType(expr, right, op.type_);
+    std::string type = actions_.CheckBinaryOperator(expr, right, op.type_);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
   }
@@ -365,7 +299,7 @@ auto BaseParser::ParseLogicalAndExpression() -> ExprPtr {
   while (Match(AND_OP)) {
     Token op = Previous();
     auto right = ParseEqualityExpression();
-    std::string type = actions_.CheckBinaryOperatorType(expr, right, op.type_);
+    std::string type = actions_.CheckBinaryOperator(expr, right, op.type_);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
   }
@@ -377,7 +311,7 @@ auto BaseParser::ParseLogicalOrExpression() -> ExprPtr {
   while (Match(OR_OP)) {
     Token op = Previous();
     auto right = ParseLogicalAndExpression();
-    std::string type = actions_.CheckBinaryOperatorType(expr, right, op.type_);
+    std::string type = actions_.CheckBinaryOperator(expr, right, op.type_);
     expr = std::make_unique<BinaryOperator>(op, std::move(expr),
                                             std::move(right), std::move(type));
   }
@@ -440,7 +374,7 @@ auto BaseParser::ParseIterationStatement() -> StmtPtr {
     if (Check({I64, F64})) {
       init = ParseDeclarationStatement();
     } else {
-      ThrowParserException("not support expression statement now!");
+      throw ParserException(loc_, "not support expression statement now!");
     }
     auto cond = ParseExpression();
     Consume(SEMI, "expected ';' after expression");
@@ -454,8 +388,7 @@ auto BaseParser::ParseIterationStatement() -> StmtPtr {
                                      std::move(cond), std::move(update),
                                      std::move(body));
   }
-  ThrowParserException("error in iteration statement");
-  return nullptr;
+  throw ParserException(loc_, "error in iteration statement");
 }
 
 auto BaseParser::ParseSelectionStatement() -> StmtPtr {
@@ -472,8 +405,7 @@ auto BaseParser::ParseSelectionStatement() -> StmtPtr {
     return std::make_unique<IfStmt>(std::move(expr), std::move(then_stmt),
                                     std::move(else_stmt));
   }
-  ThrowParserException("error in selection statement");
-  return nullptr;
+  throw ParserException(loc_, "error in selection statement");
 }
 
 auto BaseParser::ParseDeclarationStatement() -> StmtPtr {
@@ -484,8 +416,7 @@ auto BaseParser::ParseDeclarationStatement() -> StmtPtr {
     auto decl = ParseVariableDeclaration(type, name, LOCAL);
     return std::make_unique<DeclStmt>(std::move(decl));
   }
-  ThrowParserException("expected identifier");
-  return nullptr;
+  throw ParserException(loc_, "expected identifier");
 }
 
 auto BaseParser::ParseCompoundStatement() -> StmtPtr {
@@ -535,16 +466,14 @@ auto BaseParser::ParseDeclarationSpecifiers() -> std::pair<std::string, bool> {
     spec = Previous().value_;
   };
   return {spec, is_extern};
-  ThrowParserException("expected type specifier");
-  return {"", false};
+  throw ParserException(loc_, "expected type specifier");
 }
 
 auto BaseParser::ParseDeclarator() -> std::string {
   if (Match(IDENTIFIER)) {
     return Previous().value_;
   }
-  ThrowParserException("expected identifier");
-  return "";
+  throw ParserException(loc_, "expected identifier");
 }
 
 auto BaseParser::ParseFunctionParameters()
@@ -553,7 +482,7 @@ auto BaseParser::ParseFunctionParameters()
   if (!Check(RP)) {
     do {
       if (params.size() >= 255) {
-        ThrowParserException("can't have more than 255 parameters");
+        throw ParserException(loc_, "can't have more than 255 parameters");
       }
       auto [type, flag] = ParseDeclarationSpecifiers();
       auto name = ParseDeclarator();
@@ -589,7 +518,7 @@ auto BaseParser::ParseVariableDeclaration(std::string type, std::string name,
   ExprPtr init;
   if (scope == GLOBAL) {
     if (global_var_table_.find(name) != global_var_table_.end()) {
-      ThrowParserException(makeString("redefinition of '{}'", name));
+      throw ParserException(loc_, makeString("redefinition of '{}'", name));
     }
     /// for global variable, set default value
     ExprPtr zero;
@@ -598,18 +527,17 @@ auto BaseParser::ParseVariableDeclaration(std::string type, std::string name,
     } else if (type == "f64") {
       zero = std::make_unique<FloatingLiteral>(0, "f64");
     } else {
-      ThrowParserException("not supported type");
+      throw ParserException(loc_, "not supported type");
     }
-    /// TODO: support parse minus number
     init = (Match(EQUAL) ? ParseAssignmentExpression() : std::move(zero));
     if (!init->IsConstant()) {
-      ThrowParserException(
-          "initializer element is not a compile-time constant");
+      throw ParserException(
+          loc_, "initializer element is not a compile-time constant");
     }
     global_var_table_[name] = type;
   } else {
     if (var_table_.find(name) != var_table_.end()) {
-      ThrowParserException(makeString("redefinition of '{}'", name));
+      throw ParserException(loc_, makeString("redefinition of '{}'", name));
     }
     var_table_[name] = type;
     init = (Match(EQUAL) ? ParseAssignmentExpression() : nullptr);

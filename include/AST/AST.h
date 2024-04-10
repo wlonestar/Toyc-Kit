@@ -75,20 +75,6 @@ struct FloatingLiteral : public Literal {
             const std::string &_p = "") override;
 };
 
-struct CharacterLiteral : public Literal {
-  int value_;
-  std::string type_;
-
-  explicit CharacterLiteral(int value) : value_(value), type_("i64") {}
-
-  auto GetType() const -> std::string override { return "i64"; }
-  auto Assignable() const -> bool override { return false; }
-  auto IsConstant() const -> bool override { return true; };
-  auto Accept(ASTVisitor &visitor) -> llvm::Value * override;
-  void Dump(std::ostream &os = std::cerr, size_t _d = 0, Side _s = LEAF,
-            const std::string &_p = "") override;
-};
-
 struct StringLiteral : public Literal {
   std::string value_;
   std::string type_;

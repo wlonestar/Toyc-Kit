@@ -9,7 +9,8 @@
 
 namespace toyc {
 
-void PrintASTLeader(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void PrintASTLeader(std::ostream &os, size_t _d, Side _s,
+                    const std::string &_p) {
   std::string leader;
   if (_d == 0) {
     leader = "`";
@@ -49,20 +50,15 @@ void FloatingLiteral::Dump(std::ostream &os, size_t _d, Side _s,
                    AST_TYPE("'{}'", type_), AST_LITERAL("{}", value_));
 }
 
-void CharacterLiteral::Dump(std::ostream &os, size_t _d, Side _s,
-                            const std::string &_p) {
-  PrintASTLeader(os, _d, _s, _p);
-  os << makeString("{} {} {}\n", AST_STMT("CharacterLiteral"),
-                   AST_TYPE("'{}'", type_), AST_LITERAL("{}", value_));
-}
-
-void StringLiteral::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void StringLiteral::Dump(std::ostream &os, size_t _d, Side _s,
+                         const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {} {}\n", AST_STMT("StringLiteral"),
                    AST_TYPE("'{}'", type_), AST_LITERAL("\"{}\"", value_));
 }
 
-void DeclRefExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void DeclRefExpr::Dump(std::ostream &os, size_t _d, Side _s,
+                       const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   std::string decl_type = "(null)";
   if (dynamic_cast<VarDecl *>(decl_.get()) != nullptr) {
@@ -71,7 +67,8 @@ void DeclRefExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &
     decl_type = "Function";
   }
   os << makeString("{} {} {} {}\n", AST_STMT("DeclRefExpr"),
-                   AST_TYPE("'{}'", decl_->GetType()), AST_DECL("{}", decl_type),
+                   AST_TYPE("'{}'", decl_->GetType()),
+                   AST_DECL("{}", decl_type),
                    AST_LITERAL("'{}'", decl_->GetName()));
 }
 
@@ -84,7 +81,8 @@ void ImplicitCastExpr::Dump(std::ostream &os, size_t _d, Side _s,
   expr_->Dump(os, _d + 1, LEAF, leader);
 }
 
-void ParenExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void ParenExpr::Dump(std::ostream &os, size_t _d, Side _s,
+                     const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {}\n", AST_STMT("ParenExpr"),
                    AST_TYPE("'{}'", GetType()));
@@ -92,7 +90,8 @@ void ParenExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p
   expr_->Dump(os, _d + 1, LEAF, leader);
 }
 
-void CallExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void CallExpr::Dump(std::ostream &os, size_t _d, Side _s,
+                    const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {}\n", AST_STMT("CallExpr"),
                    AST_TYPE("'{}'", GetType()));
@@ -110,7 +109,8 @@ void CallExpr::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p)
   }
 }
 
-void UnaryOperator::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void UnaryOperator::Dump(std::ostream &os, size_t _d, Side _s,
+                         const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {} {} '{}'\n", AST_STMT("UnaryOperator"),
                    AST_TYPE("'{}'", type_),
@@ -132,7 +132,8 @@ void BinaryOperator::Dump(std::ostream &os, size_t _d, Side _s,
  * Stmt
  */
 
-void CompoundStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void CompoundStmt::Dump(std::ostream &os, size_t _d, Side _s,
+                        const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("CompoundStmt"));
   std::string leader = AttachLeafLeader(_s, _p);
@@ -146,7 +147,8 @@ void CompoundStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string 
   }
 }
 
-void ExprStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void ExprStmt::Dump(std::ostream &os, size_t _d, Side _s,
+                    const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("ExprStmt"));
   std::string leader = AttachLeafLeader(_s, _p);
@@ -155,7 +157,8 @@ void ExprStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p)
   }
 }
 
-void DeclStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void DeclStmt::Dump(std::ostream &os, size_t _d, Side _s,
+                    const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("DeclStmt"));
   std::string leader = AttachLeafLeader(_s, _p);
@@ -179,7 +182,8 @@ void IfStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
   }
 }
 
-void WhileStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void WhileStmt::Dump(std::ostream &os, size_t _d, Side _s,
+                     const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("WhileStmt"));
   std::string leader = AttachLeafLeader(_s, _p);
@@ -189,7 +193,8 @@ void WhileStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p
   }
 }
 
-void ForStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void ForStmt::Dump(std::ostream &os, size_t _d, Side _s,
+                   const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("ForStmt"));
   std::string leader = AttachLeafLeader(_s, _p);
@@ -199,7 +204,8 @@ void ForStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) 
   body_->Dump(os, _d + 1, LEAF, leader);
 }
 
-void ReturnStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void ReturnStmt::Dump(std::ostream &os, size_t _d, Side _s,
+                      const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{}\n", AST_STMT("ReturnStmt"));
   std::string leader = AttachLeafLeader(_s, _p);
@@ -212,7 +218,8 @@ void ReturnStmt::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_
  * Decl
  */
 
-void VarDecl::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void VarDecl::Dump(std::ostream &os, size_t _d, Side _s,
+                   const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {} {}\n", AST_DECL("VarDecl"), AST_LITERAL("{}", name_),
                    AST_TYPE("'{}'", GetType()));
@@ -222,13 +229,15 @@ void VarDecl::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) 
   }
 }
 
-void ParmVarDecl::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void ParmVarDecl::Dump(std::ostream &os, size_t _d, Side _s,
+                       const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {} {}\n", AST_DECL("ParmVarDecl"),
                    AST_LITERAL("{}", name_), AST_TYPE("'{}'", GetType()));
 }
 
-void FunctionDecl::Dump(std::ostream &os, size_t _d, Side _s, const std::string &_p) {
+void FunctionDecl::Dump(std::ostream &os, size_t _d, Side _s,
+                        const std::string &_p) {
   PrintASTLeader(os, _d, _s, _p);
   os << makeString("{} {} {}{}\n", AST_DECL("FunctionDecl"),
                    AST_LITERAL("{}", proto_->name_),

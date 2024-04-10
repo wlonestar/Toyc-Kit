@@ -17,18 +17,28 @@
 
 namespace toyc {
 
-class ParserException : public std::exception {
-private:
+/**
+ * @brief: record current token's line and column location info
+ */
+struct TokLoc {
   size_t line_;
   size_t col_;
+
+  TokLoc() = default;
+  TokLoc(size_t line, size_t col) : line_(line), col_(col) {}
+};
+
+class ParserException : public std::exception {
+private:
+  TokLoc loc_;
   std::string message_;
 
 public:
-  ParserException(size_t _line, size_t _col, std::string _msg)
-      : line_(_line), col_(_col),
+  ParserException(TokLoc loc, std::string _msg)
+      : loc_(loc),
         message_(makeString("\033[1;37mline:{}:col:{}:\033[0m "
                             "\033[1;31merror:\033[0m \033[1;37m{}\033[0m",
-                            _line, _col, _msg)) {}
+                            loc.line_, loc.col_, _msg)) {}
 
   auto what() const noexcept -> const char * override {
     return message_.c_str();
@@ -54,6 +64,7 @@ protected:
   Token prev_;
   Lexer lexer_;
   Sema actions_;
+  TokLoc loc_;
 
 protected:
   /// global variable: <name, type>
@@ -64,29 +75,19 @@ protected:
   std::map<std::string, FunctionParams> func_table_;
 
 protected:
-  void ThrowParserException(const std::string &message) {
-    throw ParserException(current_.line_, current_.col_, message);
-  }
-
-protected:
   void ClearVarTable() { var_table_.clear(); }
 
 public:
   auto Peek() -> Token { return current_; }
   auto Previous() -> Token { return prev_; }
   auto Advance() -> Token;
-  auto Consume(TokenTy type, std::string &message) -> Token;
-  auto Consume(TokenTy type, std::string &&message) -> Token;
+  auto Consume(TokenTy type, std::string message) -> Token;
 
 protected:
   auto Check(std::initializer_list<TokenTy> types) -> bool;
   auto Check(TokenTy type) -> bool;
   auto Match(std::initializer_list<TokenTy> types) -> bool;
   auto Match(TokenTy type) -> bool;
-
-protected:
-  auto ParseIntegerSuffix(std::string &value, int base) -> int64_t;
-  auto ParseFloatingSuffix(std::string &value, int base) -> double;
 
 protected:
   auto ParseIntegerLiteral() -> ExprPtr;

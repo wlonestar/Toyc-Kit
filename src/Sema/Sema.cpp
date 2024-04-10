@@ -10,14 +10,14 @@ auto Sema::CheckOctal(const std::string &value) -> bool {
   return value.starts_with("0") && value.size() != 1;
 }
 
-auto Sema::CheckUnaryOperatorType(ExprPtr &rhs, TokenTy type) -> std::string {
+auto Sema::CheckUnaryOperator(ExprPtr &rhs, TokenTy type) -> std::string {
   if (type == NOT) {
     return "i64";
   }
   return rhs->GetType();
 }
 
-auto Sema::CheckBinaryOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
+auto Sema::CheckBinaryOperator(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
     -> std::string {
   if (type == AND_OP || type == OR_OP) {
     return "i64";
@@ -35,7 +35,7 @@ auto Sema::CheckBinaryOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
   return "i64";
 }
 
-auto Sema::CheckShiftOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
+auto Sema::CheckShiftOperator(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
     -> std::string {
   if (lhs->GetType() == "f64" || rhs->GetType() == "f64") {
     return "";

@@ -31,13 +31,13 @@ auto InterpreterParser::ParseVariableDeclaration(std::string type,
   ExprPtr init;
   if (scope == GLOBAL) {
     if (global_var_table_.find(name) != global_var_table_.end()) {
-      ThrowParserException(makeString("redefinition of '{}'", name));
+      throw ParserException(loc_, makeString("redefinition of '{}'", name));
     }
     init = (Match(EQUAL) ? ParseAssignmentExpression() : nullptr);
     global_var_table_[name] = type;
   } else {
     if (var_table_.find(name) != var_table_.end()) {
-      ThrowParserException(makeString("redefinition of '{}'", name));
+      throw ParserException(loc_, makeString("redefinition of '{}'", name));
     }
     var_table_[name] = type;
     init = (Match(EQUAL) ? ParseAssignmentExpression() : nullptr);
@@ -66,7 +66,7 @@ auto InterpreterParser::Parse() -> InterpreterParser::ParseResult {
     if (Match(IDENTIFIER)) {
       name = Previous().value_;
     } else {
-      ThrowParserException("invalid expression");
+      throw ParserException(loc_, "invalid expression");
     }
     if (Match(LP)) {
       return ParseFunctionDeclaration(type, name, is_extern);

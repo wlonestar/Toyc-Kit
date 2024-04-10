@@ -25,10 +25,10 @@ public:
   auto CheckHexadecimal(const std::string &value) -> bool;
   auto CheckOctal(const std::string &value) -> bool;
 
-  auto CheckUnaryOperatorType(ExprPtr &rhs, TokenTy type) -> std::string;
-  auto CheckBinaryOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
+  auto CheckUnaryOperator(ExprPtr &rhs, TokenTy type) -> std::string;
+  auto CheckBinaryOperator(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
       -> std::string;
-  auto CheckShiftOperatorType(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
+  auto CheckShiftOperator(ExprPtr &lhs, ExprPtr &rhs, TokenTy type)
       -> std::string;
 };
 
