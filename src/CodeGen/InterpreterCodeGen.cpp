@@ -294,7 +294,7 @@ auto InterpreterIRVisitor::Codegen(const BinaryOperator &expr)
       return builder_->CreateICmpSGE(l, r);
     case LT:
       return builder_->CreateICmpSLT(l, r);
-    case RT:
+    case GT:
       return builder_->CreateICmpSGT(l, r);
     case LEFT_OP:
       return builder_->CreateShl(l, r);
@@ -325,7 +325,7 @@ auto InterpreterIRVisitor::Codegen(const BinaryOperator &expr)
       return builder_->CreateFCmpOGE(l, r);
     case LT:
       return builder_->CreateFCmpOLT(l, r);
-    case RT:
+    case GT:
       return builder_->CreateFCmpOGT(l, r);
     default:
       break;

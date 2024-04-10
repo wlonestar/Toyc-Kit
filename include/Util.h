@@ -16,20 +16,20 @@ namespace toyc {
  */
 // #define fstr(__fmt__, ...) fmt::format(__fmt__, ##__VA_ARGS__)
 
-#define makeString(__fmt__, ...) std::move(fmt::format(__fmt__, ##__VA_ARGS__))
+#define makeString(__fmt__, ...) fmt::format(__fmt__, ##__VA_ARGS__)
 
 /**
  * @brief print info with located file and line number, for debugging
  *
  * @notice: only works on DEBUG mode
  */
-#ifndef NDEBUG
+// #ifdef DEBUG
 #define debug(__fmt__, ...)                                                    \
-  std::cerr << makeString("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n",      \
+  std::cerr << fmt::format("\033[1;34m{}:{} [debug] " __fmt__ "\033[0m\n",      \
                           __FILE__, __LINE__, ##__VA_ARGS__)
-#else
-#define debug(__fmt__, ...) ((void)0)
-#endif
+// #else
+// #define debug(__fmt__, ...) ((void)0)
+// #endif
 
 static auto IsDigit(char c) -> bool { return (c >= '0' && c <= '9'); }
 
@@ -40,6 +40,17 @@ static auto IsLetter(char c) -> bool {
 }
 
 static auto IsAlpha(char c) -> bool { return IsLetter(c) || IsDigit(c); }
+
+static auto StrContains(const std::string& str, char ch) -> bool {
+  bool found = false;
+  for (auto s : str) {
+    if (ch == s) {
+      found = true;
+      break;
+    }
+  }
+  return found;
+}
 
 /**
  * @brief read file content from `src` and write into string `input`

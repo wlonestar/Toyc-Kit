@@ -31,6 +31,7 @@ auto main(int argc, const char **argv) -> int {
         std::cout << "bye~\n";
         break;
       }
+
       /// normal statements
       if (line.ends_with("\\")) {
         /// multiple input

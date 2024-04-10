@@ -1,0 +1,116 @@
+grammar Toyc;
+
+// start
+translationUnit: externalDeclaration;
+
+externalDeclaration: declaration*;
+
+// declaration
+declaration: variableDeclaration | functionDeclaration;
+
+variableDeclaration:
+	'extern'? ('let' | 'static') Identifier (':' TypeSpecifier)? assignmentExpression;
+
+functionDeclaration:
+	'extern'? 'fn' Identifier '(' functionParameter? ')' (
+		'->' TypeSpecifier
+	)? statement;
+
+functionParameter:
+	parameterDeclaration (',' parameterDeclaration)*;
+
+parameterDeclaration: Identifier ':' TypeSpecifier;
+
+// statement
+statement:
+	returnStatement
+	| selectionStatement
+	| iterationStatement
+	| compoundStatement
+	| expressionStatement;
+
+returnStatement: 'return' expression? ';';
+
+selectionStatement:
+	'if' '(' expression ')' statement ('else' statement)?;
+
+iterationStatement:
+	'while' '(' expression ')' statement
+	| 'for' '(' declaration expression ';' expression ')' statement;
+
+compoundStatement: '{' '}' | '{' ( declaration | statement)+ '}';
+
+expressionStatement: expression? ';';
+
+// expression
+expression: assignmentExpression;
+
+assignmentExpression:
+	logicalOrExpression
+	| assignmentExpression '=' logicalOrExpression;
+
+logicalOrExpression:
+	logicalAndExpression
+	| logicalOrExpression '||' logicalAndExpression;
+
+logicalAndExpression:
+	equalityExpression
+	| logicalAndExpression '&&' equalityExpression;
+
+equalityExpression:
+	relationalExpression
+	| equalityExpression ('==' | '!=') relationalExpression;
+
+relationalExpression:
+	shiftExpression
+	| relationalExpression ('<' | '<=' | '>' | '>=') shiftExpression;
+
+shiftExpression:
+	additiveExpression
+	| shiftExpression ('<<' | '>>') additiveExpression;
+
+additiveExpression:
+	multiplicativeExpression
+	| additiveExpression ('+' | '-') multiplicativeExpression;
+
+multiplicativeExpression:
+	unaryExpression
+	| multiplicativeExpression ('*' | '/' | '%') unaryExpression;
+
+unaryExpression:
+	postfixExpression
+	| ('+' | '-' | '!') unaryExpression
+	| ('++' | '--') unaryExpression;
+
+postfixExpression:
+	primaryExpression
+	| postfixExpression ('++' | '--');
+
+primaryExpression:
+	IntegerLiteral
+	| FloatingLiteral
+	| Identifier
+	| '(' expression ')';
+
+IntegerLiteral:
+	HexadecimalLiteral
+	| DecimalLiteral
+	| OctalLiteral;
+
+FloatingLiteral: D+ E | D* '.' D+ E? | D+ '.' E?;
+
+Identifier: L (L | D)*;
+
+TypeSpecifier: 'i64' | 'f64';
+
+HexadecimalLiteral: HP H+;
+DecimalLiteral: NZ D*;
+OctalLiteral: '0' O*;
+
+fragment HP: '0' [xX];
+fragment H: [a-fA-F0-9];
+fragment NZ: [1-9];
+fragment D: '0' | NZ;
+fragment O: [0-7];
+fragment E: [Ee][+-]? D+;
+fragment L: [_a-zA-Z];

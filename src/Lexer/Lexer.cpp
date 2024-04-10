@@ -30,8 +30,11 @@ void Lexer::Backward(size_t steps) {
 }
 
 auto Lexer::Advance() -> char {
-  col_++;
-  return input_.at(current_++);
+  if (!IsEnd()) {
+    col_++;
+    return input_.at(current_++);
+  }
+  return '\0';
 }
 
 auto Lexer::Peek() -> char {
@@ -107,11 +110,11 @@ void Lexer::SkipMutliComment() {
     Advance();
   }
   if (IsEnd()) {
-    ThrowLexerException("unterminated /* comment");
+    throw LexerException(line_, col_, "unterminated /* comment");
   }
   Advance();
   if (Peek() != '/') {
-    ThrowLexerException("unterminated /* comment");
+    throw LexerException(line_, col_, "unterminated /* comment");
   }
   Advance();
 }
@@ -124,7 +127,7 @@ auto Lexer::ScanString() -> Token {
     Advance();
   }
   if (IsEnd()) {
-    ThrowLexerException("unterminated string.");
+    throw LexerException(line_, col_, "unterminated string.");
   }
   Advance();
   /// remove '"' and '"': "asdasd" -> asdasd
@@ -135,9 +138,9 @@ auto Lexer::ScanNumber() -> Token {
   /// firstly split the possible number literal from the whole input_ string
   size_t tok_size = 0;
   for (size_t i = current_ - 1; i < input_.size(); i++, tok_size++) {
-    if (input_[i] == ';' || input_[i] == ' ' || input_[i] == '\r' ||
-        input_[i] == '\t' || input_[i] == '\n' || input_[i] == '\v' ||
-        input_[i] == '\f') {
+    if (input_[i] == ';' || input_[i] == ',' || input_[i] == ' ' ||
+        input_[i] == '\r' || input_[i] == '\t' || input_[i] == '\n' ||
+        input_[i] == '\v' || input_[i] == '\f') {
       break;
     }
   }
@@ -145,155 +148,32 @@ auto Lexer::ScanNumber() -> Token {
   std::sregex_iterator iter;
   std::sregex_iterator end;
 
-  std::regex float6(R"(0[xX][a-fA-F0-9]+\.([pP][+-]?[0-9]+)(f|F|l|L)?)");
-  std::regex float4(R"(0[xX][a-fA-F0-9]+([pP][+-]?[0-9]+)(f|F|l|L)?)");
-  std::regex int1(
-      R"(0[xX][a-fA-F0-9]+(((u|U)(ll|LL|l|L)?)|((ll|LL|l|L)(u|U)?))?)");
-  std::regex float5(
-      R"(0[xX][a-fA-F0-9]*\.[a-fA-F0-9]+([pP][+-]?[0-9]+)(f|F|l|L)?)");
-  std::regex int2(R"([1-9][0-9]*(((u|U)(ll|LL|l|L)?)|((ll|LL|l|L)(u|U)?))?)");
-  std::regex int3(R"(0[0-7]*(((u|U)(ll|LL|l|L)?)|((ll|LL|l|L)(u|U)?))?)");
-  std::regex float2(R"([0-9]+\.[0-9]+([eE][+-]?[0-9]+)?(f|F|l|L)?)");
-  std::regex float3(R"([0-9]+\.([eE][+-]?[0-9]+)?(f|F|l|L)?)");
-  std::regex float1(R"([0-9]+([eE][+-]?[0-9]+)(f|F|l|L)?)");
-  std::regex float22(R"(\.[0-9]+([eE][+-]?[0-9]+)?(f|F|l|L)?)");
-  std::regex int4(
-      R"('([^'\\]|\\['"?\\abfnrtv]|\\[0-7]{1,3}|\\x[0-9a-fA-F]+)')");
-  std::regex int44(
-      R"(\'([^'\\\n]|(\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+)))+\')");
+  std::regex int_re(R"((0[xX][a-fA-F0-9]+)|([1-9][0-9]*)|(0[0-7]*))");
+  std::regex float_re(
+      R"(([0-9]+([eE][+-]?[0-9]+))|([0-9]*\.[0-9]+([eE][+-]?[0-9]+)?)|([0-9]+\.([eE][+-]?[0-9]+)?))");
 
-  if (IsHexPreifx(Previous(), Peek())) { // {HP}
-    iter = std::sregex_iterator(str.begin(), str.end(), float6);
+  if (StrContains(str, '.') || StrContains(str, 'e') || StrContains(str, 'E')) {
+    iter = std::sregex_iterator(str.begin(), str.end(), float_re);
     if (iter != end) {
       Forward(iter->str().size() - 1);
       if (IsAlpha(Peek())) {
         Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_FLOATING_SUFFIX]);
+        throw LexerException(line_, col_,
+                             "invalid suffix on floating constant");
       }
-      return MakeToken(FLOATING);
     }
+    return MakeToken(FLOATING);
+  }
 
-    iter = std::sregex_iterator(str.begin(), str.end(), float5);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_FLOATING_SUFFIX]);
-      }
-      return MakeToken(FLOATING);
-    }
-
-    iter = std::sregex_iterator(str.begin(), str.end(), float4);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_FLOATING_SUFFIX]);
-      }
-      return MakeToken(FLOATING);
-    }
-
-    iter = std::sregex_iterator(str.begin(), str.end(), int1);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_INTEGER_SUFFIX]);
-      }
-      return MakeToken(INTEGER);
-    }
-  } else if (IsNonZero(Previous())) { // {NZ}
-    iter = std::sregex_iterator(str.begin(), str.end(), int2);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      ///---------- !!! trivial !!! ----------///
-      if (Peek() == '.') {
-        Backward(iter->str().size() - 1);
-        goto DIGIT;
-      }
-      ///---------- !!! trivial !!! ----------///
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_INTEGER_SUFFIX]);
-      }
-      return MakeToken(INTEGER);
-    }
-  } else if (IsDigit(Previous())) { // {D}
-  DIGIT:
-    iter = std::sregex_iterator(str.begin(), str.end(), float2);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_FLOATING_SUFFIX]);
-      }
-      return MakeToken(FLOATING);
-    }
-
-    iter = std::sregex_iterator(str.begin(), str.end(), float3);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_FLOATING_SUFFIX]);
-      }
-      return MakeToken(FLOATING);
-    }
-
-    iter = std::sregex_iterator(str.begin(), str.end(), float1);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_FLOATING_SUFFIX]);
-      }
-      return MakeToken(FLOATING);
-    }
-
-    if (Previous() == '0') { // "0"
-      iter = std::sregex_iterator(str.begin(), str.end(), int3);
-      if (iter != end) {
-        Forward(iter->str().size() - 1);
-        if (IsAlpha(Peek())) {
-          Forward(1);
-          ThrowLexerException(lexer_exception_table[INVALID_INTEGER_SUFFIX]);
-        }
-        return MakeToken(INTEGER);
-      }
-    }
-  } else if (Previous() == '.') { // "."
-    iter = std::sregex_iterator(str.begin(), str.end(), float22);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_FLOATING_SUFFIX]);
-      }
-      return MakeToken(FLOATING);
-    }
-  } else if (IsCharPrefix(Previous())) {
-    iter = std::sregex_iterator(str.begin(), str.end(), int4);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_INTEGER_SUFFIX]);
-      }
-      return MakeToken(INTEGER);
-    }
-  } else if (Previous() == '\'') { // "'"
-    iter = std::sregex_iterator(str.begin(), str.end(), int44);
-    if (iter != end) {
-      Forward(iter->str().size() - 1);
-      if (IsAlpha(Peek())) {
-        Forward(1);
-        ThrowLexerException(lexer_exception_table[INVALID_INTEGER_SUFFIX]);
-      }
-      return MakeToken(INTEGER);
+  iter = std::sregex_iterator(str.begin(), str.end(), int_re);
+  if (iter != end) {
+    Forward(iter->str().size() - 1);
+    if (IsAlpha(Peek())) {
+      Forward(1);
+      throw LexerException(line_, col_, "invalid suffix on integer constant");
     }
   }
-  ThrowLexerException(lexer_exception_table[INVALID_INTEGER_OR_FLOATING]);
-  return MakeToken(ERROR);
+  return MakeToken(INTEGER);
 }
 
 auto Lexer::ScanIdentifier() -> Token {
@@ -335,7 +215,7 @@ auto Lexer::ScanToken() -> Token {
     return ScanIdentifier();
   }
   /// Scan number
-  if (IsDigit(c) || c == '.' || c == '\'') {
+  if (IsDigit(c) || c == '.') {
     return ScanNumber();
   }
   /// Scan sign
@@ -367,43 +247,43 @@ auto Lexer::ScanToken() -> Token {
   case '.': {
     if (Match('.')) {
       if (Match('.')) {
-        return MakeToken(ELLIPSIS);
+        return MakeToken(ELLIPSIS); /* ... */
       }
-      return MakeToken(ERROR);
+      throw LexerException(line_, col_, "expected parameter declarator");
     }
-    return MakeToken(DOT);
+    return MakeToken(DOT); /* . */
   }
   case '&': {
     if (Match('&')) {
-      return MakeToken(AND_OP);
+      return MakeToken(AND_OP); /* && */
     }
     if (Match('=')) {
-      return MakeToken(AND_ASSIGN);
+      return MakeToken(AND_ASSIGN); /* &= */
     }
-    return MakeToken(AND);
+    return MakeToken(AND); /* & */
   }
   case '!':
     return MakeToken(Match('=') ? NE_OP : NOT);
   case '-': {
     if (Match('=')) {
-      return MakeToken(SUB_ASSIGN);
+      return MakeToken(SUB_ASSIGN); /* -= */
     }
     if (Match('-')) {
-      return MakeToken(DEC_OP);
+      return MakeToken(DEC_OP); /* -- */
     }
     if (Match('>')) {
-      return MakeToken(PTR_OP);
+      return MakeToken(PTR_OP); /* -> */
     }
-    return MakeToken(SUB);
+    return MakeToken(SUB); /* - */
   }
   case '+': {
     if (Match('+')) {
-      return MakeToken(INC_OP);
+      return MakeToken(INC_OP); /* ++ */
     }
     if (Match('=')) {
-      return MakeToken(ADD_ASSIGN);
+      return MakeToken(ADD_ASSIGN); /* += */
     }
-    return MakeToken(ADD);
+    return MakeToken(ADD); /* + */
   }
   case '*':
     return MakeToken(Match('=') ? MUL_ASSIGN : MUL);
@@ -413,45 +293,44 @@ auto Lexer::ScanToken() -> Token {
     return MakeToken(Match('=') ? MOD_ASSIGN : MOD);
   case '<': {
     if (Match('=')) {
-      return MakeToken(LE_OP);
+      return MakeToken(LE_OP); /* <= */
     }
     if (Match('<')) {
       if (Match('=')) {
-        return MakeToken(LEFT_ASSIGN);
+        return MakeToken(LEFT_ASSIGN); /* <<= */
       }
-      return MakeToken(LEFT_OP);
+      return MakeToken(LEFT_OP); /* << */
     }
-    return MakeToken(LT);
+    return MakeToken(LT); /* < */
   }
   case '>': {
     if (Match('=')) {
-      return MakeToken(GE_OP);
+      return MakeToken(GE_OP); /* >= */
     }
     if (Match('>')) {
       if (Match('=')) {
-        return MakeToken(RIGHT_ASSIGN);
+        return MakeToken(RIGHT_ASSIGN); /* >>= */
       }
-      return MakeToken(RIGHT_OP);
+      return MakeToken(RIGHT_OP); /* >> */
     }
-    return MakeToken(RT);
+    return MakeToken(GT); /* > */
   }
   case '^':
     return MakeToken(Match('=') ? XOR_ASSIGN : XOR);
   case '|': {
     if (Match('=')) {
-      return MakeToken(OR_ASSIGN);
+      return MakeToken(OR_ASSIGN); /* |= */
     }
     if (Match('|')) {
-      return MakeToken(OR_OP);
+      return MakeToken(OR_OP); /* || */
     }
-    return MakeToken(OR);
+    return MakeToken(OR); /* | */
   }
   case '"':
     return ScanString();
   }
-  /// Throw exception if there Is an unexcepted character
-  ThrowLexerException("unexpected character.");
-  return {ERROR, ""};
+  /// throw exception if there is an unexcepted character
+  throw LexerException(line_, col_, "unexpected character.");
 }
 
 } // namespace toyc

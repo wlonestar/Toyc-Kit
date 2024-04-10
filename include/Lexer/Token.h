@@ -113,7 +113,7 @@ enum TokenTy {
   DIV,          // /
   MOD,          // %
   LT,           // <
-  RT,           // >
+  GT,           // >
   XOR,          // ^
   OR,           // |
   QUE,          // ?

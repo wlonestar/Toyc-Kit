@@ -29,18 +29,6 @@ public:
   }
 };
 
-enum LexerExceptionCode {
-  INVALID_INTEGER_SUFFIX = 0,
-  INVALID_FLOATING_SUFFIX = 1,
-  INVALID_INTEGER_OR_FLOATING = 2,
-};
-
-static std::vector<std::string> lexer_exception_table = {
-    "invalid suffix on integer constant",   // INVALID_INTEGER_SUFFIX
-    "invalid suffix on floating constant",  // INVALID_FLOATING_SUFFIX
-    "invalid integer or floating constant", // INVALID_INTEGER_OR_FLOATING
-};
-
 /**
  * @brief Toyc lexical analyzer
  *
@@ -59,11 +47,6 @@ private:
   size_t line_{};
   /// Column number of current line, begin from 0
   size_t col_{};
-
-private:
-  void ThrowLexerException(std::string message) {
-    throw LexerException(line_, col_, std::move(message));
-  }
 
 private:
   auto IsEnd() -> bool { return current_ >= input_.size(); }

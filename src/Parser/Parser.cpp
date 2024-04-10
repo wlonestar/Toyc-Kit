@@ -1,5 +1,6 @@
 //! BaseParser implementation
 
+#include "Lexer/Lexer.h"
 #include <AST/AST.h>
 #include <Lexer/Token.h>
 #include <Parser/Parser.h>
@@ -19,7 +20,13 @@ namespace toyc {
 auto BaseParser::Advance() -> Token {
   prev_ = current_;
   for (;;) {
-    current_ = lexer_.ScanToken();
+    try {
+      current_ = lexer_.ScanToken();
+    } catch (LexerException e) {
+      std::cerr << e.what() << "\n";
+      lexer_.Advance();
+      continue;
+    }
     if (current_.type_ != ERROR) {
       break;
     }
@@ -331,7 +338,7 @@ auto BaseParser::ParseShiftExpression() -> ExprPtr {
 
 auto BaseParser::ParseRelationalExpression() -> ExprPtr {
   auto expr = ParseShiftExpression();
-  while (Match({LE_OP, GE_OP, LT, RT})) {
+  while (Match({LE_OP, GE_OP, LT, GT})) {
     Token op = Previous();
     auto right = ParseShiftExpression();
     std::string type = actions_.CheckBinaryOperatorType(expr, right, op.type_);
