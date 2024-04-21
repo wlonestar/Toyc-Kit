@@ -46,7 +46,8 @@ target_link_libraries(toyci
 )
 
 add_executable(toyc-repl
-  REPL/ToycREPL.cpp
+  Repl/ToycRepl.cpp
+  Repl/LineEditor.cpp
 )
 target_compile_definitions(toyc-repl PRIVATE
   $<$<CONFIG:Debug>:DEBUG>
